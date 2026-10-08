@@ -1,0 +1,57 @@
+display_information:
+  name: Decision Memory
+  description: Capture durable, searchable decisions from Slack.
+  background_color: "#0c66e4"
+
+features:
+  bot_user:
+    display_name: Decision Memory
+    always_online: false
+  shortcuts:
+    - name: Save as Decision
+      type: message
+      callback_id: save_as_decision
+      description: Capture this message and thread as a durable Decision.
+    - name: Ask Decision Memory
+      type: message
+      callback_id: ask_decision_memory
+      description: Find stored Decisions that answer this message.
+  slash_commands:
+    - command: /decide
+      url: https://kietleds.tail305ff.ts.net/decision-memory/slack/interactions
+      description: Record a Decision from the current conversation.
+      usage_hint: "[decision text]"
+      should_escape: false
+    - command: /why
+      url: https://kietleds.tail305ff.ts.net/decision-memory/slack/interactions
+      description: Ask why the team decided something.
+      usage_hint: "[question]"
+      should_escape: false
+
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - commands
+      - chat:write
+      - channels:history
+      - channels:read
+      - groups:history
+      - groups:read
+      - im:history
+      - mpim:history
+      - users:read
+
+settings:
+  event_subscriptions:
+    request_url: https://kietleds.tail305ff.ts.net/decision-memory/slack/events
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+  interactivity:
+    is_enabled: true
+    request_url: https://kietleds.tail305ff.ts.net/decision-memory/slack/interactions
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

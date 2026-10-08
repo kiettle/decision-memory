@@ -1,0 +1,16 @@
+# Harness core maintenance binary
+scripts/bin/harness
+scripts/bin/harness.exe
+
+# Local configuration and generated output
+.env
+.env.*.local
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Forge and local tooling
+.forge/
+.tunnel/

@@ -1,0 +1,41 @@
+modules:
+  jira:globalPage:
+    - key: decision-memory
+      resource: main
+      resolver:
+        endpoint: decision-memory-api
+      title: Decision Memory
+      layout: blank
+  endpoint:
+    - key: decision-memory-api
+      remote: decision-memory-api
+      auth:
+        appSystemToken:
+          enabled: false
+        appUserToken:
+          enabled: false
+
+resources:
+  - key: main
+    path: apps/web/dist
+
+remotes:
+  - key: decision-memory-api
+    baseUrl: ${FORGE_REMOTE_BASE_URL}
+    operations:
+      - compute
+      - storage
+    storage:
+      inScopeEUD: true
+
+permissions: {}
+
+environment:
+  variables:
+    - FORGE_APP_ID
+    - FORGE_REMOTE_BASE_URL
+
+app:
+  id: ${FORGE_APP_ID}
+  runtime:
+    name: nodejs22.x

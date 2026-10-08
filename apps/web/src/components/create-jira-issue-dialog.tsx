@@ -1,0 +1,222 @@
+import { TicketPlus } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Field, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { api } from "@/lib/api"
+import type { Decision, JiraIssueType, JiraProject } from "@/types"
+
+const message = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
+
+// Spec §18: turn a Decision into Jira work and keep the issue key as related work.
+export function CreateJiraIssueDialog({
+  decision,
+  enabled,
+  onCreated,
+}: {
+  decision: Decision
+  enabled: boolean
+  onCreated: (decision: Decision) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [projects, setProjects] = useState<JiraProject[] | null>(null)
+  const [projectKey, setProjectKey] = useState("")
+  const [issueTypes, setIssueTypes] = useState<JiraIssueType[] | null>(null)
+  const [issueTypeId, setIssueTypeId] = useState("")
+  const [summary, setSummary] = useState("")
+  const [error, setError] = useState("")
+  const [creating, setCreating] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    let active = true
+    api
+      .jiraProjects()
+      .then((rows) => {
+        if (!active) return
+        setProjects(rows)
+        if (rows.length === 1) setProjectKey(rows[0].key)
+      })
+      .catch((loadError) => {
+        if (active) setError(message(loadError, "Could not load Jira projects."))
+      })
+    return () => {
+      active = false
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!projectKey) return
+    let active = true
+    api
+      .jiraIssueTypes(projectKey)
+      .then((types) => {
+        if (!active) return
+        setIssueTypes(types)
+        setIssueTypeId((types.find((type) => type.name === "Task") ?? types[0])?.id ?? "")
+      })
+      .catch((loadError) => {
+        if (active) setError(message(loadError, "Could not load issue types."))
+      })
+    return () => {
+      active = false
+    }
+  }, [projectKey])
+
+  function changeOpen(next: boolean) {
+    setOpen(next)
+    if (!next) return
+    setProjects(null)
+    setProjectKey("")
+    setIssueTypes(null)
+    setIssueTypeId("")
+    setSummary(decision.title.slice(0, 255))
+    setError("")
+  }
+
+  function chooseProject(key: string) {
+    setProjectKey(key)
+    setIssueTypes(null)
+    setIssueTypeId("")
+    setError("")
+  }
+
+  async function create() {
+    setCreating(true)
+    setError("")
+    try {
+      const result = await api.createJiraIssue(decision.id, {
+        projectKey,
+        issueTypeId,
+        summary,
+      })
+      toast.success(`Created ${result.issue.key}.`)
+      onCreated(result.decision)
+      setOpen(false)
+    } catch (createError) {
+      setError(message(createError, "The Jira issue could not be created."))
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="outline"
+            disabled={!enabled}
+            title={
+              enabled
+                ? undefined
+                : "Add JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN to enable."
+            }
+          />
+        }
+      >
+        <TicketPlus /> Create Jira issue
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create a Jira issue</DialogTitle>
+          <DialogDescription>
+            The issue links back to {decision.decisionKey}, and its key is saved
+            under Related Work.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <Field>
+            <FieldLabel>Project</FieldLabel>
+            <Select
+              value={projectKey}
+              onValueChange={(value) => chooseProject(value ?? "")}
+            >
+              <SelectTrigger className="w-full" aria-label="Jira project">
+                <SelectValue>
+                  {projects === null
+                    ? "Loading projects…"
+                    : (projects.find((project) => project.key === projectKey)
+                        ?.name ?? "Select a project")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(projects ?? []).map((project) => (
+                  <SelectItem key={project.key} value={project.key}>
+                    {project.name} ({project.key})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel>Issue type</FieldLabel>
+            <Select
+              value={issueTypeId}
+              onValueChange={(value) => setIssueTypeId(value ?? "")}
+            >
+              <SelectTrigger className="w-full" aria-label="Jira issue type">
+                <SelectValue>
+                  {!projectKey
+                    ? "Choose a project first"
+                    : issueTypes === null
+                      ? "Loading issue types…"
+                      : (issueTypes.find((type) => type.id === issueTypeId)
+                          ?.name ?? "Select an issue type")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(issueTypes ?? []).map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="jira-summary">Summary</FieldLabel>
+            <Input
+              id="jira-summary"
+              value={summary}
+              maxLength={255}
+              onChange={(event) => setSummary(event.target.value)}
+            />
+          </Field>
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => void create()}
+            disabled={!projectKey || !issueTypeId || !summary.trim() || creating}
+          >
+            {creating ? "Creating…" : "Create issue"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

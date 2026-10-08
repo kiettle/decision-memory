@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: decision_memory
+      POSTGRES_USER: decision_memory
+      POSTGRES_PASSWORD: decision_memory
+    ports:
+      - "5434:5432"
+    volumes:
+      - decision-memory-postgres:/var/lib/postgresql/data
+      - ./db:/app/db:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U decision_memory -d decision_memory"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  decision-memory-postgres:

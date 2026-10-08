@@ -1,0 +1,32 @@
+{
+  "name": "decision-memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/server"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace web",
+    "dev:server": "npm run dev --workspace server",
+    "build": "npm run build --workspace web",
+    "lint": "npm run lint --workspace web && npm run lint --workspace server",
+    "typecheck": "npm run typecheck --workspace web",
+    "test": "npm run test --workspace server",
+    "test:integration": "node scripts/verify-integration.mjs",
+    "test:ui": "node scripts/visual-qa.mjs",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:schema": "docker compose exec -T postgres psql -U decision_memory -d decision_memory -f /app/db/schema.sql",
+    "db:seed": "docker compose exec -T postgres psql -U decision_memory -d decision_memory -f /app/db/seed.sql"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
