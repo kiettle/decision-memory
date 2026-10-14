@@ -94,8 +94,9 @@ variant instead states that no message thread is attached.
 ## AI Draft (Optional)
 
 When `GEMINI_API_KEY` is set, the message shortcut asks Gemini to draft the form
-from the captured thread (spec §7) while the "Capturing discussion…" view is
-shown. It sends at most 60 messages around the selected one, 1,500 characters
+from the captured thread (spec §7). After the discussion is persisted, an
+**Optional AI assistance** view offers **Continue manually** immediately; the
+person may also wait for the AI form. It sends at most 60 messages around the selected one, 1,500 characters
 each.
 
 - The draft pre-fills Decision, Why, Context, Applies To, Options Considered,
@@ -112,6 +113,10 @@ each.
   options discussed, and keeps the selected message as the starting text.
 - Other possible decisions in the thread are listed; the draft covers the one
   closest to the selected message.
+- **Continue manually** opens the plain form from the persisted discussion and
+  preserves the same retry identity. It does not wait for drafting or similar
+  Decision search. A late AI completion uses Slack's view hash and cannot
+  replace a manual form or saved result. A manual save does not claim AI review.
 - Nothing is saved until the person clicks Save. The snapshot records only the
   draft's outcome, confidence, and supporting message IDs, which the Decision
   page uses to choose the short discussion it shows.
@@ -135,14 +140,16 @@ submissions must not create duplicate Decisions.
 
 With Search by memory available, the message shortcut also searches stored
 Decisions for the drafted Decision (or the selected message) while the
-"Capturing discussion…" view is shown.
+optional-assistance view is shown; **Continue manually** bypasses this wait.
 
 - Up to three matches scoring 60 or more are listed with links and their
-  status, under "Already decided?".
+  status, under "Already decided?". Their bounded Why and Applies To excerpts
+  help the person understand whether they apply to the same situation.
 - An optional "Replaces an earlier Decision?" picker offers only the active
   matches. Choosing one supersedes it when the new Decision is saved, with the
   same rules as the web app; superseded or unlisted Decisions are never
-  replaced.
+  replaced. An optional **What changed?** explanation is kept on the replacement
+  relationship and visible from both Decisions.
 - A retried save that already applied the replacement still reports it, and a
   failed replacement does not block the save; the confirmation explains it.
 - `/decide` opens its form immediately, so it skips this check.
@@ -152,10 +159,12 @@ Decisions for the drafted Decision (or the selected message) while the
 The **Ask Decision Memory** message shortcut uses the selected message as the
 question; `/why <question>` uses the typed text. Both open a private Slack
 window that shows "Searching stored Decisions…" and then up to five stored
-Decisions scoring 60 or more, each with its status, Applies To, Why, the AI's
-reason for the match, and a link. Nothing is posted to the channel. Empty
+Decisions scoring 60 or more, each with its status, Applies To, Why, a local
+match explanation, and a link. Nothing is posted to the channel. Empty
 questions, no matches, missing configuration, and search failures each show a
-plain explanation.
+plain explanation. Search uses the local vector index without the former
+200-decision cap. When indexing is pending, the response states indexed/total
+coverage and offers retry or normal keyword search.
 
 ## Nudges
 
@@ -177,7 +186,9 @@ listener; `message.channels` and `message.groups`).
 Rules:
 
 - A cheap phrase check runs first and never calls AI. Only questions that pass
-  it go to Gemini, as question text of at most 500 characters.
+  it go to local semantic search, as question text of at most 500 characters.
+  No search question or decision content is sent to an external AI service.
+  Gemini is used only for the separately configured optional capture draft.
 - At most one nudge of each kind per thread, recorded in `slack_nudges` with
   only the channel, thread, kind, and Decision. No message text is stored.
 - A thread is never pointed to, or asked to save, a Decision it already

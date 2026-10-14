@@ -5,10 +5,22 @@ import type {
   JiraProject,
   MemorySearchResponse,
   Metadata,
+  ScopeSummary,
+  ScopeOverview,
 } from "@/types"
 
 // The competition demo uses the local web app. Enable only for a verified Forge deployment.
 const USE_FORGE = false
+
+export class ApiError extends Error {
+  code?: string
+  issue?: { key: string; url: string }
+  constructor(payload: { error?: string; code?: string; issue?: { key: string; url: string } }) {
+    super(payload.error ?? "The request failed.")
+    this.code = payload.code
+    this.issue = payload.issue
+  }
+}
 
 type Method = "GET" | "POST" | "PUT"
 
@@ -22,7 +34,7 @@ async function request<T>(
     const { forgeRequest } = await import("@/lib/forge-transport")
     const response = await forgeRequest(path, method, headers, body)
     if (response.status >= 400) {
-      throw new Error(String(response.body?.error ?? "The request failed."))
+      throw new ApiError(response.body ?? {})
     }
     return response.body as T
   }
@@ -33,8 +45,8 @@ async function request<T>(
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  const payload = (await response.json()) as T & { error?: string }
-  if (!response.ok) throw new Error(payload.error ?? "The request failed.")
+  const payload = (await response.json()) as T & { error?: string; code?: string; issue?: { key: string; url: string } }
+  if (!response.ok) throw new ApiError(payload)
   return payload
 }
 
@@ -49,6 +61,8 @@ export type DecisionFilters = {
 }
 
 export const api = {
+  scopes: () => request<ScopeSummary[]>("/api/scopes"),
+  scopeOverview: (scope: string) => request<ScopeOverview>(`/api/scopes/overview?${new URLSearchParams({ scope })}`),
   metadata: () => request<Metadata>("/api/metadata"),
   decisions: (filters: DecisionFilters = {}) => {
     const params = new URLSearchParams()
@@ -72,9 +86,10 @@ export const api = {
     request<Decision>("/api/decisions", "POST", input),
   updateDecision: (id: string, input: DecisionInput) =>
     request<Decision>(`/api/decisions/${id}`, "PUT", input),
-  supersede: (currentId: string, targetId: string) =>
+  supersede: (currentId: string, targetId: string, replacementReason = "") =>
     request<Decision>(`/api/decisions/${currentId}/supersede`, "POST", {
       targetId,
+      replacementReason,
     }),
   jiraProjects: () => request<JiraProject[]>("/api/jira/projects"),
   jiraIssueTypes: (projectKey: string) =>
@@ -83,7 +98,7 @@ export const api = {
     ),
   createJiraIssue: (
     decisionId: string,
-    input: { projectKey: string; issueTypeId: string; summary: string }
+    input: { requestId: string; projectKey: string; issueTypeId: string; summary: string }
   ) =>
     request<{ issue: { key: string; url: string }; decision: Decision }>(
       `/api/decisions/${decisionId}/jira-issue`,

@@ -5,6 +5,7 @@ import { setTimeout as delay } from "node:timers/promises"
 import { createApp } from "../apps/server/src/app.js"
 
 import { config } from "../apps/server/src/config.js"
+import { createLinkedJiraIssue } from "../apps/server/src/jira.js"
 import { DomainError } from "../apps/server/src/domain.js"
 import { createDatabase } from "../apps/server/src/models.js"
 import { createRepository } from "../apps/server/src/repository.js"
@@ -335,7 +336,7 @@ try {
     assert.match(JSON.stringify(modal), /Already decided\?/)
     assert.deepEqual(modal.blocks.find((block) => block.block_id === "replaces").element.options.map((option) => option.value), [named.id])
     const state = Object.fromEntries(Object.entries({ title: "HTTP capture fixture", why: "Durable rollback",
-      appliesTo: "Migration", relatedUrl: "https://example.atlassian.net/browse/DEMO-1" })
+      replacementReason: "A new reliability requirement changed our choice.", appliesTo: "Migration", relatedUrl: "https://example.atlassian.net/browse/DEMO-1" })
       .map(([key, value]) => [key, { value: { value } }]))
     state.replaces = { value: { selected_option: { value: named.id } } }
     const submission = { type: "view_submission", team: { id: "T-INTEGRATION" }, user: { id: "U1" },
@@ -364,6 +365,7 @@ try {
     assert.equal(detail.references[0].label, "DEMO-1", "Slack Jira links are labelled by issue key")
     assert.deepEqual(detail.lifecycle.supersedes.map((item) => item.id), [named.id], "Replaces supersedes the chosen Decision")
     assert.equal((await repository.getDecision(identity, named.id)).status, "SUPERSEDED")
+    assert.equal(detail.lifecycle.supersedes[0].replacementReason, "A new reliability requirement changed our choice.")
     assert.match(updates.filter((view) => view.title.text === "Decision saved").at(-1).blocks[0].text.text, /It replaces DM-\d+, which is now superseded/)
     console.log("Signed Slack → draft → save/retry → API search/detail passed with real PostgreSQL")
 
@@ -404,6 +406,80 @@ try {
     globalThis.fetch = realFetch
     await new Promise((resolve) => { server.close(resolve); server.closeAllConnections() })
   }
+
+  // Review regressions: lifecycle traverses successors without calling an
+  // intermediate superseded record current.
+  const chainA = await repository.createDecision(identity, { title: "Chain review A", appliesTo: ["Evolution review"] })
+  const chainB = await repository.createDecision(identity, { title: "Chain review B", appliesTo: ["Evolution review"] })
+  const chainC = await repository.createDecision(identity, { title: "Chain review C", appliesTo: ["Evolution review"] })
+  await repository.supersedeDecision(identity, chainB.id, chainA.id, "  Local exports now exceed disk capacity.  ")
+  await repository.supersedeDecision(identity, chainC.id, chainB.id)
+  const chain = await repository.getDecision(identity, chainA.id)
+  assert.deepEqual(chain.lifecycle.supersededBy.map((d) => d.id), [chainB.id])
+  assert.deepEqual(chain.lifecycle.current.map((d) => d.id), [chainC.id], "US-07: current must resolve to an ACTIVE successor")
+  assert.equal(await repository.getDecision(otherIdentity, chainA.id), null)
+  assert.equal(chain.lifecycle.supersededBy[0].replacementReason, "Local exports now exceed disk capacity.")
+  assert.equal((await repository.getDecision(identity, chainB.id)).lifecycle.supersedes[0].replacementReason, "Local exports now exceed disk capacity.")
+  assert.ok(chain.lifecycle.supersededBy[0].replacedAt)
+  const scopes = await repository.listScopes(identity)
+  assert.deepEqual(scopes.find((scope) => scope.scope === "Evolution review").activeCount, 1)
+  const overview = await repository.scopeOverview(identity, "Evolution review")
+  assert.equal(overview.decisionCount, 3)
+  assert.deepEqual(overview.activeDecisions.map((decision) => decision.id), [chainC.id])
+  assert.equal(overview.changes.length, 2)
+  assert.ok(overview.changes.some((change) => change.replacementReason === "Local exports now exceed disk capacity."))
+  assert.equal(await repository.scopeOverview(otherIdentity, "Evolution review"), null)
+  assert.equal((await repository.listScopes(otherIdentity)).some((scope) => scope.scope === "Evolution review"), false)
+  const scopeMoved = await repository.createDecision(identity, { title: "Scope review moved", appliesTo: ["New scope review"] })
+  await repository.supersedeDecision(identity, scopeMoved.id, chainC.id, "Ownership moved to another service.")
+  const oldScope = await repository.scopeOverview(identity, "Evolution review")
+  assert.equal(oldScope.activeDecisions.length, 0)
+  assert.ok(oldScope.changes.some((change) => change.replacement.id === scopeMoved.id), "Moving scopes preserves the old scope's replacement history")
+  await assert.rejects(repository.supersedeDecision(identity, scopeMoved.id, chainA.id, "x".repeat(2001)), (error) => error.issues?.[0]?.path?.length === 0)
+
+
+  // A real PostgreSQL receipt survives failure and service recreation. Only
+  // the outbound Jira create is mocked; linking and transactions are real.
+  const requestId = crypto.randomUUID()
+  const jiraInput = { projectKey: "MIG", issueTypeId: "10001", summary: "Review retry" }
+  let jiraCreates = 0
+  let releaseJira
+  let startedJira
+  const started = new Promise((resolve) => { startedJira = resolve })
+  const waitingJira = new Promise((resolve) => { releaseJira = resolve })
+  const jira = { createIssue: async () => {
+    jiraCreates++; startedJira(); await waitingJira
+    return { key: "MIG-999", url: "https://example.atlassian.net/browse/MIG-999" }
+  } }
+  const args = { repository, jira, identity, decision: chainC, requestId, input: jiraInput }
+  const firstJira = createLinkedJiraIssue({ ...args, repository: { ...repository, linkJiraIssueRequest: async () => { throw new Error("local write failed") } } })
+  await started
+  await assert.rejects(createLinkedJiraIssue(args), (e) => e.code === "JIRA_OUTCOME_UNKNOWN", "A concurrent retry must not create an issue")
+  releaseJira()
+  await assert.rejects(firstJira, (e) => e.code === "JIRA_LINK_PENDING" && e.issue.key === "MIG-999")
+  const recovered = await createLinkedJiraIssue({ ...args, repository: createRepository(models) })
+  await Promise.all([createLinkedJiraIssue(args), createLinkedJiraIssue(args)])
+  assert.equal(jiraCreates, 1)
+  assert.equal(recovered.decision.references.filter((ref) => ref.label === "MIG-999").length, 1)
+  assert.equal(await models.ExternalReference.count({ where: { decisionId: chainC.id, label: "MIG-999" } }), 1)
+  await assert.rejects(repository.claimJiraIssueRequest(identity, chainC.id, requestId, { ...jiraInput, summary: "changed" }), (e) => e.code === "JIRA_REQUEST_MISMATCH")
+  await assert.rejects(repository.linkJiraIssueRequest(otherIdentity, requestId), (e) => e.code === "JIRA_OUTCOME_UNKNOWN")
+
+  // Existing keyword and metadata queries retain older records beyond 200.
+  // Real indexed retrieval is exercised by npm run test:local-search.
+  const oldMemory = await repository.createDecision(identity, { title: "Older bounded recall sentinel", appliesTo: ["Bounded review"] })
+  await models.Decision.update({ createdAt: new Date("2020-01-01") }, { where: { id: oldMemory.id } })
+  await models.Decision.bulkCreate(Array.from({ length: 201 }, (_, i) => ({
+    workspaceId: workspace.id, decisionKey: `DM-${9000 + i}`, title: `Bounded review ${i}`, appliesTo: ["Bounded review"],
+  })))
+  const boundedFilters = { appliesTo: "Bounded review" }
+  assert.equal(await repository.memorySearchCandidateCount(identity, boundedFilters), 202)
+  const bounded = await repository.memorySearchCandidates(identity, boundedFilters)
+  assert.equal(bounded.length, 202)
+  assert.equal(bounded.some((d) => d.id === oldMemory.id), true)
+  assert.deepEqual((await repository.listDecisions(identity, { q: "Older bounded recall sentinel" })).map((d) => d.id), [oldMemory.id])
+  assert.equal(await repository.memorySearchCandidateCount(otherIdentity, boundedFilters), 0)
+  console.log("Review regressions passed: active successor, durable Jira recovery/concurrency/isolation, uncapped recall filter inputs")
 
   console.log(
     "Integration verification passed: Slack draft persistence/expiry/isolation, concurrent idempotency, durable source, multi-word search, tag filter, filtered memory candidates, superseded results, references, owner scope",

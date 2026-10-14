@@ -11,6 +11,7 @@ const browser = await chromium.launch({
 
 const consoleErrors = []
 const pageErrors = []
+const understandingFixtureIds = []
 const formFixtureTitle = "Prefer boring architecture for the competitive demo"
 const models = createDatabase(config.databaseUrl, false)
 // The fixture is removed before and after the run so the demo dataset stays clean.
@@ -55,7 +56,9 @@ try {
       },
     })
   })
+  let memoryCalls = 0
   await page.route("**/api/decisions/memory-search", async (route) => {
+    memoryCalls++
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -88,12 +91,19 @@ try {
   await page.waitForTimeout(350)
   assert.equal(await page.locator(".decision-row").count(), 0)
   await page.getByRole("button", { name: "Search by memory" }).click()
-  await page.getByText("AI-assisted match", { exact: true }).first().waitFor()
+  await page.getByText("Local semantic match", { exact: true }).first().waitFor()
   assert.match(
     await page.locator("body").innerText(),
     /moved large migration rollback files away from the database host/,
   )
   await page.screenshot({ path: "/private/tmp/decision-memory-search-desktop.png", fullPage: true })
+
+  await page.getByText("Use object storage for migration backup files", { exact: true }).click()
+  await page.getByRole("heading", { name: "Use object storage for migration backup files" }).waitFor()
+  await page.goBack()
+  await page.getByText("Local semantic match", { exact: true }).first().waitFor()
+  assert.equal(memoryCalls, 1, "Returning to memory results must not rerun semantic search")
+  assert.match(await search.inputValue(), /Hồi trước/)
 
   await search.fill("migration storage")
   await page.waitForTimeout(350)
@@ -131,7 +141,8 @@ try {
   assert.equal(await page.getByLabel("Summary").inputValue(), "Use object storage for migration backup files")
   await page.getByRole("button", { name: "Create issue" }).click()
   await page.getByText("Created MIG-183.").waitFor()
-  assert.deepEqual(jiraRequests, [{ projectKey: "MIG", issueTypeId: "10001", summary: "Use object storage for migration backup files" }])
+  assert.match(jiraRequests[0].requestId, /^[0-9a-f-]{36}$/)
+  assert.deepEqual(jiraRequests.map(({ requestId, ...input }) => { assert.ok(requestId); return input }), [{ projectKey: "MIG", issueTypeId: "10001", summary: "Use object storage for migration backup files" }])
   await page.getByRole("link", { name: "MIG-183" }).waitFor()
 
   await page.getByRole("link", { name: "Decisions", exact: true }).click()
@@ -260,11 +271,173 @@ try {
   await failurePage.screenshot({ path: "/private/tmp/decision-memory-p1-library-scopes.png" })
   await failurePage.close()
 
+  const reviewPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+  const reviewErrors = []
+  reviewPage.on("pageerror", (error) => reviewErrors.push(error.message))
+  await reviewPage.goto("http://localhost:5173/#/?q=billing&status=ACTIVE")
+  await reviewPage.getByText("Keep billing orchestration in the existing service", { exact: true }).waitFor()
+  await reviewPage.getByText("Keep billing orchestration in the existing service", { exact: true }).click()
+  await reviewPage.getByRole("heading", { name: "Keep billing orchestration in the existing service" }).waitFor()
+  await reviewPage.getByText("Back to decisions", { exact: true }).click()
+  await reviewPage.getByRole("heading", { name: "Decision Library" }).waitFor()
+  assert.equal(await reviewPage.getByRole("textbox", { name: "Search decisions" }).inputValue(), "billing")
+  assert.match(reviewPage.url(), /status=ACTIVE/)
+  await reviewPage.reload()
+  assert.equal(await reviewPage.getByRole("textbox", { name: "Search decisions" }).inputValue(), "billing")
+
+  await reviewPage.route("**/api/metadata", async (route) => {
+    const response = await route.fetch()
+    const data = await response.json()
+    await route.fulfill({ json: { ...data, features: { ...data.features, memorySearch: true, jira: true } } })
+  })
+  await reviewPage.route("**/api/decisions/memory-search", (route) => route.fulfill({ json: { candidateCount: 200, totalCandidateCount: 245, truncated: true, matches: [] } }))
+  await reviewPage.reload()
+  await reviewPage.getByRole("button", { name: "Search by memory" }).click()
+  await reviewPage.getByText(/Searched 200 of 245/).waitFor()
+  assert.match(await reviewPage.locator("body").innerText(), /waiting for local indexing/)
+  await reviewPage.screenshot({ path: "/private/tmp/decision-memory-review-coverage.png" })
+
+  // Render an A -> B -> C chain using the API's immediate/current distinction.
+  const currentId = "33333333-3333-4333-8333-333333333302"
+  await reviewPage.route(`**/api/decisions/${oldId}`, async (route) => {
+    const response = await route.fetch()
+    const detail = await response.json()
+    await route.fulfill({ json: { ...detail, lifecycle: { ...detail.lifecycle,
+      supersededBy: [{ id: memoryDecision.id, decisionKey: "DM-104", title: memoryDecision.title, status: "SUPERSEDED" }],
+      current: [{ id: currentId, decisionKey: "DM-103", title: "Keep billing orchestration in the existing service", status: "ACTIVE" }] } } })
+  })
+  await reviewPage.goto(`http://localhost:5173/#/decisions/${oldId}`)
+  await reviewPage.getByText(/Current active Decision:/).waitFor()
+  assert.match(await reviewPage.getByText(/This Decision was replaced by/).innerText(), /DM-104/)
+  assert.match(await reviewPage.getByText(/Current active Decision:/).innerText(), /DM-103/)
+  await reviewPage.screenshot({ path: "/private/tmp/decision-memory-review-lifecycle-fixed.png" })
+
+  // A partial Jira success preserves the operation and known link over reload.
+  await reviewPage.route("**/api/jira/projects", (route) => route.fulfill({ json: [{ key: "MIG", name: "Migration" }] }))
+  await reviewPage.route("**/api/jira/projects/MIG/issue-types", (route) => route.fulfill({ json: [{ id: "10001", name: "Task" }] }))
+  const retryRequests = []
+  await reviewPage.route("**/api/decisions/*/jira-issue", async (route) => {
+    retryRequests.push(route.request().postDataJSON())
+    const issue = { key: "MIG-999", url: "https://example.atlassian.net/browse/MIG-999" }
+    await route.fulfill(retryRequests.length === 1
+      ? { status: 503, json: { error: "Issue created; retry linking.", code: "JIRA_LINK_PENDING", issue } }
+      : { status: 201, json: { issue, decision: memoryDecision } })
+  })
+  await reviewPage.goto(`http://localhost:5173/#/decisions/${memoryDecision.id}`)
+  await reviewPage.getByRole("button", { name: "Create Jira issue" }).click()
+  await reviewPage.getByText("Task", { exact: true }).waitFor()
+  await reviewPage.getByRole("button", { name: "Create issue", exact: true }).click()
+  await reviewPage.getByRole("link", { name: "Open created issue MIG-999" }).waitFor()
+  await reviewPage.reload()
+  await reviewPage.getByRole("button", { name: "Create Jira issue" }).click()
+  await reviewPage.getByRole("link", { name: "Open created issue MIG-999" }).waitFor()
+  await reviewPage.waitForTimeout(250) // let the dialog entrance transition finish for visual proof
+  await reviewPage.screenshot({ path: "/private/tmp/decision-memory-review-jira-recovery.png" })
+  await reviewPage.getByRole("button", { name: "Retry linking" }).click()
+  await reviewPage.getByText("Created MIG-999.").waitFor()
+  assert.deepEqual(retryRequests[1], retryRequests[0], "Retry after reload must reuse the original request ID and fields")
+  assert.deepEqual(reviewErrors, [])
+  await reviewPage.close()
+
+  // New user-value loop: compare existing evidence, record why a replacement
+  // happened, then understand current guidance from its scope overview.
+  const understand = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+  const understandingErrors = []
+  const understandingConsole = []
+  understand.on("pageerror", (error) => understandingErrors.push(error.message))
+  understand.on("console", (message) => { if (message.type() === "error") understandingConsole.push(message.text()) })
+  await understand.goto("http://localhost:5173/")
+  await understand.getByRole("button", { name: "Compare decisions", exact: true }).click()
+  await understand.getByRole("combobox", { name: "First Decision" }).click()
+  await understand.getByRole("option", { name: /DM-102 · Store migration exports/ }).click()
+  await understand.getByRole("combobox", { name: "Second Decision" }).click()
+  await understand.getByRole("option", { name: /DM-104 · Use object storage/ }).click()
+  await understand.getByRole("button", { name: "Open comparison" }).click()
+  await understand.getByRole("heading", { name: "Compare decisions", exact: true }).waitFor()
+  await understand.getByRole("article", { name: "First Decision" }).waitFor()
+  assert.match(await understand.getByRole("article", { name: "Second Decision" }).innerText(), /saved evidence|captured source/)
+  await understand.screenshot({ path: "/private/tmp/decision-memory-comparison-desktop.png", fullPage: true })
+
+  async function record(input) {
+    const response = await understand.request.post("http://localhost:3011/api/decisions", { data: input })
+    assert.equal(response.status(), 201)
+    const decision = await response.json()
+    understandingFixtureIds.push(decision.id)
+    return decision
+  }
+  const scope = "Demo Migration Service"
+  const earlier = await record({ title: "Keep migration backups on local disk", why: "Early exports are small and quick to restore.", context: "A prototype with a small number of customers.", appliesTo: [scope], optionsConsidered: ["Local disk", "Object storage"], tags: ["migration"] })
+  const newer = await record({ title: "Move migration backups to object storage", why: "Large exports need durable storage without database-host pressure.", context: "Customer migration exports can exceed local disk capacity.", appliesTo: [scope], optionsConsidered: ["Object storage", "Larger database host"], tags: ["migration", "storage"] })
+  const reason = "Exports now exceed local disk capacity; rollback must survive a database-host failure."
+  await understand.goto(`http://localhost:5173/#/decisions/${newer.id}`)
+  await understand.getByRole("button", { name: "Supersede", exact: true }).click()
+  await understand.getByRole("combobox", { name: "Earlier Decision" }).click()
+  await understand.getByRole("option", { name: new RegExp(earlier.decisionKey + " · Keep migration backups") }).click()
+  assert.match(await understand.getByRole("region", { name: "Earlier choice" }).innerText(), /Early exports are small/)
+  assert.match(await understand.getByRole("region", { name: "Replacing choice" }).innerText(), /Large exports need durable/)
+  await understand.getByLabel("What changed?", { exact: true }).fill(reason)
+  await understand.getByRole("button", { name: "Confirm supersession" }).click()
+  await understand.getByRole("heading", { name: "Why did this change?" }).waitFor()
+  await understand.getByRole("region", { name: "Decision evolution" }).getByText(reason, { exact: true }).waitFor()
+  await understand.reload()
+  await understand.getByRole("region", { name: "Decision evolution" }).getByText(reason, { exact: true }).waitFor()
+  const olderResponse = await understand.request.get(`http://localhost:3011/api/decisions/${earlier.id}`)
+  const older = await olderResponse.json()
+  assert.equal(older.status, "SUPERSEDED")
+  assert.equal(older.lifecycle.supersededBy[0].replacementReason, reason)
+  await understand.getByRole("button", { name: "Compare before and after" }).click()
+  await understand.getByRole("article", { name: "First Decision" }).waitFor()
+  await understand.getByRole("region", { name: "Reason for replacement" }).getByText(reason, { exact: true }).waitFor()
+  assert.match(await understand.getByRole("article", { name: "First Decision" }).innerText(), /Early exports are small/)
+  assert.match(await understand.getByRole("article", { name: "Second Decision" }).innerText(), /Large exports need durable/)
+  await understand.screenshot({ path: "/private/tmp/decision-memory-evolution-desktop.png", fullPage: true })
+
+  await understand.getByRole("link", { name: "Scopes", exact: true }).click()
+  await understand.getByRole("textbox", { name: "Find a scope" }).fill(scope)
+  await understand.getByRole("link", { name: new RegExp(scope + ".*1 active") }).click()
+  await understand.getByRole("heading", { name: scope, exact: true }).waitFor()
+  const current = understand.getByRole("region", { name: "Active decisions" })
+  assert.equal(await current.getByRole("heading", { name: earlier.title }).count(), 0)
+  await current.getByRole("heading", { name: newer.title }).waitFor()
+  await understand.getByRole("region", { name: "Recent replacements" }).getByText(new RegExp("Exports now exceed local disk capacity")).waitFor()
+  await understand.screenshot({ path: "/private/tmp/decision-memory-scope-desktop.png", fullPage: true })
+  await understand.setViewportSize({ width: 390, height: 844 })
+  await understand.screenshot({ path: "/private/tmp/decision-memory-scope-mobile.png", fullPage: true })
+  assert.equal(await understand.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Scope overview must fit mobile width")
+  await understand.getByRole("button", { name: "Compare before and after" }).click()
+  await understand.getByRole("article", { name: "Second Decision" }).waitFor()
+  assert.equal(await understand.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Comparison must fit mobile width")
+  await understand.screenshot({ path: "/private/tmp/decision-memory-comparison-mobile.png", fullPage: true })
+  assert.deepEqual(understandingErrors, [])
+  assert.deepEqual(understandingConsole, [])
+
+  // Failed destination loads clear the previous pair/scope; retry restores it.
+  await understand.route(`**/api/decisions/${earlier.id}`, (route) => route.fulfill({ status: 503, json: { error: "Temporary comparison failure" } }))
+  await understand.reload()
+  await understand.getByText("Could not load comparison", { exact: true }).waitFor()
+  assert.equal(await understand.getByRole("article", { name: "First Decision" }).count(), 0)
+  await understand.unroute(`**/api/decisions/${earlier.id}`)
+  await understand.getByRole("button", { name: "Try again" }).click()
+  await understand.getByRole("article", { name: "First Decision" }).waitFor()
+  await understand.goto(`http://localhost:5173/#/compare?left=${earlier.id}&right=${earlier.id}`)
+  await understand.getByText("Choose two different Decisions", { exact: true }).waitFor()
+  await understand.route("**/api/scopes/overview?*", (route) => route.fulfill({ status: 503, json: { error: "Temporary scope failure" } }))
+  await understand.goto(`http://localhost:5173/#/scopes?${new URLSearchParams({ scope })}`)
+  await understand.getByText("Could not load scope overview", { exact: true }).waitFor()
+  assert.equal(await understand.getByRole("region", { name: "Active decisions" }).count(), 0)
+  await understand.unroute("**/api/scopes/overview?*")
+  await understand.getByRole("button", { name: "Try again" }).click()
+  await understand.getByRole("region", { name: "Active decisions" }).waitFor()
+  assert.deepEqual(understandingErrors, [])
+  await understand.close()
+  console.log("Decision understanding QA passed: comparison, human replacement reason, scope overview, mobile layout, and failure recovery")
+
   assert.deepEqual(pageErrors, [], `Page errors: ${pageErrors.join(" | ")}`)
   assert.deepEqual(consoleErrors, [], `Console errors: ${consoleErrors.join(" | ")}`)
   console.log("UI QA passed with Playwright/Chrome fallback: independent keyword and memory search, collapsed/expanded evidence, create/edit, desktop and mobile screenshots")
 } finally {
   await browser.close()
   await removeFormFixture()
+  for (const id of understandingFixtureIds) await models.Decision.destroy({ where: { id, workspaceId: workspace.id } })
   await models.sequelize.close()
 }

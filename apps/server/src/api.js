@@ -1,9 +1,10 @@
 import express from "express"
 import { z } from "zod"
 
+import { createLinkedJiraIssue } from "./jira.js"
 import { DomainError } from "./domain.js"
 
-import { decisionInput } from "./validation.js"
+import { decisionInput, replacementReasonInput } from "./validation.js"
 
 const decisionFilters = z.object({
   channel: z.string().max(200).optional(),
@@ -23,6 +24,7 @@ function asyncRoute(handler) {
 }
 
 const jiraIssueInput = z.object({
+  requestId: z.string().uuid(),
   projectKey: z.string().regex(/^[A-Z][A-Z0-9_]{0,49}$/, "Choose a Jira project."),
   issueTypeId: z.string().regex(/^\d+$/, "Choose an issue type."),
   summary: z.string().trim().min(1, "Summary is required.").max(255),
@@ -58,6 +60,17 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
       res.json(await memorySearch.search(req.identity, input))
     }),
   )
+
+  router.get("/scopes", asyncRoute(async (req, res) => {
+    res.json(await repository.listScopes(req.identity))
+  }))
+
+  router.get("/scopes/overview", asyncRoute(async (req, res) => {
+    const { scope } = z.object({ scope: z.string().min(1).max(200) }).parse(req.query)
+    const overview = await repository.scopeOverview(req.identity, scope)
+    if (!overview) return res.status(404).json({ error: "Scope not found." })
+    res.json(overview)
+  }))
 
   router.get(
     "/decisions",
@@ -133,22 +146,18 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
         res.status(404).json({ error: "Decision not found." })
         return
       }
-      const issue = await jira.createIssue({ ...input, decision })
-      const updated = await repository.addReference(req.identity, decision.id, {
-        kind: "JIRA",
-        label: issue.key,
-        url: issue.url,
-      })
-      res.status(201).json({ issue, decision: updated })
+      const { requestId, ...fields } = input
+      res.status(201).json(await createLinkedJiraIssue({ repository, jira,
+        identity: req.identity, decision, requestId, input: fields }))
     }),
   )
 
   router.post(
     "/decisions/:id/supersede",
     asyncRoute(async (req, res) => {
-      const { targetId } = z.object({ targetId: z.string().uuid() }).parse(req.body)
+      const { targetId, replacementReason } = z.object({ targetId: z.string().uuid(), replacementReason: replacementReasonInput }).parse(req.body)
       res.json(
-        await repository.supersedeDecision(req.identity, req.params.id, targetId),
+        await repository.supersedeDecision(req.identity, req.params.id, targetId, replacementReason),
       )
     }),
   )
@@ -160,7 +169,7 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
       return
     }
     if (error instanceof DomainError) {
-      res.status(error.status).json({ error: error.message, code: error.code })
+      res.status(error.status).json({ error: error.message, code: error.code, ...(error.issue ? { issue: error.issue } : {}) })
       return
     }
     console.error("API request failed", { code: "INTERNAL_ERROR" })

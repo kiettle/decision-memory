@@ -530,3 +530,21 @@ It is ready for submission when:
 - the 60–90 second video can communicate the product without lengthy explanation.
 
 A smaller stable product is better than a larger unfinished product.
+
+
+## Current presentation materials
+
+For Decision Memory's current implemented features and accepted extensions, use
+[the final product spec](decision-memory-final-spec.md) and living product docs.
+The project-specific MVP guidance above records the original scope; later
+owner-approved extensions are identified in the final spec.
+
+- [Presenter guide](docs/presentation/README.md): 90-second video, seven-minute
+  pitch, rubric mapping and showcase-board copy.
+- [Demo rehearsal](docs/presentation/demo-runbook.md): synthetic scenario,
+  exact actions, repeat takes and fallback.
+- [Judge Q&A](docs/presentation/judge-qa.md): current technical/product answers,
+  verified evidence and remaining validation.
+
+The event's scoring, submission format, dates and eligibility rules are
+unchanged by these project presentation updates.

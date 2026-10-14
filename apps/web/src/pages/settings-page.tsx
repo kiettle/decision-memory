@@ -52,7 +52,7 @@ export function SettingsPage() {
             </dd>
           </div>
           <div className="metadata-item">
-            <dt>Gemini Search by memory</dt>
+            <dt>Local Search by memory</dt>
             <dd>
               <Status enabled={metadata?.features.memorySearch} />
             </dd>

@@ -100,6 +100,9 @@ CREATE TABLE IF NOT EXISTS decision_relations (
   UNIQUE (workspace_id, from_decision_id, to_decision_id, relation_type)
 );
 
+-- Optional human-written explanation of why an earlier decision was replaced.
+ALTER TABLE decision_relations ADD COLUMN IF NOT EXISTS replacement_reason text;
+
 CREATE TABLE IF NOT EXISTS slack_interactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -154,3 +157,21 @@ CREATE INDEX IF NOT EXISTS decision_relations_to_idx
   ON decision_relations (workspace_id, to_decision_id);
 CREATE INDEX IF NOT EXISTS slack_capture_drafts_workspace_expiry_idx
   ON slack_capture_drafts (workspace_id, expires_at);
+
+-- One durable receipt per browser creation attempt. An uncertain external
+-- outcome stays pending so retry cannot issue another Jira create request.
+CREATE TABLE IF NOT EXISTS jira_issue_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  decision_id uuid NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+  request_id uuid NOT NULL,
+  input jsonb NOT NULL,
+  status text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'REJECTED', 'CREATED', 'LINKED')),
+  issue jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, request_id)
+);
+
+-- Additive local semantic-search storage and invalidation triggers.
+\ir local-search.sql

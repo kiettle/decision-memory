@@ -3,7 +3,7 @@ import express from "express"
 
 import { slackIdempotencyKey } from "./domain.js"
 import { looksLikeDecision, looksLikeQuestion } from "./nudges.js"
-import { decisionInput } from "./validation.js"
+import { decisionInput, replacementReasonInput } from "./validation.js"
 
 const FIVE_MINUTES_SECONDS = 60 * 5
 const MAX_CAPTURED_MESSAGES = 100
@@ -32,7 +32,7 @@ function inputBlock(id, label, initialValue = "", multiline = false, optional = 
     element: {
       type: "plain_text_input",
       action_id: "value",
-      max_length: id === "title" ? 500 : 3000,
+      max_length: id === "title" ? 500 : id === "replacementReason" ? 2000 : 3000,
       multiline,
       ...(initialValue ? { initial_value: initialValue.slice(0, id === "title" ? 500 : 3000) } : {}),
     },
@@ -64,6 +64,8 @@ async function similarDecisions(memorySearch, identity, text) {
         decisionKey: decision.decisionKey,
         title: decision.title.slice(0, 60),
         status: decision.status,
+        why: decision.why?.slice(0, 180) || "",
+        appliesTo: (decision.appliesTo ?? []).slice(0, 2).map((scope) => scope.slice(0, 80)),
       }))
   } catch {
     return []
@@ -85,7 +87,11 @@ function similarBlocks(appBaseUrl, similar = [], values = {}) {
         type: "mrkdwn",
         text: [
           "*Already decided?* Similar Decisions are on record:",
-          ...similar.map((decision) => `• ${decisionLink(appBaseUrl, decision)} (${decision.status === "ACTIVE" ? "Active" : "Superseded"})`),
+          ...similar.map((decision) => [
+            `• ${decisionLink(appBaseUrl, decision)} (${decision.status === "ACTIVE" ? "Active" : "Superseded"})`,
+            decision.appliesTo?.length ? `  Applies to: ${escapeMrkdwn(decision.appliesTo.join(", "))}` : "",
+            decision.why ? `  Why: ${escapeMrkdwn(decision.why)}` : "",
+          ].filter(Boolean).join("\n")),
         ].join("\n"),
       },
     },
@@ -103,7 +109,7 @@ function similarBlocks(appBaseUrl, similar = [], values = {}) {
             options: active.map(option),
             ...(chosen ? { initial_option: option(chosen) } : {}),
           },
-        }]
+        }, inputBlock("replacementReason", "What changed? (if replacing a Decision)", valueAt(values, "replacementReason"), true)]
       : []),
   ]
 }
@@ -136,7 +142,9 @@ function captureModal({ title = "", source, metadata, values = {}, error, aiDraf
   return {
     type: "modal",
     callback_id: "decision_memory_save",
-    private_metadata: JSON.stringify(metadata),
+    private_metadata: JSON.stringify({ ...metadata, ...(metadata.similar ? {
+      similar: metadata.similar.map(({ id, decisionKey, title, status }) => ({ id, decisionKey, title, status })),
+    } : {}) }),
     title: { type: "plain_text", text: "Save as Decision" },
     submit: { type: "plain_text", text: "Save" },
     close: { type: "plain_text", text: "Cancel" },
@@ -458,7 +466,7 @@ async function answerQuestion(config, memorySearch, payload, question) {
     view = progressModal("Decision Memory", `Asking needs Search by memory, which is not configured. Search the ${library} instead.`, true)
   } else {
     try {
-      const { matches } = await memorySearch.search(identityForSlack(config, payload), {
+      const { matches, truncated, candidateCount, totalCandidateCount } = await memorySearch.search(identityForSlack(config, payload), {
         query: question.trim().slice(0, 500),
       })
       view = answerModal(
@@ -466,6 +474,8 @@ async function answerQuestion(config, memorySearch, payload, question) {
         question.trim(),
         matches.filter((match) => match.score >= MIN_MATCH_SCORE),
       )
+      if (truncated) view.blocks.unshift({ type: "section", text: { type: "plain_text",
+        text: `Searched ${candidateCount} of ${totalCandidateCount} Decisions. The rest are waiting for local indexing. Retry shortly or use normal keyword search.` } })
     } catch {
       view = progressModal("Decision Memory", `Search is unavailable right now. Try again, or search the ${library}.`, true)
     }
@@ -481,7 +491,7 @@ async function replaceEarlierDecision(repository, identity, decision, metadata, 
   )
   if (!target) return ""
   try {
-    await repository.supersedeDecision(identity, decision.id, target.id)
+    await repository.supersedeDecision(identity, decision.id, target.id, replacementReasonInput.parse(valueAt(values, "replacementReason")))
   } catch (error) {
     const current = await repository.getDecision(identity, decision.id).catch(() => null)
     if (!current?.lifecycle?.supersedes.some((item) => item.id === target.id)) {
@@ -505,31 +515,34 @@ async function openCapture(config, repository, services, payload, { title } = {}
         : "Preparing the selected message and available thread context.",
     ),
   })
+  let hash = opened.view.hash
   try {
     const source = await shortcutSource(config, payload)
-    const aiDraft = await captureDrafter.draft(source?.messages)
-    const similar = await similarDecisions(
-      memorySearch,
-      identityForSlack(config, payload),
-      aiDraft?.decision || source?.anchorText,
-    )
-    const draft = await repository.createSlackCaptureDraft(identityForSlack(config, payload), {
+    const identity = identityForSlack(config, payload)
+    const draft = await repository.createSlackCaptureDraft(identity, {
       externalEventId: slackIdempotencyKey(payload),
       slackTeamId: payload.team?.id,
       slackUserId: payload.user?.id,
-      source: aiDraft
-        ? {
-            ...source,
-            aiDraft: {
-              outcome: aiDraft.outcome,
-              confidence: aiDraft.confidence,
-              relevantMessageIds: aiDraft.relevantMessageIds,
-            },
-          }
-        : source,
+      source,
     })
+    if (captureDrafter.enabled || memorySearch.enabled) {
+      const waiting = progressModal("Optional AI assistance", "Your discussion is captured. Continue manually now, or wait for AI drafting and similar Decisions.")
+      waiting.private_metadata = JSON.stringify({ draftId: draft.id, manualTitle: title || source?.anchorText?.slice(0, 500) || "" })
+      waiting.blocks.push({ type: "actions", elements: [{ type: "button", action_id: "capture_continue_manually",
+        text: { type: "plain_text", text: "Continue manually" } }] })
+      const updated = await slackApi(config, "views.update", { view_id: opened.view.id, view: waiting })
+      hash = updated.view?.hash
+    }
+    const aiDraft = await captureDrafter.draft(source?.messages)
+    const similar = await similarDecisions(memorySearch, identity, aiDraft?.decision || source?.anchorText)
+    if (aiDraft) await repository.setSlackCaptureDraftAi(identity, draft.id, {
+      outcome: aiDraft.outcome, confidence: aiDraft.confidence, relevantMessageIds: aiDraft.relevantMessageIds,
+    })
+    // Slack rejects this update if Continue manually, Save, or another view
+    // update has advanced the hash. Never overwrite the person's working form.
     await slackApi(config, "views.update", {
       view_id: opened.view.id,
+      hash,
       view: captureModal({
         title: title || aiDraft?.decision || (source?.anchorText ?? ""),
         source,
@@ -541,9 +554,11 @@ async function openCapture(config, repository, services, payload, { title } = {}
         appBaseUrl: config.appBaseUrl,
       }),
     })
-  } catch {
+  } catch (error) {
+    if (error.message?.includes("hash_conflict") || error.message?.includes("invalid_hash") || error.message?.includes("not_found")) return
     await slackApi(config, "views.update", {
       view_id: opened.view.id,
+      hash,
       view: progressModal("Capture unavailable", "Nothing was saved. Close this window and use Save as Decision again."),
     })
   }
@@ -790,6 +805,18 @@ async function handleSlackPayload(config, repository, services, payload) {
     if (teamId !== config.slackTeamId) throw new Error("Slack workspace is not configured")
   }
 
+  if (payload.type === "block_actions" && payload.actions?.[0]?.action_id === "capture_continue_manually") {
+    const metadata = JSON.parse(payload.view?.private_metadata || "{}")
+    const draft = await repository.getSlackCaptureDraft(identityForSlack(config, payload), metadata.draftId)
+    if (!draft || draft.slackUserId !== payload.user?.id || draft.slackTeamId !== payload.team?.id) return
+    await slackApi(config, "views.update", {
+      view_id: payload.view.id, hash: payload.view.hash,
+      view: captureModal({ title: metadata.manualTitle || draft.source.anchorText || "", source: draft.source,
+        metadata: { draftId: draft.id, skipAi: true }, appBaseUrl: config.appBaseUrl }),
+    })
+    return
+  }
+
   if (payload.type === "block_actions") {
     await handleNudgeAction(config, repository, services, payload)
     return
@@ -857,7 +884,7 @@ async function handleSlackPayload(config, repository, services, payload) {
             captureTruncated: draft.source.captureTruncated,
             captureStatus: draft.source.captureStatus,
             textTruncated: draft.source.textTruncated,
-            ...(draft.source.aiDraft ? { aiDraft: draft.source.aiDraft } : {}),
+            ...(draft.source.aiDraft && !metadata.skipAi ? { aiDraft: draft.source.aiDraft } : {}),
           },
         }
       : {
@@ -933,6 +960,11 @@ export function createSlackRouter(config, repository, services) {
       if (payload.type === "view_submission") {
         if (payload.view?.callback_id !== "decision_memory_save") {
           res.status(400).send("Unknown submission")
+          return
+        }
+        const reason = replacementReasonInput.safeParse(valueAt(payload.view.state?.values, "replacementReason"))
+        if (!reason.success) {
+          res.json({ response_action: "errors", errors: { replacementReason: reason.error.issues[0].message } })
           return
         }
         const parsed = decisionInput.safeParse(submissionInput(payload.view.state?.values))

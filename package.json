@@ -8,6 +8,10 @@
     "apps/server"
   ],
   "scripts": {
+    "dev": "node scripts/dev-local.mjs",
+    "setup:local": "node scripts/setup-local.mjs",
+    "search:index": "node scripts/index-local-search.mjs",
+    "test:local-search": "node scripts/verify-local-search.mjs",
     "dev:web": "npm run dev --workspace web",
     "dev:server": "npm run dev --workspace server",
     "build": "npm run build --workspace web",

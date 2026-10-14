@@ -21,11 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { api } from "@/lib/api"
+import { api, ApiError } from "@/lib/api"
 import type { Decision, JiraIssueType, JiraProject } from "@/types"
 
 const message = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
+
+type JiraAttempt = { requestId: string; projectKey: string; issueTypeId: string; summary: string; issue?: { key: string; url: string } }
 
 // Spec §18: turn a Decision into Jira work and keep the issue key as related work.
 export function CreateJiraIssueDialog({
@@ -37,6 +39,15 @@ export function CreateJiraIssueDialog({
   enabled: boolean
   onCreated: (decision: Decision) => void
 }) {
+  const storageKey = `decision-memory:jira-attempt:${decision.id}`
+  const [attempt, setAttempt] = useState<JiraAttempt | null>(() => {
+    try { return JSON.parse(sessionStorage.getItem(storageKey) ?? "null") } catch { return null }
+  })
+  const remember = (next: JiraAttempt | null) => {
+    if (next) sessionStorage.setItem(storageKey, JSON.stringify(next))
+    else sessionStorage.removeItem(storageKey)
+    setAttempt(next)
+  }
   const [open, setOpen] = useState(false)
   const [projects, setProjects] = useState<JiraProject[] | null>(null)
   const [projectKey, setProjectKey] = useState("")
@@ -54,7 +65,7 @@ export function CreateJiraIssueDialog({
       .then((rows) => {
         if (!active) return
         setProjects(rows)
-        if (rows.length === 1) setProjectKey(rows[0].key)
+        if (rows.length === 1) setProjectKey((current) => current || rows[0].key)
       })
       .catch((loadError) => {
         if (active) setError(message(loadError, "Could not load Jira projects."))
@@ -72,7 +83,7 @@ export function CreateJiraIssueDialog({
       .then((types) => {
         if (!active) return
         setIssueTypes(types)
-        setIssueTypeId((types.find((type) => type.name === "Task") ?? types[0])?.id ?? "")
+        setIssueTypeId((current) => current || (types.find((type) => type.name === "Task") ?? types[0])?.id || "")
       })
       .catch((loadError) => {
         if (active) setError(message(loadError, "Could not load issue types."))
@@ -83,13 +94,14 @@ export function CreateJiraIssueDialog({
   }, [projectKey])
 
   function changeOpen(next: boolean) {
+    if (creating) return
     setOpen(next)
     if (!next) return
     setProjects(null)
-    setProjectKey("")
+    setProjectKey(attempt?.projectKey ?? "")
     setIssueTypes(null)
-    setIssueTypeId("")
-    setSummary(decision.title.slice(0, 255))
+    setIssueTypeId(attempt?.issueTypeId ?? "")
+    setSummary(attempt?.summary ?? decision.title.slice(0, 255))
     setError("")
   }
 
@@ -104,15 +116,23 @@ export function CreateJiraIssueDialog({
     setCreating(true)
     setError("")
     try {
-      const result = await api.createJiraIssue(decision.id, {
-        projectKey,
-        issueTypeId,
-        summary,
-      })
+      const pending = attempt ?? { requestId: crypto.randomUUID(), projectKey, issueTypeId, summary }
+      remember(pending)
+      const { issue: _issue, ...input } = pending
+      void _issue
+      const result = await api.createJiraIssue(decision.id, input)
+      remember(null)
       toast.success(`Created ${result.issue.key}.`)
       onCreated(result.decision)
       setOpen(false)
     } catch (createError) {
+      if (createError instanceof ApiError) {
+        if (createError.code === "JIRA_REJECTED" || createError.code === "JIRA_NOT_CONFIGURED") remember(null)
+        else if (createError.issue) {
+          const pending = JSON.parse(sessionStorage.getItem(storageKey) ?? "null") as JiraAttempt | null
+          if (pending) remember({ ...pending, issue: createError.issue })
+        }
+      }
       setError(message(createError, "The Jira issue could not be created."))
     } finally {
       setCreating(false)
@@ -148,6 +168,7 @@ export function CreateJiraIssueDialog({
           <Field>
             <FieldLabel>Project</FieldLabel>
             <Select
+              disabled={creating || Boolean(attempt)}
               value={projectKey}
               onValueChange={(value) => chooseProject(value ?? "")}
             >
@@ -171,6 +192,7 @@ export function CreateJiraIssueDialog({
           <Field>
             <FieldLabel>Issue type</FieldLabel>
             <Select
+              disabled={creating || Boolean(attempt)}
               value={issueTypeId}
               onValueChange={(value) => setIssueTypeId(value ?? "")}
             >
@@ -196,12 +218,19 @@ export function CreateJiraIssueDialog({
           <Field>
             <FieldLabel htmlFor="jira-summary">Summary</FieldLabel>
             <Input
+              disabled={creating || Boolean(attempt)}
               id="jira-summary"
               value={summary}
               maxLength={255}
               onChange={(event) => setSummary(event.target.value)}
             />
           </Field>
+          {attempt?.issue ? (
+            <a href={attempt.issue.url} target="_blank" rel="noreferrer" className="text-primary underline">
+              Open created issue {attempt.issue.key}
+            </a>
+          ) : null}
+          {attempt ? <p className="text-sm text-muted-foreground">This attempt is preserved. Retrying will reuse it, including after reloading this page.</p> : null}
           {error ? (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -213,7 +242,7 @@ export function CreateJiraIssueDialog({
             onClick={() => void create()}
             disabled={!projectKey || !issueTypeId || !summary.trim() || creating}
           >
-            {creating ? "Creating…" : "Create issue"}
+            {creating ? "Working…" : attempt?.issue ? "Retry linking" : attempt ? "Retry request" : "Create issue"}
           </Button>
         </DialogFooter>
       </DialogContent>

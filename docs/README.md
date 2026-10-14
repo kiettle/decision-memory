@@ -10,6 +10,8 @@ Start with the smallest authoritative surface.
   boundaries.
 - `HARNESS.md`: product principles and installed-core model.
 - `product/`: current product behavior and installation contract.
+- [`presentation/README.md`](presentation/README.md): presenter notes, timed
+  demo/pitch, showcase copy, rehearsal steps and judge Q&A.
 - `decisions/`: lasting choices future work must inherit.
 - `plans/`: one durable working-memory document for work that needs it.
 - [`patterns/encoding-invariants.md`](patterns/encoding-invariants.md): turn

@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 const optionalText = z.string().max(20_000).optional().nullable()
+export const replacementReasonInput = z.string().trim().max(2000, "Use at most 2,000 characters for what changed.").optional()
 export const decisionInput = z.object({
   title: z.string().trim().min(1, "Decision is required.").max(500, "Use at most 500 characters."),
   why: optionalText,

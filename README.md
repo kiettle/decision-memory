@@ -5,7 +5,7 @@
 Decision Memory is a competition-focused local web application that turns a
 Slack discussion into a durable, structured Decision. Later, a teammate can
 retrieve that Decision through fast keyword/metadata search or an explicit
-Gemini-assisted **Search by memory** action.
+local semantic **Search by memory** action.
 
 The MVP intentionally uses a small architecture:
 
@@ -19,6 +19,14 @@ Express API ───── PostgreSQL
 React application in the local browser (Forge deployment is deferred)
 ```
 
+## Presenting Decision Memory
+
+Start with the [presenter guide](docs/presentation/README.md) for the product
+story, 90-second video script, seven-minute pitch outline and showcase copy.
+Use the [demo rehearsal](docs/presentation/demo-runbook.md) for exact setup,
+fields, repeat takes and fallback steps, and [judge Q&A](docs/presentation/judge-qa.md)
+for current evidence and implementation limits.
+
 ## What the MVP demonstrates
 
 - Save a Slack message and up to 100 messages from only its selected thread.
@@ -29,7 +37,7 @@ React application in the local browser (Forge deployment is deferred)
 - Browse, create, edit, filter, and supersede Decisions. Owner filters include
   separately labeled recorded Slack names as well as linked users.
 - Search immediately with PostgreSQL keywords and metadata.
-- Explicitly search by an imprecise or cross-language memory with Gemini.
+- Search by an imprecise or cross-language memory using a local multilingual model.
 - Ground every AI match in an authoritative stored Decision and its evidence.
 - Ask from Slack: the **Ask Decision Memory** shortcut and `/why` answer
   privately with stored Decisions.
@@ -39,8 +47,22 @@ React application in the local browser (Forge deployment is deferred)
 - Nudges: in channels it is invited to, the bot privately answers a question
   that was already decided and suggests saving a thread that reached a decision.
 
-Other notifications, graphs, analytics, embeddings, and extra integrations are
+Other notifications, graphs, analytics, and extra integrations are
 intentionally outside this MVP.
+
+## Understand decisions and their evolution
+
+- **Explore scopes** opens a service/feature overview with its current decisions,
+  reasons, owners, saved evidence links, and recent replacement history.
+- **Compare decisions** shows the stored rationale, scope, alternatives, and
+  evidence side by side. Open it from the library, a detail page, or a replacement.
+- **What changed?** in the web/Slack replacement flow records why the earlier
+  choice stopped fitting. The detail page preserves that explanation from both
+  sides, with a direct before/after comparison.
+
+These features run locally without another integration. Existing installations
+need the additive schema; `npm run dev` applies it during setup. See
+[Decision understanding](docs/product/decision-understanding.md).
 
 ## Technology
 
@@ -53,93 +75,46 @@ intentionally outside this MVP.
 
 ## Quick start
 
-### Prerequisites
-
-- Node.js 22 or newer
-- npm
-- Docker Desktop with Docker Compose
-
-Gemini, Slack, and Forge credentials are optional for the basic local demo.
-
-### 1. Install dependencies
-
-From the repository root:
+Prerequisites: Node.js 22+, npm, and Docker Desktop or OrbStack running.
+From the repository root, run:
 
 ```bash
-npm install
+npm run dev
 ```
 
-The repository already contains a local `.env`. For a fresh clone where it is
-missing, create it from the template:
+Open [http://localhost:5173](http://localhost:5173).
+
+This command installs missing/changed dependencies, starts PostgreSQL 17 with
+pgvector, applies the additive schema, seeds synthetic demo decisions **only if
+there are no decisions**, caches the embedding model, indexes existing records,
+and starts the API, Slack listener, and web app. Existing `.env` credentials and
+decisions are preserved. It refuses to use a remote database or occupied app ports.
+
+The first setup needs internet to download dependencies, the Docker image, and
+about 129 MB of model files. After caching, embedding inference and memory search
+work offline without a Gemini key, GPU, or paid service. Slack/Jira integrations
+still need their own credentials and internet. Model files and database backups
+are ignored under `.local/`; decision data remains in the Docker volume.
+
+`Ctrl+C` stops the API and web app. PostgreSQL stays running; `npm run db:down`
+stops it while preserving its volume. Do not use `docker compose down -v` unless
+you intend to delete your data.
+
+To prepare without starting the app, or repair a missing model cache:
 
 ```bash
-cp .env.example .env
+npm run setup:local
 ```
 
-Do not overwrite an existing `.env`, because it may contain your local
-credentials.
-
-### 2. Start PostgreSQL
+To finish indexing after an interrupted run:
 
 ```bash
-npm run db:up
+npm run search:index
 ```
 
-Wait until the database reports `healthy`:
-
-```bash
-docker compose ps
-```
-
-Then apply the schema and load the nine synthetic demo Decisions:
-
-```bash
-npm run db:schema
-npm run db:seed
-```
-
-Both SQL files are idempotent and can safely be applied again.
-
-### 3. Start the API
-
-In a second terminal:
-
-```bash
-npm run dev:server
-```
-
-Expected output:
-
-```text
-Decision Memory API listening on http://localhost:3011
-```
-
-Optional health check:
-
-```bash
-curl http://localhost:3011/health
-```
-
-### 4. Start the web application
-
-In a third terminal:
-
-```bash
-npm run dev:web
-```
-
-Open [http://localhost:5173](http://localhost:5173). You should see the
-**Decision Library** with nine seeded Decisions.
-
-### 5. Stop the local application
-
-Stop the API and frontend with `Ctrl+C` in their terminals. Stop PostgreSQL with:
-
-```bash
-npm run db:down
-```
-
-This preserves the Docker database volume and its data.
+The server also processes new/edited records in the background every two seconds.
+For separate terminals, run `npm run setup:local`, then `npm run dev:server` and
+`npm run dev:web`. Detailed behavior and recovery: [Local memory search](docs/product/memory-search.md).
 
 ## Try the demo locally
 
@@ -154,40 +129,46 @@ The basic demo requires no external credentials:
 5. Create or edit a Decision and attach multiple Jira or generic links.
 6. Find `DM-102 · Superseded by DM-104` in the library, or open it through
    the lifecycle section.
+7. Select **Explore scopes**, then **Atlas migration**, to see current choices
+   and replacement history together.
+8. Use **Compare decisions** to compare DM-102 and DM-104. Seeded relationships
+   may have no replacement reason; follow the presentation rehearsal to record
+   a fresh replacement and its **What changed?** explanation.
 
-Without `GEMINI_API_KEY`, the **Search by memory** button is visibly disabled
-and normal search continues to work.
+**Search by memory** is available without `GEMINI_API_KEY` after local setup.
 
-## Enable Search by memory
+## Local Search by memory
 
-Add your Gemini key to `.env`:
-
-```text
-GEMINI_API_KEY=your_key_here
-```
-
-Restart the API after changing `.env`. Then try this demo query:
+Run `npm run dev`, then try:
 
 ```text
 Hồi trước mình xử lý file migration lớn hay timeout như thế nào?
 ```
 
-This wording shares no exact title with the expected Decision, but should rank
-`DM-104` highly by meaning.
+- Query embeddings and decision embeddings are computed locally on CPU using
+  the pinned, quantized multilingual E5-small model. No decision/query text is
+  sent to Gemini or Hugging Face by memory search.
+- PostgreSQL/pgvector retrieves up to five distinct stored decisions from the
+  indexed workspace, respecting channel, owner, tag, status, scope, and date
+  filters. There is no newest-200 record cap.
+- Long content is indexed in overlapping token windows that fit the model,
+  including title context and input framing. Retrieval excludes decisions
+  already selected so a long discussion cannot crowd out other choices.
+  Existing embeddings are rebuilt automatically by setup after format changes.
+  HNSW search is approximate;
+  it can miss relevant results. Normal keyword search remains available.
+- Results show stored titles and a deterministic match explanation. Relevance
+  scores are retrieval scores, not probabilities or AI factual confidence.
+- New/edited records are temporarily excluded from semantic search until indexed;
+  the UI and Slack disclose the indexed/total counts. Keyword search sees them
+  immediately. Durable jobs survive restarts; deletions remove embeddings.
+- Model files download during setup only. Missing files or database failures
+  produce a local setup instruction without disabling normal keyword search.
 
-Memory search behavior:
-
-- It runs only after the user selects **Search by memory**—never per keystroke.
-- Current channel, owner, tag, status, scope, and date filters are applied first.
-- At most 200 Decisions from the current workspace are sent as bounded cards.
-- Gemini may return at most five structured matches.
-- Returned IDs are checked against the candidate set; unknown IDs are ignored.
-- AI explanations are display-only and are never persisted.
-- Timeout, rate-limit, network, or malformed-output failures leave normal search
-  usable and show a retry message.
-
-The same key also turns on the **AI draft** in Slack: Save as Decision sends the
-selected thread (at most 60 messages) to Gemini, which pre-fills Decision, Why,
+An optional `GEMINI_API_KEY` turns on the **AI draft** in Slack: Save as Decision sends the
+selected thread (at most 60 messages) to Gemini. Once the discussion is captured,
+**Continue manually** opens the editable form without waiting for AI. Waiting
+for assistance pre-fills Decision, Why,
 Context, Applies To, and Options Considered for review. It can say that no clear
 Decision was found, nothing is saved until you click Save, and any Gemini
 failure opens the plain form with a manual-entry notice. Transient failures and
@@ -269,7 +250,7 @@ modal retries are idempotent.
 | `SLACK_BOT_TOKEN` | Token for the installed demo Slack app |
 | `SLACK_SIGNING_SECRET` | Verifies incoming Slack requests |
 | `SLACK_TEAM_ID` | Restricts capture to the intended workspace (starts with `T`) |
-| `GEMINI_API_KEY` | Optional AI features, synthetic/sanitized data only |
+| `GEMINI_API_KEY` | Optional Slack AI draft only; synthetic/sanitized data only |
 | `JIRA_BASE_URL` | Optional Jira Cloud site, for example `https://acme.atlassian.net` |
 | `JIRA_EMAIL` | Atlassian account email that owns the API token |
 | `JIRA_API_TOKEN` | Atlassian API token used only by the server to create issues |
@@ -285,6 +266,26 @@ No local port, identity, model, or frontend toggle needs an environment entry.
 
 The confirmation link opens on the presentation computer; it is not a public
 shared demo URL. Update the code constant if the demo location changes.
+
+## Jira retry recovery
+
+After updating from an older checkout, run `npm run db:schema` against your
+local database before using Jira creation. The additive `jira_issue_requests`
+table stores one creation attempt and its receipt per workspace/request ID.
+
+If Jira creation succeeds but linking fails, the dialog shows the created issue
+and **Retry linking**. The same request ID and inputs survive a reload in the
+same browser tab. Retrying finishes linking without creating another issue.
+If a timeout or restart leaves the external result unknown, automatic recreation
+is blocked: check Jira and attach an existing issue URL through **Edit Decision**.
+This is not a cross-system exactly-once guarantee; an unknown outcome requires
+manual reconciliation. Clearing browser storage or starting a separate attempt
+must not be used to retry an unresolved operation.
+
+Library queries and filters are encoded in the URL. Opening a Decision and
+returning restores them; memory results also survive this navigation without
+another provider call. Lifecycle details distinguish the immediate replacement
+from the latest active successor, including chains with more than two Decisions.
 
 ## Deferred Forge deployment
 
@@ -312,6 +313,16 @@ With PostgreSQL running and seeded:
 ```bash
 npm run test:integration
 ```
+
+To verify real cached embeddings and pgvector offline in an automatically
+created, isolated local database:
+
+```bash
+npm run test:local-search
+```
+
+This proof also checks automatic indexing after create/edit, workspace isolation,
+filters, deletion, and retrieval of older decisions beyond the former 200 cap.
 
 This verifies Slack draft persistence, expiry cleanup, workspace isolation,
 concurrent retry idempotency, durable source storage, multi-word search, tag
@@ -370,10 +381,11 @@ DATABASE_URL=postgresql://decision_memory:decision_memory@localhost:5434/decisio
 
 Then verify the container is healthy with `docker compose ps`.
 
-### Search by memory is disabled
+### Local memory search is unavailable
 
-Set a non-empty `GEMINI_API_KEY` in `.env` and restart the API. The frontend
-learns availability from `/api/metadata`; no frontend key is required.
+Run `npm run setup:local`, then restart with `npm run dev`. This prepares the
+model files and indexes without an API key. If results show pending decisions,
+wait for background indexing or run `npm run search:index` with the server stopped.
 
 ### Slack reports an invalid signature
 
@@ -402,6 +414,7 @@ Stop the conflicting local process or update the code constants and Docker Compo
 ## Current boundary
 
 Local implementation is validated separately from external integrations.
-Search by memory and the AI draft have been run against the real Gemini API with
-synthetic data, and Slack capture works in the demo workspace through a
-Tailscale tunnel. No deployment workflow is included.
+Memory search runs locally with cached embeddings and PostgreSQL/pgvector.
+`npm run test:local-search` verifies real offline inference in an isolated database.
+Optional Gemini drafting and Slack/Jira integrations remain separate external
+features. Public cloud deployment and million-decision performance are not validated.

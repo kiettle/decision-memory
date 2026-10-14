@@ -10,8 +10,9 @@ import {
   Hash,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
+import { CompareDecisionsDialog } from "@/components/compare-decisions-dialog"
 import { FilterSelect } from "@/components/filter-select"
 import { StatusBadge } from "@/components/status-badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -54,12 +55,20 @@ const initialFilters: Required<DecisionFilters> = {
 
 export function LibraryPage() {
   const location = useLocation()
-  const [filters, setFilters] = useState(initialFilters)
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = useMemo(() => Object.fromEntries(
+    Object.entries(initialFilters).map(([key, value]) => [key, searchParams.get(key) ?? value])
+  ) as typeof initialFilters, [searchParams])
+  const setFilters = (next: typeof initialFilters) => setSearchParams(
+    Object.fromEntries(Object.entries(next).filter(([key, value]) => value !== initialFilters[key as keyof typeof initialFilters])),
+    { replace: true }
+  )
   const [decisions, setDecisions] = useState<Decision[]>([])
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [memoryResult, setMemoryResult] = useState<MemorySearchResponse | null>(null)
+  const [memoryResult, setMemoryResult] = useState<MemorySearchResponse | null>(location.state?.memoryResult ?? null)
   const [memorySearching, setMemorySearching] = useState(false)
   const [memoryError, setMemoryError] = useState("")
   const recentOnly = location.pathname === "/recent"
@@ -102,6 +111,7 @@ export function LibraryPage() {
   }, [load, filters.q])
 
   const invalidateMemory = () => {
+    void navigate(location.pathname + location.search, { replace: true, state: null })
     memoryRequest.current++
     setMemorySearching(false)
     setMemoryResult(null)
@@ -110,7 +120,7 @@ export function LibraryPage() {
 
   const updateFilter = (key: keyof typeof filters, value: string) => {
     invalidateMemory()
-    setFilters((current) => ({ ...current, [key]: value }))
+    setFilters({ ...filters, [key]: value })
     setMemoryResult(null)
     setMemoryError("")
   }
@@ -128,7 +138,10 @@ export function LibraryPage() {
     setMemoryError("")
     try {
       const result = await api.memorySearch(filters.q.trim(), filters)
-      if (request === memoryRequest.current) setMemoryResult(result)
+      if (request === memoryRequest.current) {
+        setMemoryResult(result)
+        void navigate(location.pathname + location.search, { replace: true, state: { memoryResult: result } })
+      }
     } catch (searchError) {
       if (request !== memoryRequest.current) return
       setMemoryError(
@@ -220,11 +233,12 @@ export function LibraryPage() {
 
   return (
     <div className="page-frame">
-      <div className="page-heading-row">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="eyebrow">Shared product record</p>
           <h1>{recentOnly ? "Recent Decisions" : "Decision Library"}</h1>
         </div>
+        <div className="flex flex-wrap gap-2"><Button variant="outline" render={<Link to="/scopes" />} nativeButton={false}><Box data-icon="inline-start" /> Explore scopes</Button><CompareDecisionsDialog />
         <Button
           render={<Link to="/decisions/new" />}
           nativeButton={false}
@@ -232,7 +246,7 @@ export function LibraryPage() {
         >
           <Plus data-icon="inline-start" />
           New Decision
-        </Button>
+        </Button></div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -260,7 +274,7 @@ export function LibraryPage() {
           }
           title={
             metadata && !metadata.features.memorySearch
-              ? "Add GEMINI_API_KEY to enable Search by memory."
+              ? "Run npm run setup:local to prepare memory search."
               : undefined
           }
         >
@@ -269,7 +283,7 @@ export function LibraryPage() {
         </Button>
         {metadata && !metadata.features.memorySearch ? (
           <p className="text-xs text-muted-foreground sm:col-start-2 sm:text-right">
-            Add GEMINI_API_KEY to enable AI-assisted search.
+            Run npm run setup:local to prepare local memory search.
           </p>
         ) : null}
       </div>
@@ -284,10 +298,12 @@ export function LibraryPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="bg-primary text-primary-foreground">
-              <Sparkles /> AI-assisted match
+              <Sparkles /> Local semantic match
             </Badge>
             <span className="text-slate-700">
-              Ranked by meaning from {memoryResult.candidateCount} stored decisions.
+              {memoryResult.truncated
+                ? `Searched ${memoryResult.candidateCount} of ${memoryResult.totalCandidateCount} decisions matching your filters. The remaining decisions are waiting for local indexing. Retry shortly or use normal search.`
+                : `Searched the local index of ${memoryResult.candidateCount} stored decisions. No external AI request.`}
             </span>
           </div>
           <Button variant="link" onClick={invalidateMemory}>
@@ -332,14 +348,14 @@ export function LibraryPage() {
 
       <div className="result-bar">
         <span>
-          {loading
+          {loading && !memoryResult
             ? "Loading decisions…"
             : `${displayedDecisions.length} decision${displayedDecisions.length === 1 ? "" : "s"}`}
         </span>
-        <span className="font-normal text-muted-foreground">Newest first</span>
+        <span className="font-normal text-muted-foreground">{memoryResult ? "Best match first" : "Newest first"}</span>
       </div>
 
-      {error ? (
+      {error && !memoryResult ? (
         <Empty className="border-y py-20">
           <EmptyHeader>
             <EmptyTitle>Could not load the Decision Library</EmptyTitle>
@@ -351,14 +367,14 @@ export function LibraryPage() {
             Try again
           </Button>
         </Empty>
-      ) : loading ? (
+      ) : loading && !memoryResult ? (
         <LoadingRows />
       ) : displayedDecisions.length ? (
         <DecisionList decisions={displayedDecisions} matches={matchesByDecision} />
       ) : (
         <Empty className="border-y py-20">
           <EmptyHeader>
-            <EmptyTitle>No decisions match these filters</EmptyTitle>
+            <EmptyTitle>{memoryResult ? "No memory matches in the searched decisions" : "No decisions match these filters"}</EmptyTitle>
             <EmptyDescription>
               Clear a filter or record a new decision.
             </EmptyDescription>
@@ -407,6 +423,7 @@ function DecisionRow({
   decision: Decision
   memoryMatch?: MemorySearchMatch
 }) {
+  const location = useLocation()
   const ownerLabel = decision.owner?.displayName ?? decision.ownerName
   const initials =
     ownerLabel
@@ -415,7 +432,7 @@ function DecisionRow({
       .join("")
       .slice(0, 2) || "—"
   return (
-    <Link className="decision-row" to={`/decisions/${decision.id}`}>
+    <Link className="decision-row" to={`/decisions/${decision.id}`} state={{ libraryUrl: location.pathname + location.search, libraryState: location.state }}>
       <div className="decision-status">
         <StatusBadge status={decision.status} />
       </div>
@@ -442,7 +459,7 @@ function DecisionRow({
         </div>
         {memoryMatch ? (
           <div className="mt-1 grid gap-1.5 rounded-md border border-blue-100 bg-blue-50/80 p-2.5 text-xs leading-5 text-blue-950">
-            <span className="font-semibold">AI-assisted match · {Math.round(memoryMatch.score)}%</span>
+            <span className="font-semibold">Local semantic match · relevance {Math.round(memoryMatch.score)}/100</span>
             <span>{memoryMatch.explanation}</span>
             {memoryMatch.matchedConcepts.length ? (
               <span className="text-blue-700">

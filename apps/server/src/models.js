@@ -104,6 +104,16 @@ export function createDatabase(databaseUrl, logging = false) {
     { tableName: "external_references", updatedAt: false },
   )
 
+  const JiraIssueRequest = sequelize.define("JiraIssueRequest", {
+    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    workspaceId: { type: DataTypes.UUID, allowNull: false },
+    decisionId: { type: DataTypes.UUID, allowNull: false },
+    requestId: { type: DataTypes.UUID, allowNull: false },
+    input: { type: DataTypes.JSONB, allowNull: false },
+    status: { type: DataTypes.TEXT, allowNull: false, defaultValue: "PENDING" },
+    issue: DataTypes.JSONB,
+  }, { tableName: "jira_issue_requests" })
+
   const DecisionRelation = sequelize.define(
     "DecisionRelation",
     {
@@ -112,6 +122,7 @@ export function createDatabase(databaseUrl, logging = false) {
       fromDecisionId: { type: DataTypes.UUID, allowNull: false },
       toDecisionId: { type: DataTypes.UUID, allowNull: false },
       relationType: { type: DataTypes.TEXT, allowNull: false },
+      replacementReason: DataTypes.TEXT,
     },
     { tableName: "decision_relations", updatedAt: false },
   )
@@ -193,6 +204,7 @@ export function createDatabase(databaseUrl, logging = false) {
     Tag,
     SourceSnapshot,
     ExternalReference,
+    JiraIssueRequest,
     DecisionRelation,
     SlackInteraction,
     SlackCaptureDraft,

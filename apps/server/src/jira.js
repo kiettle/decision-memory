@@ -67,11 +67,13 @@ export function createJiraClient({ config, fetchImpl = (...args) => fetch(...arg
       const detail = [...(result.errorMessages ?? []), ...Object.values(result.errors ?? {})]
         .join(" ")
         .slice(0, 300)
-      throw new DomainError(
+      const error = new DomainError(
         `Jira rejected the request${detail ? `: ${detail}` : ` (HTTP ${response.status}).`}`,
         502,
         "JIRA_REJECTED",
       )
+      error.retrySafe = response.status >= 400 && response.status < 500
+      throw error
     }
     return result
   }
@@ -109,4 +111,33 @@ export function createJiraClient({ config, fetchImpl = (...args) => fetch(...arg
   }
 
   return { enabled, projects, issueTypes, createIssue }
+}
+
+// The external create is never repeated after an ambiguous outcome. A stored
+// receipt lets subsequent requests retry only the local linking transaction.
+export async function createLinkedJiraIssue({ repository, jira, identity, decision, requestId, input }) {
+  const attempt = await repository.claimJiraIssueRequest(identity, decision.id, requestId, input)
+  let issue = attempt.issue
+  if (!attempt.claimed && !issue) {
+    throw new DomainError("This Jira request is still pending or its outcome is unknown. Check Jira before creating another issue; if it exists, attach its URL using Edit Decision.", 409, "JIRA_OUTCOME_UNKNOWN")
+  }
+  if (attempt.claimed) {
+    try {
+      issue = await jira.createIssue({ ...input, decision })
+    } catch (error) {
+      if (error.retrySafe || error.code === "JIRA_NOT_CONFIGURED") {
+        await repository.updateJiraIssueRequest(identity, requestId, { status: "REJECTED" })
+        throw error
+      }
+      throw new DomainError("Jira creation could not be confirmed. Check Jira before creating another issue; retries will not create duplicates.", 409, "JIRA_OUTCOME_UNKNOWN")
+    }
+  }
+  try {
+    if (attempt.claimed) await repository.updateJiraIssueRequest(identity, requestId, { status: "CREATED", issue })
+    return await repository.linkJiraIssueRequest(identity, requestId)
+  } catch {
+    const error = new DomainError(`Jira issue ${issue.key} was created, but its link could not be saved. Retry to finish linking; if the result cannot be recovered, attach this URL using Edit Decision.`, 503, "JIRA_LINK_PENDING")
+    error.issue = issue
+    throw error
+  }
 }

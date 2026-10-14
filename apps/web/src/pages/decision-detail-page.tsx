@@ -12,9 +12,13 @@ import {
   Tag,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useLocation, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
+import { CompareDecisionsDialog } from "@/components/compare-decisions-dialog"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Textarea } from "@/components/ui/textarea"
+import { comparisonHref, recordedDate, scopeHref } from "@/lib/decision-links"
 import { CreateJiraIssueDialog } from "@/components/create-jira-issue-dialog"
 import { StatusBadge } from "@/components/status-badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -33,6 +37,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -47,9 +52,13 @@ export function DecisionDetailPage() {
 }
 
 function DecisionDetail({ id }: { id: string }) {
+  const location = useLocation()
+  const libraryState = location.state?.libraryState ?? null
+  const libraryUrl = typeof location.state?.libraryUrl === "string" ? location.state.libraryUrl : "/"
   const [decision, setDecision] = useState<Decision | null>(null)
   const [candidates, setCandidates] = useState<Decision[]>([])
   const [targetId, setTargetId] = useState("")
+  const [replacementReason, setReplacementReason] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [reload, setReload] = useState(0)
@@ -105,7 +114,7 @@ function DecisionDetail({ id }: { id: string }) {
     if (!targetId || !decision) return
     setSuperseding(true)
     try {
-      await api.supersede(decision.id, targetId)
+      await api.supersede(decision.id, targetId, replacementReason)
       toast.success("Lifecycle updated.")
       setSupersedeOpen(false)
       setTargetId("")
@@ -129,7 +138,7 @@ function DecisionDetail({ id }: { id: string }) {
         <h1>Could not load Decision</h1>
         <p role="alert">{error || "Decision not found."}</p>
         <Button className="w-fit" onClick={() => { setLoading(true); setError(""); setReload((value) => value + 1) }}>Try again</Button>
-        <Button className="w-fit" variant="outline" render={<Link to="/" />} nativeButton={false}>
+        <Button className="w-fit" variant="outline" render={<Link to={libraryUrl} state={libraryState} />} nativeButton={false}>
           Return to library
         </Button>
       </div>
@@ -151,13 +160,14 @@ function DecisionDetail({ id }: { id: string }) {
         <Button
           variant="ghost"
           size="sm"
-          render={<Link to="/" />}
+          render={<Link to={libraryUrl} state={libraryState} />}
           nativeButton={false}
           className="-ml-2"
         >
           <ArrowLeft /> Back to decisions
         </Button>
         <div className="flex flex-wrap justify-end gap-2">
+          <CompareDecisionsDialog decision={decision} />
           <CreateJiraIssueDialog
             decision={decision}
             enabled={jiraEnabled}
@@ -171,7 +181,11 @@ function DecisionDetail({ id }: { id: string }) {
                 setCandidates([])
                 setCandidateError("")
                 setTargetId("")
+                setReplacementReason("")
               }}
+              decision={decision}
+              replacementReason={replacementReason}
+              setReplacementReason={setReplacementReason}
               candidates={candidates}
               targetId={targetId}
               setTargetId={setTargetId}
@@ -209,16 +223,38 @@ function DecisionDetail({ id }: { id: string }) {
         <Link
           key={item.id}
           to={`/decisions/${item.id}`}
+          state={{ libraryUrl, libraryState }}
           className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 hover:bg-amber-100"
         >
           <RefreshCcw aria-hidden="true" className="size-4 shrink-0" />
           <span className="min-w-0 flex-1">
-            This Decision was replaced. The current Decision is{" "}
+            This Decision was replaced by{" "}
             <strong>{item.decisionKey}</strong> · {item.title}
           </span>
           <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
         </Link>
       ))}
+
+      {decision.lifecycle?.current?.map((item) => (
+        <Link key={item.id} to={`/decisions/${item.id}`} state={{ libraryUrl, libraryState }} className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+          <span className="min-w-0 flex-1">Current active Decision: <strong>{item.decisionKey}</strong> · {item.title}</span>
+          <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+        </Link>
+      ))}
+
+      {decision.lifecycle?.supersedes.length || decision.lifecycle?.supersededBy.length ? (
+        <section aria-label="Decision evolution" className="grid gap-4 border-y py-5">
+          <h2 className="text-lg font-semibold">Why did this change?</h2>
+          {[
+            ...(decision.lifecycle.supersedes.map((item) => ({ item, earlierId: item.id, newerId: decision.id, label: `Replaces ${item.decisionKey}` }))),
+            ...(decision.lifecycle.supersededBy.map((item) => ({ item, earlierId: decision.id, newerId: item.id, label: `Replaced by ${item.decisionKey}` }))),
+          ].map(({ item, earlierId, newerId, label }) => <div key={`${earlierId}:${newerId}`} className="grid gap-2">
+            <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-semibold">{label}</span>{item.replacedAt ? <span className="text-xs text-muted-foreground">{recordedDate(item.replacedAt)}</span> : null}</div>
+            <p className="whitespace-pre-wrap break-words text-sm leading-6">{item.replacementReason || "No replacement reason was recorded."}</p>
+            <Button className="w-fit" variant="outline" render={<Link to={comparisonHref(earlierId, newerId)} state={{ returnUrl: location.pathname + location.search, returnState: location.state }} />} nativeButton={false}>Compare before and after <ArrowRight data-icon="inline-end" /></Button>
+          </div>)}
+        </section>
+      ) : null}
 
       <div className="detail-layout">
         <article className="detail-article">
@@ -228,7 +264,7 @@ function DecisionDetail({ id }: { id: string }) {
                 decision.appliesTo.map((item) => (
                   <Badge key={item} variant="outline">
                     <Box />
-                    {item}
+                    <Link to={scopeHref(item)} className="hover:underline">{item}</Link>
                   </Badge>
                 ))
               ) : (
@@ -360,6 +396,7 @@ function DecisionDetail({ id }: { id: string }) {
                 <Link
                   className="lifecycle-link"
                   to={`/decisions/${item.id}`}
+          state={{ libraryUrl, libraryState }}
                   key={item.id}
                 >
                   Superseded by <strong>{item.decisionKey}</strong>
@@ -370,6 +407,7 @@ function DecisionDetail({ id }: { id: string }) {
                 <Link
                   className="lifecycle-link"
                   to={`/decisions/${item.id}`}
+          state={{ libraryUrl, libraryState }}
                   key={item.id}
                 >
                   Supersedes <strong>{item.decisionKey}</strong>
@@ -541,14 +579,8 @@ function MetadataRow({
 }
 
 function SupersedeDialog({
-  open,
-  onOpenChange,
-  candidates,
-  targetId,
-  setTargetId,
-  onConfirm,
-  loading,
-  error,
+  open, onOpenChange, candidates, targetId, setTargetId, onConfirm, loading, error,
+  decision, replacementReason, setReplacementReason,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -558,44 +590,28 @@ function SupersedeDialog({
   onConfirm: () => void
   loading: boolean
   error: string
+  decision: Decision
+  replacementReason: string
+  setReplacementReason: (value: string) => void
 }) {
+  const earlier = candidates.find((item) => item.id === targetId)
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger render={<Button variant="outline" />}>
-        <RefreshCcw /> Supersede
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Supersede an earlier Decision</DialogTitle>
-          <DialogDescription>
-            The selected Decision becomes superseded and both records will link
-            to each other.
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog open={open} onOpenChange={(next) => { if (!loading) onOpenChange(next) }}>
+      <DialogTrigger render={<Button variant="outline" />}><RefreshCcw /> Supersede</DialogTrigger>
+      <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader><DialogTitle>Supersede an earlier Decision</DialogTitle><DialogDescription>Review the earlier choice, then record what changed. It will remain searchable and link to this Decision.</DialogDescription></DialogHeader>
         {error ? <p role="alert">{error}</p> : null}
-        <Select
-          value={targetId}
-          onValueChange={(value) => setTargetId(value ?? "")}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue>
-              {candidates.find((item) => item.id === targetId)?.title ??
-                "Select an active Decision"}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {candidates.map((item) => (
-              <SelectItem key={item.id} value={item.id}>
-                {item.decisionKey} · {item.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <DialogFooter>
-          <Button onClick={onConfirm} disabled={!targetId || loading}>
-            {loading ? "Updating…" : "Confirm supersession"}
-          </Button>
-        </DialogFooter>
+        <FieldGroup>
+          <Field><FieldLabel>Earlier Decision</FieldLabel><Select value={targetId} disabled={loading} onValueChange={(value) => setTargetId(value ?? "")}>
+            <SelectTrigger aria-label="Earlier Decision" className="w-full"><SelectValue>{earlier?.title ?? "Select an active Decision"}</SelectValue></SelectTrigger>
+            <SelectContent><SelectGroup>{candidates.map((item) => <SelectItem key={item.id} value={item.id}>{item.decisionKey} · {item.title}</SelectItem>)}</SelectGroup></SelectContent>
+          </Select></Field>
+          {earlier ? <div className="grid gap-4 border-y py-4 sm:grid-cols-2">{[earlier, decision].map((item, index) => <section key={item.id} aria-label={index === 0 ? "Earlier choice" : "Replacing choice"} className="grid min-w-0 content-start gap-2">
+            <p className="text-xs font-semibold text-muted-foreground">{index === 0 ? "Earlier choice" : "Replacing choice"} · {item.decisionKey}</p><h3 className="break-words text-sm font-semibold">{item.title}</h3><p className="break-words text-xs text-muted-foreground">Applies to: {item.appliesTo.join(", ") || "No scope recorded"}</p><p className="whitespace-pre-wrap break-words text-sm leading-6">{item.why || "No rationale recorded."}</p>
+          </section>)}</div> : null}
+          <Field><FieldLabel htmlFor="replacement-reason">What changed?</FieldLabel><Textarea id="replacement-reason" value={replacementReason} maxLength={2000} disabled={loading} onChange={(event) => setReplacementReason(event.target.value)} placeholder="For example: exports now exceed local disk capacity, so the earlier approach no longer fits." /><FieldDescription>Optional. Record the circumstance or assumption that changed, so teammates can understand this replacement later.</FieldDescription></Field>
+        </FieldGroup>
+        <DialogFooter><Button onClick={onConfirm} disabled={!targetId || loading}>{loading ? "Updating…" : "Confirm supersession"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   )

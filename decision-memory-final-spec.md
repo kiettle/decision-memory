@@ -7,7 +7,8 @@
 **Primary capture surface:** Slack  
 **Primary retrieval surface:** Web app  
 **Future ecosystem:** Jira → Bitbucket/GitHub → Decision Graph  
-**AI for local MVP testing:** Gemini API free tier with synthetic/sanitized data only
+**Memory search:** local multilingual embeddings and PostgreSQL/pgvector (approved 2026-10-12)
+**Optional capture drafting:** Gemini API with synthetic/sanitized data only
 
 ---
 
@@ -209,6 +210,25 @@ Target UX:
 
 ---
 
+## 6.2 Approved extension — Decision understanding (2026-10-12)
+
+The owner approved the three focused additions following a feature-priority
+review:
+
+- **Why did this change?** Preserve an optional human-written replacement
+  reason on the supersession relationship and show it from both Decisions.
+- **Compare decisions.** Show stored reasoning, scope, alternatives and evidence
+  together; richer Slack suggestions expose Why and Applies To. Similarity or
+  different wording must not be presented as proof of a conflict.
+- **Scope overviews.** Reuse exact Applies To values to show active choices and
+  the latest replacement history for a service, feature or component.
+
+Current behavior, limits and validation live in
+[`docs/product/decision-understanding.md`](docs/product/decision-understanding.md).
+These additions require no extra AI service, new integration or graph UI.
+
+---
+
 # 7. Stretch Goal — AI-Assisted Slack Extraction
 
 AI is useful when a Slack thread is long.
@@ -244,20 +264,27 @@ Confirm & Save
 
 AI must never silently create an authoritative Decision.
 
-## 7.3 Approved Buildathon extension — Search by memory
+## 7.3 Approved extension — Local Search by memory
 
-The competition MVP includes one explicit AI-assisted retrieval action for the
-case where a user remembers the idea but not the original words.
+Owner-approved on 2026-10-12: replace Gemini memory ranking with a locally run
+multilingual embedding model and PostgreSQL/pgvector; require no paid services
+and provide one-command local setup/startup. This supersedes the original
+Buildathon newest-200 and embedding-deferral rules for memory search.
 
-- Normal PostgreSQL keyword and metadata search remains the default.
-- **Search by memory** runs only when the user explicitly requests it.
-- Gemini ranks existing workspace-scoped Decision records and returns grounded
-  Decision IDs with short match explanations.
-- Every result opens the stored Decision and its evidence; AI output is never a
-  new source of truth.
-- The MVP may linearly rank at most 200 filtered Decisions. Embeddings and
-  vector databases remain post-MVP scaling work.
-- Gemini receives synthetic or explicitly sanitized content only.
+- Normal PostgreSQL keyword and metadata search remains the default/fallback.
+- Search by memory computes embeddings locally and retrieves at most five
+  distinct stored decisions within the authenticated workspace and filters.
+- Search content must not leave the app for external AI inference. Setup may
+  download public model weights. Runtime inference reads cached model files.
+- Results open actual decisions and evidence. Match text is deterministic;
+  similarity/relevance scores are not probabilities or factual confidence.
+- New/changed content enters a durable indexing job. Stale vectors are excluded,
+  pending coverage is disclosed, and deletion removes derived embeddings.
+- Local startup preserves existing decisions and credentials. Demo data is
+  seeded only into an empty database. Public hosting and million-record
+  performance remain unvalidated.
+
+Current contract: `docs/product/memory-search.md`.
 
 ## 7.4 AI output requirements
 
@@ -1012,12 +1039,11 @@ Exact ranking quality is not critical for Buildathon.
 
 ## Explicit memory search
 
-An explicit **Search by memory** action may send compact representations of up
-to 200 filtered Decisions to Gemini for semantic ranking. Results must contain
-only validated Decision IDs from the candidate set, include no more than five
-matches, and explain why each stored Decision may match what the user
-remembers. Missing configuration, timeout, or invalid AI output must leave
-normal PostgreSQL search available.
+Search by memory uses cached local embeddings and PostgreSQL/pgvector over the
+indexed workspace, without the former newest-200 cap. It returns at most five
+stored decisions with deterministic explanations. Missing model files or
+indexing failures leave normal keyword search usable. See §7.3 and
+`docs/product/memory-search.md` for the current owner-approved behavior.
 
 ---
 
@@ -1046,8 +1072,9 @@ Rule:
 
 > Semantic/AI answers must always link back to actual Decision records.
 
-Future scaling may add embeddings or vector retrieval when a workspace grows
-beyond the MVP's bounded candidate set.
+Local embeddings and vector retrieval are now approved (§7.3). Future scaling
+requires realistic recall, latency, indexing, storage and tenant-filter benchmarks;
+the local implementation does not claim million-record production readiness.
 
 ---
 
@@ -1210,8 +1237,8 @@ review_interval
 
 # 21. AI Strategy
 
-AI-assisted capture remains optional for the MVP. Explicit AI-assisted memory
-search is the one approved Buildathon extension.
+AI-assisted capture remains optional. Memory search now uses local embeddings
+and PostgreSQL/pgvector as approved in §7.3; it requires no external AI API.
 
 Primary AI use case:
 
@@ -1424,7 +1451,7 @@ Target:
 - [ ] Decision understandable without Slack.
 - [ ] Explicit Search by memory action.
 - [ ] AI results contain only stored workspace Decisions.
-- [ ] Normal search remains usable when Gemini is unavailable.
+- [ ] Normal search remains usable when local semantic search is unavailable.
 
 ## Durable Slack discussion
 
@@ -1528,89 +1555,37 @@ Do not attempt both unless the MVP is already done.
 
 # 29. Buildathon Demo Script
 
-## Scene 1 — Problem
+The current scripts and rehearsal instructions are maintained in:
 
-Show Slack discussion:
+- [Presenter guide](docs/presentation/README.md): product story, 60–90 second
+  video, seven-minute pitch and showcase-board copy.
+- [Demo rehearsal](docs/presentation/demo-runbook.md): exact synthetic fields,
+  setup, repeat-take state, source inspection and failure recovery.
+- [Judge Q&A](docs/presentation/judge-qa.md): current implementation, validation
+  evidence, pilot questions and limits.
 
-```text
-Should migration backup files stay in PostgreSQL or GCS?
-
-...
-Let's use GCS. The files can become very large.
-```
-
-Explain:
-
-> Important Decisions happen in chat, but six months later people may not remember the keyword, channel, or even have access to the old message.
-
-## Scene 2 — Capture
+The main story now proves the approved decision-understanding extension:
 
 ```text
-Save as Decision
+An earlier migration-backup choice
+    ↓
+Changed circumstances discussed in Slack
+    ↓
+Save as Decision + human confirmation + durable source context
+    ↓
+Retrieve and inspect the stored decision/evidence
+    ↓
+Supersede the earlier choice and record What changed?
+    ↓
+Compare before and after
+    ↓
+Scope overview: current decisions and how they evolved
 ```
 
-Form:
-
-```text
-Decision
-Use GCS for migration backup files
-
-Applies To
-Migration Service
-
-Why
-Large files should not be stored in PostgreSQL.
-
-Related Jira
-MIG-182
-```
-
-Save.
-
-## Scene 3 — Durable Memory
-
-Show Decision detail:
-
-```text
-Decision
-Why
-Applies To
-Captured Context
-Slack Source
-Related Jira
-```
-
-Explain:
-
-> Slack is where the Decision happened. Decision Memory is where the knowledge survives.
-
-## Scene 4 — Retrieval
-
-Search:
-
-```text
-migration storage
-```
-
-Open Decision.
-
-## Scene 5 — Evolution
-
-Show:
-
-```text
-DEC-0008
-Store backup files in PostgreSQL
-
-SUPERSEDED BY
-
-DEC-0017
-Use GCS for migration backup files
-```
-
-Final line:
-
-> Decision Memory preserves what the team decided, why it was decided, where it applied, and how that Decision evolved.
+Use a fresh ACTIVE baseline for each mutation rehearsal. Do not assume fixed
+record IDs, overwrite demo data, or present an already-superseded baseline as
+replaceable. The presenter guide separates observable product behavior from
+unmeasured UX targets and proposed pilot results.
 
 ---
 
@@ -1710,9 +1685,8 @@ For MVP:
 
 - Do not implement graph UI.
 - Do not add Neo4j.
-- Do not add vector DB.
-- Do not add embeddings, a vector database, or an autonomous knowledge
-  assistant beyond the approved bounded Search by memory action.
+- PostgreSQL/pgvector and local embeddings are approved for Search by memory
+  (§7.3). Do not add a separate vector database or autonomous knowledge assistant.
 - Do not add full Jira Forge integration.
 - Do not add Bitbucket/GitHub.
 - Do not add microservices.

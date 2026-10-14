@@ -4,7 +4,7 @@ import { describe, it } from "node:test"
 
 import { createApp } from "../src/app.js"
 import { DomainError } from "../src/domain.js"
-import { createJiraClient, issueDescription } from "../src/jira.js"
+import { createJiraClient, issueDescription, createLinkedJiraIssue } from "../src/jira.js"
 
 const config = {
   jiraBaseUrl: "https://acme.atlassian.net/",
@@ -90,7 +90,7 @@ describe("Create Jira issue API", () => {
     t.after(() => new Promise((resolve) => { listener.close(resolve); listener.closeAllConnections() }))
     return `http://127.0.0.1:${listener.address().port}/api`
   }
-  const post = (url, body) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+  const post = (url, body) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ requestId: "22222222-2222-4222-8222-222222222222", ...body }) })
 
   it("creates the issue and saves its key as related work", async (t) => {
     const added = []
@@ -98,7 +98,13 @@ describe("Create Jira issue API", () => {
     const base = await server(t, {
       repository: {
         getDecision: async () => decision,
-        addReference: async (_identity, id, reference) => { added.push([id, reference]); return { ...decision, references: [reference] } },
+        claimJiraIssueRequest: async () => ({ claimed: true }),
+        updateJiraIssueRequest: async () => {},
+        linkJiraIssueRequest: async () => {
+          const reference = { kind: "JIRA", label: "MIG-183", url: "https://acme.atlassian.net/browse/MIG-183" }
+          added.push([decision.id, reference])
+          return { issue: { key: reference.label, url: reference.url }, decision: { ...decision, references: [reference] } }
+        },
       },
       jira: { enabled: true, createIssue: async (input) => { created.push(input); return { key: "MIG-183", url: "https://acme.atlassian.net/browse/MIG-183" } } },
     })
@@ -126,5 +132,50 @@ describe("Create Jira issue API", () => {
       jira: { enabled: false },
     })
     assert.equal((await (await fetch(`${base}/metadata`)).json()).features.jira, false)
+  })
+})
+
+
+describe("Jira retry recovery (owner-approved review fix)", () => {
+  function fixture() {
+    let record
+    let creates = 0
+    let failLink = true
+    const repository = {
+      claimJiraIssueRequest: async () => {
+        if (record) return { ...record, claimed: false }
+        record = { status: "PENDING" }
+        return { ...record, claimed: true }
+      },
+      updateJiraIssueRequest: async (_identity, _id, update) => { Object.assign(record, update) },
+      linkJiraIssueRequest: async () => {
+        if (failLink) throw new Error("database unavailable")
+        record.status = "LINKED"
+        return { issue: record.issue, decision }
+      },
+    }
+    return { repository, jira: { createIssue: async () => { creates++; return { key: "MIG-183", url: "https://acme.atlassian.net/browse/MIG-183" } } },
+      creates: () => creates, recover: () => { failLink = false } }
+  }
+  const input = { projectKey: "MIG", issueTypeId: "10001", summary: decision.title }
+  it("preserves partial success and retries linking without another Jira create", async () => {
+    const f = fixture()
+    const args = { ...f, identity: {}, decision, requestId: "request", input }
+    await assert.rejects(createLinkedJiraIssue(args), (error) => error.code === "JIRA_LINK_PENDING" && error.issue.key === "MIG-183")
+    f.recover()
+    assert.equal((await createLinkedJiraIssue(args)).issue.key, "MIG-183")
+    assert.equal((await createLinkedJiraIssue(args)).issue.key, "MIG-183")
+    assert.equal(f.creates(), 1, "A retried Jira operation must reuse its receipt, not create another issue")
+  })
+  it("never repeats creation after an uncertain external result or receipt-write failure", async () => {
+    for (const failure of ["external", "receipt"]) {
+      const f = fixture()
+      if (failure === "external") f.jira.createIssue = async () => { throw new Error("network response lost") }
+      else f.repository.updateJiraIssueRequest = async () => { throw new Error("receipt write failed") }
+      const args = { ...f, identity: {}, decision, requestId: "request", input }
+      await assert.rejects(createLinkedJiraIssue(args), (error) => error.code === (failure === "external" ? "JIRA_OUTCOME_UNKNOWN" : "JIRA_LINK_PENDING"))
+      f.jira.createIssue = async () => assert.fail("Unknown Jira outcomes must be reconciled, never recreated")
+      await assert.rejects(createLinkedJiraIssue(args), (error) => error.code === "JIRA_OUTCOME_UNKNOWN")
+    }
   })
 })

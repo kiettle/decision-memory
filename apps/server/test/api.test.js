@@ -3,6 +3,51 @@ import { once } from "node:events"
 import { it } from "node:test"
 import { createApp } from "../src/app.js"
 
+it("replacement reasons are optional, trimmed, and bounded before lifecycle mutation", async (t) => {
+  const calls = []
+  const app = createApp({
+    config: { nodeEnv: "development", localDemoMode: true, localWorkspaceId: "fixture" },
+    repository: { supersedeDecision: async (...args) => { calls.push(args); return { id: args[1] } } },
+    memorySearch: { enabled: false },
+  })
+  const server = app.listen(0, "127.0.0.1")
+  await once(server, "listening")
+  t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections() }))
+  const id = "11111111-1111-4111-8111-111111111111"
+  const targetId = "22222222-2222-4222-8222-222222222222"
+  const post = (body) => fetch(`http://127.0.0.1:${server.address().port}/api/decisions/${id}/supersede`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+  })
+  assert.equal((await post({ targetId, replacementReason: "  Scale changed.  " })).status, 200)
+  assert.equal(calls[0][3], "Scale changed.")
+  assert.equal((await post({ targetId })).status, 200)
+  assert.equal(calls[1][3], undefined)
+  assert.equal((await post({ targetId, replacementReason: "x".repeat(2001) })).status, 400)
+  assert.equal(calls.length, 2, "An invalid explanation must not change the lifecycle")
+})
+
+it("scope reads use the authenticated identity, reject invalid names, and report missing scopes", async (t) => {
+  const calls = []
+  const app = createApp({
+    config: { nodeEnv: "development", localDemoMode: true, localWorkspaceId: "fixture" },
+    repository: {
+      listScopes: async (identity) => { calls.push(identity); return [{ scope: "Migration Service" }] },
+      scopeOverview: async (identity, scope) => { calls.push(identity); return scope === "Migration Service" ? { scope, activeDecisions: [], changes: [] } : null },
+    }, memorySearch: { enabled: false },
+  })
+  const server = app.listen(0, "127.0.0.1")
+  await once(server, "listening")
+  t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections() }))
+  const base = `http://127.0.0.1:${server.address().port}/api/scopes`
+  assert.equal((await fetch(base)).status, 200)
+  assert.equal((await fetch(`${base}/overview?scope=Migration%20Service`)).status, 200)
+  assert.equal((await fetch(`${base}/overview?scope=unknown`)).status, 404)
+  assert.equal((await fetch(`${base}/overview?scope=`)).status, 400)
+  assert.equal((await fetch(`${base}/overview?scope=${"x".repeat(201)}`)).status, 400)
+  assert.ok(calls.every((identity) => identity.workspaceExternalKey === "fixture"))
+  assert.equal(calls.length, 3)
+})
+
 it("API failures do not log SQL, payloads, or secrets", async (t) => {
   const logged = []
   t.mock.method(console, "error", (...args) => logged.push(args))

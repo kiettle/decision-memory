@@ -2,157 +2,131 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
 import { DomainError } from "../src/domain.js"
+import { decisionPassages, EMBEDDING_DIMENSIONS, vectorLiteral } from "../src/local-embeddings.js"
 import { createMemorySearchService } from "../src/memory-search.js"
+import { createSearchIndexer } from "../src/search-indexer.js"
 
-const decisions = [
-  {
-    id: "33333333-3333-4333-8333-333333333301",
-    decisionKey: "DM-104",
-    title: "Use object storage for migration backup files",
-    why: "Durable rollback without database load.",
-    context: "Large migration exports were timing out.",
-    appliesTo: ["Atlas migration"],
-    optionsConsidered: ["Database host"],
-    team: "Platform",
-    ownerName: "Maya Chen",
-    status: "ACTIVE",
-    tags: ["migration", "storage"],
-    sources: [
-      {
-        messages: [
-          {
-            author: "Maya Chen",
-            text: "Keep rollback files away from the database host.",
-            anchor: true,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "33333333-3333-4333-8333-333333333302",
-    decisionKey: "DM-103",
-    title: "Keep billing orchestration in the existing service",
-    why: "Avoid migration risk.",
-    context: "Payments reliability work.",
-    appliesTo: ["Billing"],
-    optionsConsidered: [],
-    team: "Payments",
-    status: "SUPERSEDED",
-    tags: ["payments"],
-    sources: [],
-  },
-]
-
-const repository = {
-  memorySearchCandidates: async () => decisions,
+const vector = [1, ...Array(EMBEDDING_DIMENSIONS - 1).fill(0)]
+const decision = { id: "stored-id", title: "Use object storage for migration backup files", sources: [{ id: "source", channelName: "migration" }] }
+const embedder = { model: "local-test-model", embed: async () => vector, passages: async () => [[1, 2]] }
+const characterTokenizer = {
+  encode: (text, { add_special_tokens }) => ({
+    ids: [...(add_special_tokens ? [0] : []), ...Array.from(text, (character) => character.codePointAt(0) + 3), ...(add_special_tokens ? [2] : [])],
+  }),
+  decode: (ids) => ids.filter((id) => id > 2).map((id) => String.fromCodePoint(id - 3)).join(""),
+}
+const result = {
+  candidateCount: 250, totalCandidateCount: 251, truncated: true,
+  matches: [{ decision, similarity: 0.94 }, { decision: { ...decision, id: "weak" }, similarity: 0.72 }],
 }
 
-function serviceWith(response, options = {}) {
-  return createMemorySearchService({
-    config: { geminiModel: "test-model" },
-    repository,
-    generateContent: async () => response,
-    ...options,
-  })
+function service(overrides = {}) {
+  return createMemorySearchService({ repository: { vectorSearch: async () => result }, embedder, ...overrides })
 }
 
-describe("AI-assisted memory search", () => {
-  it("parses vague cross-language matches and rejects unknown IDs", async () => {
-    const service = serviceWith({
-      text: JSON.stringify({
-        matches: [
-          {
-            decisionId: decisions[0].id,
-            score: 94,
-            explanation: "Khớp với quyết định lưu file rollback lớn ngoài database.",
-            matchedConcepts: ["rollback", "large files", "object storage"],
-          },
-          {
-            decisionId: "99999999-9999-4999-8999-999999999999",
-            score: 99,
-            explanation: "Invented",
-            matchedConcepts: [],
-          },
-        ],
-      }),
+describe("Local memory search", () => {
+  it("works without Gemini and passes identity, filters and query embedding to retrieval", async () => {
+    const identity = { workspaceExternalKey: "my-workspace" }
+    const filters = { status: "ACTIVE", tag: "storage" }
+    const seen = []
+    const search = service({
+      embedder: { ...embedder, embed: async (...args) => { seen.push(args); return vector } },
+      repository: { vectorSearch: async (user, input) => {
+        assert.equal(user, identity)
+        assert.deepEqual(input, { vector, model: embedder.model, filters })
+        return result
+      } },
     })
-    const result = await service.search({}, {
-      query: "Hồi trước mình xử lý file migration lớn hay timeout như thế nào?",
-    })
-    assert.equal(result.candidateCount, 2)
-    assert.equal(result.matches.length, 1)
-    assert.equal(result.matches[0].decision.id, decisions[0].id)
+    assert.equal(search.enabled, true)
+    const response = await search.search(identity, { query: "Hồi trước xử lý file lớn sao?", filters })
+    assert.deepEqual(seen, [["Hồi trước xử lý file lớn sao?", "query"]])
+    assert.equal(response.candidateCount, 250)
+    assert.equal(response.totalCandidateCount, 251)
+    assert.equal(response.truncated, true)
+    assert.equal(response.matches.length, 1)
+    assert.equal(response.matches[0].decisionId, decision.id)
+    assert.equal(response.matches[0].score, 100)
+    assert.match(response.matches[0].explanation, /Use object storage/)
   })
 
-  it("accepts a valid no-match result", async () => {
-    const result = await serviceWith({ text: '{"matches":[]}' }).search({}, {
-      query: "unrelated memory",
-    })
-    assert.deepEqual(result.matches, [])
+  it("returns no matches for unrelated vectors", async () => {
+    const response = await service({ repository: { vectorSearch: async () => ({ ...result, matches: result.matches.slice(1) }) } })
+      .search({}, { query: "unrelated" })
+    assert.deepEqual(response.matches, [])
   })
 
-  it("rejects malformed structured output", async () => {
-    await assert.rejects(
-      serviceWith({ text: "not json" }).search({}, { query: "migration memory" }),
-      (error) =>
-        error instanceof DomainError && error.code === "MEMORY_SEARCH_INVALID_RESPONSE",
-    )
-  })
-
-  it("maps rate limits to a retryable domain error", async () => {
-    const service = createMemorySearchService({
-      config: { geminiModel: "test-model" },
-      repository,
-      generateContent: async () => {
-        const error = new Error("rate limited")
-        error.status = 429
-        throw error
-      },
-    })
-    await assert.rejects(
-      service.search({}, { query: "migration memory" }),
-      (error) => error instanceof DomainError && error.code === "MEMORY_SEARCH_RATE_LIMITED",
-    )
-  })
-
-  it("times out without affecting normal search", async () => {
-    const service = createMemorySearchService({
-      config: { geminiModel: "test-model" },
-      repository,
-      generateContent: async () => new Promise(() => {}),
-      timeoutMs: 5,
-    })
-    await assert.rejects(
-      service.search({}, { query: "migration memory" }),
-      (error) => error instanceof DomainError && error.code === "MEMORY_SEARCH_TIMEOUT",
-    )
+  it("offers setup and keyword fallback when the local model or database fails", async () => {
+    for (const overrides of [
+      { embedder: { embed: async () => { throw new Error("missing cache") } } },
+      { repository: { vectorSearch: async () => { throw new Error("database unavailable") } } },
+    ]) {
+      await assert.rejects(service(overrides).search({}, { query: "migration" }), (error) => {
+        assert.ok(error instanceof DomainError)
+        assert.equal(error.code, "MEMORY_SEARCH_UNAVAILABLE")
+        assert.match(error.message, /npm run setup:local/)
+        assert.match(error.message, /keyword search is still available/)
+        return true
+      })
+    }
   })
 })
 
-describe("AI-assisted memory search output", () => {
-  it("shortens verbose output instead of rejecting it and omits snapshots", async () => {
-    const result = await serviceWith({
-      text: JSON.stringify({
-        matches: [
-          {
-            decisionId: decisions[0].id,
-            score: 90,
-            explanation: "x".repeat(900),
-            matchedConcepts: ["a", "b", "c", "d", "e", "f", "y".repeat(300)],
-          },
-        ],
-      }),
-    }).search({}, { query: "migration memory" })
-    assert.equal(result.matches[0].explanation.length, 500)
-    assert.equal(result.matches[0].matchedConcepts.length, 5)
-    assert.equal(result.matches[0].decision.sources, undefined)
-    assert.equal(decisions[0].sources.length, 1)
-  })
+it("rejects malformed, nonfinite and zero embeddings before SQL", () => {
+  for (const bad of [[1], Array(384).fill(0), [NaN, ...vector.slice(1)], [Infinity, ...vector.slice(1)]]) {
+    assert.throws(() => vectorLiteral(bad), /384-dimensional/)
+  }
+  assert.match(vectorLiteral(vector), /^\[1,0,/)
 })
 
-it("returns each grounded Decision only once", async () => {
-  const match = { decisionId: decisions[0].id, score: 90, explanation: "Stored evidence", matchedConcepts: [] }
-  const result = await serviceWith({ text: JSON.stringify({ matches: [match, match, match] }) }).search({}, { query: "migration" })
-  assert.equal(result.matches.length, 1)
+it("indexes source evidence past the first model window with overlapping passages", () => {
+  const passages = decisionPassages({ ...decision, context: "a".repeat(2500), sources: [{ messages: [{ author: "Maya", text: "LATE DISCUSSION EVIDENCE" }] }] }, characterTokenizer)
+  assert.ok(passages.length > 3)
+  assert.ok(passages.some((passage) => characterTokenizer.decode(passage).includes("LATE DISCUSSION EVIDENCE")))
+  assert.ok(passages.every((passage) => passage.length <= 512))
+})
+
+it("retains dense content and a long title while reserving all input framing", () => {
+  const title = "t".repeat(480) + "TITLE END"
+  const marker = "EVIDENCE IN OLD GAP"
+  const passages = decisionPassages({ title, context: "a".repeat(600) + marker + "b".repeat(1200) }, characterTokenizer)
+  const text = passages.map(characterTokenizer.decode)
+  assert.ok(passages.every((input) => input.length <= 512))
+  assert.ok(text.some((input) => input.includes("TITLE END")), "The full title must remain indexed independently of its header budget")
+  assert.ok(text.some((input) => input.includes(marker)), "Content must not fall between clipped windows")
+  const empty = decisionPassages({}, characterTokenizer)
+  assert.ok(empty.length === 1 && empty[0].length <= 512)
+})
+
+it("covers every source and title token without gaps, independently of text density", () => {
+  const title = Array.from({ length: 500 }, (_, index) => String.fromCodePoint(0x4000 + index)).join("")
+  const context = Array.from({ length: 2000 }, (_, index) => String.fromCodePoint(0x1000 + index)).join("")
+  const passages = decisionPassages({ title, context }, characterTokenizer)
+  const covered = new Set(passages.flat())
+  const required = characterTokenizer.encode(title + context, { add_special_tokens: false }).ids
+  assert.ok(required.every((token) => covered.has(token)), "Every distinct original token must occur in at least one complete input window")
+  assert.ok(passages.every((input) => input.length <= 512))
+})
+
+it("keeps failed indexing work retryable and indexes successfully on a later drain", async () => {
+  let pending = [{ decisionId: decision.id, revision: "r1", decision }]
+  let fail = true
+  const repository = {
+    pendingSearchJobs: async () => pending,
+    completeSearchJob: async (_job, vectors, model) => {
+      assert.equal(model, embedder.model)
+      assert.ok(vectors.length >= 1)
+      assert.ok(vectors.every((value) => JSON.stringify(value) === JSON.stringify(vector)))
+      pending = []
+      return true
+    },
+  }
+  const indexer = createSearchIndexer({ repository, embedder: { ...embedder, embed: async () => {
+    if (fail) throw new Error("interrupted inference")
+    return vector
+  } } })
+  await assert.rejects(indexer.drain(), /interrupted/)
+  assert.equal(pending.length, 1)
+  fail = false
+  assert.equal(await indexer.drain(), 1)
+  assert.equal(pending.length, 0)
 })

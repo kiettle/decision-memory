@@ -66,7 +66,7 @@ Desktop:
 
 - 228px fixed left rail.
 - Decision Memory mark at the top.
-- Navigation: Decisions, Recent, Settings.
+- Navigation: Decisions, Scopes, Recent, Settings.
 - Workspace and current user at the bottom.
 - Main content uses a fluid canvas with a 40px desktop gutter.
 
@@ -204,3 +204,19 @@ will be stored. Both end with Cancel and Save.
   content.
 - Desktop and mobile screenshots must be compared directly with the accepted
   concepts before handoff.
+
+
+## Decision understanding extension — 2026-10-12
+
+Approved in the owner's feature request. Extend the existing restrained design:
+
+- Library actions expose Explore scopes and Compare decisions on desktop/mobile.
+- Replacement confirmation previews the earlier and replacing choice and adds
+  an optional What changed field. The recorded reason appears with lifecycle.
+- Comparison uses two editorial columns on desktop and stacks the complete
+  records on mobile; links lead to saved evidence and scope overviews.
+- Scope directory and active decisions use open rows, not dashboard KPI cards.
+  Replacement history is chronological with human-written explanations.
+- Existing buttons, fields, selects, dialogs, empty states and loading patterns
+  remain the component vocabulary. All new routes have explicit failure/retry
+  states and fit a 390px viewport.

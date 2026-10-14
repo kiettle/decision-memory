@@ -52,6 +52,8 @@ export type RelatedDecision = {
   decisionKey: string
   title: string
   status: DecisionStatus
+  replacementReason?: string | null
+  replacedAt?: string
 }
 
 export type Decision = {
@@ -74,6 +76,7 @@ export type Decision = {
   references?: ExternalReference[]
   supersededBy?: Array<Pick<RelatedDecision, "id" | "decisionKey">>
   lifecycle?: {
+    current?: RelatedDecision[]
     supersedes: RelatedDecision[]
     supersededBy: RelatedDecision[]
   }
@@ -110,6 +113,8 @@ export type MemorySearchMatch = {
 
 export type MemorySearchResponse = {
   candidateCount: number
+  totalCandidateCount?: number
+  truncated?: boolean
   matches: MemorySearchMatch[]
 }
 
@@ -137,4 +142,24 @@ export type JiraProject = {
 export type JiraIssueType = {
   id: string
   name: string
+}
+
+
+export type ScopeSummary = {
+  scope: string
+  decisionCount: number
+  activeCount: number
+  latestDecisionAt: string
+}
+
+export type ScopeOverview = {
+  scope: string
+  decisionCount: number
+  activeDecisions: Decision[]
+  changes: Array<{
+    previous: RelatedDecision
+    replacement: RelatedDecision
+    replacementReason: string | null
+    replacedAt: string
+  }>
 }

@@ -18,7 +18,7 @@ async function fixture(t, repository, response = async () => ({ ok: true, view: 
     calls.push({ method: url.split("/").at(-1), args: Object.fromEntries(init.body) })
     return { json: () => response(url, init) }
   })
-  const server = createSlackApp({ config, repository, captureDrafter, memorySearch }).listen(0, "127.0.0.1")
+  const server = createSlackApp({ config, repository: { setSlackCaptureDraftAi: async () => {}, ...repository }, captureDrafter, memorySearch }).listen(0, "127.0.0.1")
   await once(server, "listening")
   t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections() }))
   const base = `http://127.0.0.1:${server.address().port}`
@@ -127,12 +127,12 @@ it("pre-fills the modal from the AI draft without the review notice", async (t) 
   let saved
   let drafted
   const drafter = { enabled: true, draft: async (messages) => { drafted = messages; return aiDraft } }
-  const f = await fixture(t, { createSlackCaptureDraft: async (_identity, input) => { saved = input.source; return { id: "draft" } } }, thread, drafter)
+  const f = await fixture(t, { createSlackCaptureDraft: async (_identity, input) => { saved = input.source; return { id: "draft" } }, setSlackCaptureDraftAi: async (_identity, _id, draft) => { saved.aiDraft = draft } }, thread, drafter)
   await f.send(shortcut)
-  await until(() => f.calls.some((call) => call.method === "views.update"))
+  await until(() => f.calls.some((call) => call.method === "views.update" && call.args.view.includes("decision_memory_save")))
   assert.match(f.calls[0].args.view, /drafting the Decision with AI/)
   assert.deepEqual(drafted.map((message) => message.timestamp), ["1", "2"])
-  const view = JSON.parse(f.calls.find((call) => call.method === "views.update").args.view)
+  const view = JSON.parse(f.calls.find((call) => call.method === "views.update" && call.args.view.includes("decision_memory_save")).args.view)
   const initial = (id) => view.blocks.find((block) => block.block_id === id)?.element.initial_value
   assert.equal(initial("title"), "Use GCS for migration backup files")
   assert.equal(initial("why"), "Backups reach tens of GB.")
@@ -152,8 +152,8 @@ it("says when AI found no clear Decision and keeps the selected message", async 
   const drafter = { enabled: true, draft: async () => ({ ...aiDraft, outcome: "NO_CLEAR_DECISION", decision: "", why: "", context: "", appliesTo: [], owner: "", tags: [], otherPossibleDecisions: [] }) }
   const f = await fixture(t, { createSlackCaptureDraft: async () => ({ id: "draft" }) }, thread, drafter)
   await f.send(shortcut)
-  await until(() => f.calls.some((call) => call.method === "views.update"))
-  const view = JSON.parse(f.calls.find((call) => call.method === "views.update").args.view)
+  await until(() => f.calls.some((call) => call.method === "views.update" && call.args.view.includes("decision_memory_save")))
+  const view = JSON.parse(f.calls.find((call) => call.method === "views.update" && call.args.view.includes("decision_memory_save")).args.view)
   assert.equal(view.blocks.find((block) => block.block_id === "title").element.initial_value, "Let's use GCS")
   assert.match(JSON.stringify(view), /AI found no clear final Decision in this thread\. Write the Decision yourself\.\\nOptions discussed: PostgreSQL; GCS/)
   assert.doesNotMatch(JSON.stringify(view), /AI drafting unavailable/)
@@ -163,8 +163,8 @@ it("opens the plain form when the AI draft is unavailable", async (t) => {
   const drafter = { enabled: true, draft: async () => null }
   const f = await fixture(t, { createSlackCaptureDraft: async () => ({ id: "draft" }) }, thread, drafter)
   await f.send(shortcut)
-  await until(() => f.calls.some((call) => call.method === "views.update"))
-  const view = JSON.parse(f.calls.find((call) => call.method === "views.update").args.view)
+  await until(() => f.calls.some((call) => call.method === "views.update" && call.args.view.includes("decision_memory_save")))
+  const view = JSON.parse(f.calls.find((call) => call.method === "views.update" && call.args.view.includes("decision_memory_save")).args.view)
   assert.equal(view.blocks.find((block) => block.block_id === "title").element.initial_value, "Let's use GCS")
   assert.equal(view.blocks.some((block) => block.block_id === "options"), false)
   assert.match(JSON.stringify(view), /AI drafting unavailable—please complete the fields manually\./)
@@ -276,11 +276,14 @@ it("Already decided? lists similar Decisions and offers only active ones to repl
   const drafter = { enabled: true, draft: async () => aiDraft }
   const f = await fixture(t, { createSlackCaptureDraft: async () => ({ id: "draft" }) }, thread, drafter, memorySearch)
   await f.send(shortcut)
-  await until(() => f.calls.some((call) => call.method === "views.update"))
+  await until(() => f.calls.some((call) => call.method === "views.update" && call.args.view.includes("decision_memory_save")))
   assert.deepEqual(seen, ["Use GCS for migration backup files"], "The AI-drafted Decision is the search query")
   const view = lastView(f)
   const text = JSON.stringify(view)
   assert.match(text, /Already decided\?/)
+  assert.match(text, /Applies to:/)
+  assert.match(text, /Why:/)
+  assert.ok(view.private_metadata.length < 3000, "Richer suggestions must remain within Slack metadata limits")
   assert.match(text, /DM-104 · Use object storage for migration backups> \(Active\)/)
   assert.match(text, /DM-102 · Store exports on the database host> \(Superseded\)/)
   assert.doesNotMatch(text, /DM-105/, "Weak matches are not shown")
@@ -295,9 +298,9 @@ it("saving with Replaces supersedes only an offered active Decision, and retries
   const repository = {
     getSlackCaptureDraft: async () => ({ externalEventId: "T1:trigger", slackUserId: "U1", slackTeamId: "T1", source: { provider: "SLACK", channelId: "C1", channelName: "migration", messages: [] } }),
     createDecision: async () => ({ id: "new", decisionKey: "DM-112" }),
-    supersedeDecision: async (_identity, currentId, targetId) => {
+    supersedeDecision: async (_identity, currentId, targetId, replacementReason) => {
       if (alreadyApplied) throw new Error("Only active decisions can participate in a new supersession.")
-      superseded.push([currentId, targetId])
+      superseded.push([currentId, targetId, replacementReason])
       alreadyApplied = true
     },
     getDecision: async () => ({ lifecycle: { supersedes: [{ id: "d104" }] } }),
@@ -305,7 +308,7 @@ it("saving with Replaces supersedes only an offered active Decision, and retries
   const f = await fixture(t, repository)
   const similar = [{ id: "d104", decisionKey: "DM-104", title: "Use object storage", status: "ACTIVE" }, { id: "d102", decisionKey: "DM-102", title: "Old", status: "SUPERSEDED" }]
   const save = (replaces) => {
-    const payload = submission({ ...values(), replaces: { value: { selected_option: { value: replaces } } } })
+    const payload = submission({ ...values(), replacementReason: { value: { value: "  Backups outgrew the local disk.  " } }, replaces: { value: { selected_option: { value: replaces } } } })
     payload.view.private_metadata = JSON.stringify({ draftId: "draft", similar })
     return f.send(payload)
   }
@@ -313,7 +316,7 @@ it("saving with Replaces supersedes only an offered active Decision, and retries
 
   await save("d104")
   await until(() => saved().length === 1)
-  assert.deepEqual(superseded, [["new", "d104"]])
+  assert.deepEqual(superseded, [["new", "d104", "Backups outgrew the local disk."]])
   assert.match(saved()[0].args.view, /It replaces DM-104, which is now superseded/)
 
   await save("d104")
@@ -325,4 +328,55 @@ it("saving with Replaces supersedes only an offered active Decision, and retries
   await save("not-offered")
   await until(() => saved().length === 4)
   assert.equal(superseded.length, 1, "Superseded or unoffered Decisions are never replaced")
+})
+
+
+it("manual capture can save while AI is blocked, and late AI cannot overwrite the saved view", async (t) => {
+  let release
+  const pending = new Promise((resolve) => { release = resolve })
+  let draft
+  let saved
+  let currentView
+  let revision = 0
+  let staleUpdates = 0
+  const f = await fixture(t, {
+    createSlackCaptureDraft: async (_identity, input) => (draft = { ...input, id: "draft" }),
+    getSlackCaptureDraft: async () => draft,
+    setSlackCaptureDraftAi: async (_identity, _id, ai) => { draft.source.aiDraft = ai },
+    createDecision: async (_identity, input, extras) => { saved = { input, extras }; return { id: "d1", decisionKey: "DM-1" } },
+  }, async (url, init) => {
+    if (url.endsWith("views.open") || url.endsWith("views.update")) {
+      const hash = init.body.get("hash")
+      if (hash && hash !== String(revision)) { staleUpdates++; return { ok: false, error: "hash_conflict" } }
+      currentView = JSON.parse(init.body.get("view"))
+      return { ok: true, view: { id: "V1", hash: String(++revision) } }
+    }
+    return thread(url)
+  }, { enabled: true, draft: async () => { await pending; return aiDraft } })
+  await f.send(shortcut)
+  await until(() => currentView?.title.text === "Optional AI assistance")
+  const waiting = currentView
+  await f.send({ type: "block_actions", team: { id: "T1" }, user: { id: "U1" },
+    actions: [{ action_id: "capture_continue_manually" }],
+    view: { id: "V1", hash: String(revision), private_metadata: waiting.private_metadata } })
+  await until(() => currentView?.callback_id === "decision_memory_save")
+  assert.equal(currentView.blocks.find((block) => block.block_id === "title").element.initial_value, "Let's use GCS")
+  const payload = submission(values("My manually confirmed Decision"))
+  payload.view.private_metadata = currentView.private_metadata
+  await f.send(payload)
+  await until(() => currentView?.title.text === "Decision saved")
+  release()
+  await until(() => staleUpdates === 1)
+  assert.equal(currentView.title.text, "Decision saved", "Late AI must not replace a manually opened/submitted form")
+  assert.equal(saved.input.title, "My manually confirmed Decision")
+  assert.equal(saved.extras.source.messages.length, 2, "Manual bypass must retain the captured discussion")
+  assert.equal(saved.extras.source.sourceContext.aiDraft, undefined, "Manual capture must not claim the person reviewed AI output")
+})
+
+
+it("rejects an oversized replacement reason before saving a Slack Decision", async (t) => {
+  const f = await fixture(t, { createDecision: async () => assert.fail("Invalid replacement explanation must not save") })
+  const response = await (await f.send(submission({ ...values(), replacementReason: { value: { value: "x".repeat(2001) } } }))).json()
+  assert.equal(response.response_action, "errors")
+  assert.match(response.errors.replacementReason, /2,000 characters/)
 })

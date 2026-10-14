@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.2-pg17
     environment:
       POSTGRES_DB: decision_memory
       POSTGRES_USER: decision_memory

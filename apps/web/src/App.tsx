@@ -1,5 +1,8 @@
 import { HashRouter, Route, Routes } from "react-router-dom"
 
+import { ComparePage } from "@/pages/compare-page"
+import { ScopesPage } from "@/pages/scopes-page"
+
 import { AppShell } from "@/components/app-shell"
 import { DecisionDetailPage } from "@/pages/decision-detail-page"
 import { DecisionFormPage } from "@/pages/decision-form-page"
@@ -12,6 +15,8 @@ export function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<LibraryPage />} />
+          <Route path="scopes" element={<ScopesPage />} />
+          <Route path="compare" element={<ComparePage />} />
           <Route path="recent" element={<LibraryPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="decisions/new" element={<DecisionFormPage />} />
