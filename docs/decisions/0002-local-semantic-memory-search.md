@@ -4,6 +4,9 @@ Date: 2026-10-12
 
 Status: Accepted by the product owner in this chat.
 
+Amended on 2026-10-13 by [dual memory search](0003-dual-memory-search.md): retain
+this local path and restore Gemini as an explicit optional web action.
+
 ## Decision
 
 Replace external Gemini ranking for Search by memory with locally computed

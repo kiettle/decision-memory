@@ -1,25 +1,17 @@
 import { Badge } from "@/components/ui/badge"
-import type { DecisionStatus } from "@/types"
+import type { DecisionState, DecisionStatus } from "@/types"
 
-export function StatusBadge({ status }: { status: DecisionStatus }) {
+export function StatusBadge({ status, decisionState }: { status: DecisionStatus; decisionState?: DecisionState }) {
+  const pending = decisionState === "PENDING"
   return (
     <Badge
-      variant="secondary"
-      className={
-        status === "ACTIVE"
-          ? "border-0 bg-emerald-100 text-emerald-800"
-          : "border-0 bg-amber-100 text-amber-800"
-      }
+      variant={pending ? "pending" : status === "ACTIVE" ? "decided" : "superseded"}
     >
       <span
         aria-hidden="true"
-        className={
-          status === "ACTIVE"
-            ? "size-2 rounded-full bg-emerald-600"
-            : "size-2 rounded-full bg-amber-600"
-        }
+        className="state-dot"
       />
-      {status === "ACTIVE" ? "ACTIVE" : "SUPERSEDED"}
+      {pending ? "Pending" : status === "ACTIVE" ? "Decided" : "Superseded"}
     </Badge>
   )
 }

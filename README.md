@@ -6,6 +6,8 @@ Decision Memory is a competition-focused local web application that turns a
 Slack discussion into a durable, structured Decision. Later, a teammate can
 retrieve that Decision through fast keyword/metadata search or an explicit
 local semantic **Search by memory** action.
+The optional **Search with Gemini** action lets users choose AI ranking instead,
+using their current filters and up to the newest 200 matching decisions.
 
 The MVP intentionally uses a small architecture:
 
@@ -36,6 +38,9 @@ for current evidence and implementation limits.
   confirmation modal, avoiding Slack `private_metadata` size limits.
 - Browse, create, edit, filter, and supersede Decisions. Owner filters include
   separately labeled recorded Slack names as well as linked users.
+- Switch between Flat and deadline-grouped Kanban views. Capture a pending
+  question with one required field and an optional Decide by date, then record
+  its final choice while preserving the original question and evidence.
 - Search immediately with PostgreSQL keywords and metadata.
 - Search by an imprecise or cross-language memory using a local multilingual model.
 - Ground every AI match in an authoritative stored Decision and its evidence.
@@ -165,7 +170,14 @@ Hồi trước mình xử lý file migration lớn hay timeout như thế nào?
 - Model files download during setup only. Missing files or database failures
   produce a local setup instruction without disabling normal keyword search.
 
-An optional `GEMINI_API_KEY` turns on the **AI draft** in Slack: Save as Decision sends the
+An optional `GEMINI_API_KEY` also enables **Search with Gemini** in the library.
+The action sends your query and compact excerpts from up to the newest 200
+decisions matching channel, tag, owner, status, Applies To and date filters to
+Google. The UI discloses excluded older decisions and approximate AI ranking;
+narrow filters or use local search when coverage is incomplete. Local search
+stays available without a key. See [Memory search](docs/product/memory-search.md).
+
+The same key turns on the **AI draft** in Slack: Save as Decision sends the
 selected thread (at most 60 messages) to Gemini. Once the discussion is captured,
 **Continue manually** opens the editable form without waiting for AI. Waiting
 for assistance pre-fills Decision, Why,
@@ -250,7 +262,7 @@ modal retries are idempotent.
 | `SLACK_BOT_TOKEN` | Token for the installed demo Slack app |
 | `SLACK_SIGNING_SECRET` | Verifies incoming Slack requests |
 | `SLACK_TEAM_ID` | Restricts capture to the intended workspace (starts with `T`) |
-| `GEMINI_API_KEY` | Optional Slack AI draft only; synthetic/sanitized data only |
+| `GEMINI_API_KEY` | Optional Gemini AI search and Slack draft; synthetic/sanitized data only |
 | `JIRA_BASE_URL` | Optional Jira Cloud site, for example `https://acme.atlassian.net` |
 | `JIRA_EMAIL` | Atlassian account email that owns the API token |
 | `JIRA_API_TOKEN` | Atlassian API token used only by the server to create issues |
@@ -416,5 +428,5 @@ Stop the conflicting local process or update the code constants and Docker Compo
 Local implementation is validated separately from external integrations.
 Memory search runs locally with cached embeddings and PostgreSQL/pgvector.
 `npm run test:local-search` verifies real offline inference in an isolated database.
-Optional Gemini drafting and Slack/Jira integrations remain separate external
+Optional Gemini search/drafting and Slack/Jira integrations remain separate external
 features. Public cloud deployment and million-decision performance are not validated.

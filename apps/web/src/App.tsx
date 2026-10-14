@@ -14,10 +14,10 @@ export function App() {
     <HashRouter>
       <Routes>
         <Route element={<AppShell />}>
-          <Route index element={<LibraryPage />} />
+          <Route index element={<LibraryPage key="library" />} />
           <Route path="scopes" element={<ScopesPage />} />
           <Route path="compare" element={<ComparePage />} />
-          <Route path="recent" element={<LibraryPage />} />
+          <Route path="recent" element={<LibraryPage key="recent" />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="decisions/new" element={<DecisionFormPage />} />
           <Route path="decisions/:id" element={<DecisionDetailPage />} />

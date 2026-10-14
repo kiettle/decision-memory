@@ -50,20 +50,23 @@ fewer separate record visits.
 
 Search by memory uses a cached local multilingual embedding model and
 PostgreSQL/pgvector. It retrieves existing records and does not generate a new
-answer as an authoritative decision. Optional Gemini drafting helps extract
+answer as an authoritative decision. The optional Search with Gemini action
+ranks the newest 200 decisions after metadata filters; the UI discloses when
+older matching decisions were excluded. Optional Gemini drafting helps extract
 fields from a selected Slack thread; a person must review and save the form.
 
 **Is the whole product free and offline?**
 
 Local memory search has no paid AI API dependency and its inference can work
 offline after setup. The first setup downloads dependencies/model files. CPU,
-storage and operation still have costs. Slack, Jira and optional Gemini drafting
+storage and operation still have costs. Slack, Jira and optional Gemini search/drafting
 need network access and their own accounts/configuration.
 
 **Does internal conversation data leave the computer?**
 
 Local memory search sends neither the query nor decision text to a hosted AI
-service. Optional Gemini capture drafting sends bounded selected-thread text
+service. Explicit Gemini search sends the query and bounded excerpts from up to
+200 filtered decisions to Google. Optional Gemini capture drafting sends bounded selected-thread text
 to Google when enabled, so the current demo uses synthetic or sanitized data.
 Slack and Jira necessarily use their external APIs. Private-channel access,
 retention and real deployment policy need definition before a company rollout.
@@ -81,7 +84,8 @@ It searches the local indexed workspace with metadata filters and can retrieve
 across wording/languages. Retrieval is approximate and can miss a relevant
 decision. Relevance scores are heuristic, not factual-confidence probabilities.
 Pending indexing coverage is visible, and normal keyword search remains usable.
-There is no former newest-200 record cutoff. Million-record performance has
+Local search has no newest-200 cutoff; optional Gemini search has that filtered
+candidate limit and may misrank or omit relevant decisions. Million-record performance has
 not been demonstrated.
 
 **Can the comparison reconstruct every historic edit?**

@@ -4,6 +4,7 @@ import type {
   JiraIssueType,
   JiraProject,
   MemorySearchResponse,
+  MemorySearchMethod,
   Metadata,
   ScopeSummary,
   ScopeOverview,
@@ -56,6 +57,10 @@ export type DecisionFilters = {
   ownerId?: string
   tag?: string
   status?: string
+  decisionState?: string
+  deadline?: string
+  asOf?: string
+  sort?: string
   appliesTo?: string
   dateRange?: string
 }
@@ -72,9 +77,10 @@ export const api = {
     const query = params.size ? `?${params}` : ""
     return request<Decision[]>(`/api/decisions${query}`)
   },
-  memorySearch: (query: string, filters: DecisionFilters = {}) =>
+  memorySearch: (query: string, filters: DecisionFilters = {}, method: MemorySearchMethod = "LOCAL") =>
     request<MemorySearchResponse>("/api/decisions/memory-search", "POST", {
       query,
+      method,
       filters: Object.fromEntries(
         Object.entries(filters).filter(
           ([key, value]) => key !== "q" && value && value !== "ALL"
@@ -86,6 +92,10 @@ export const api = {
     request<Decision>("/api/decisions", "POST", input),
   updateDecision: (id: string, input: DecisionInput) =>
     request<Decision>(`/api/decisions/${id}`, "PUT", input),
+  updateDeadline: (id: string, dueDate: string | null) =>
+    request<Decision>(`/api/decisions/${id}/deadline`, "PUT", { dueDate }),
+  recordOutcome: (id: string, input: { outcome: string; why?: string }) =>
+    request<Decision>(`/api/decisions/${id}/decide`, "POST", input),
   supersede: (currentId: string, targetId: string, replacementReason = "") =>
     request<Decision>(`/api/decisions/${currentId}/supersede`, "POST", {
       targetId,

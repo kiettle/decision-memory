@@ -3,6 +3,7 @@ import { Op, QueryTypes } from "sequelize"
 
 import { DomainError, requireDecisionTitle, validateSupersession } from "./domain.js"
 import { vectorLiteral } from "./local-embeddings.js"
+import { calendarDay, compareDecisions } from "../../../shared/decision-deadlines.js"
 
 const blankToNull = (value) => {
   if (typeof value !== "string") return value ?? null
@@ -41,8 +42,32 @@ function serializeDecision(decision) {
   const plain = decision.get({ plain: true })
   return {
     ...plain,
+    createdAt: plain.createdAt?.toISOString?.() ?? plain.createdAt,
+    updatedAt: plain.updatedAt?.toISOString?.() ?? plain.updatedAt,
+    decidedAt: plain.decidedAt?.toISOString?.() ?? plain.decidedAt ?? null,
     tags: (plain.tags ?? []).map((tag) => tag.name),
     evidenceCount: (plain.sources ?? []).length,
+  }
+}
+
+function workflowFields(input, current) {
+  const decisionState = input.decisionState ?? current?.decisionState ?? "DECIDED"
+  if (current?.decisionState === "DECIDED" && decisionState === "PENDING") {
+    throw new DomainError("Reopening is unavailable. Edit the recorded choice instead.", 409, "REOPEN_UNAVAILABLE")
+  }
+  let outcome = null
+  if (decisionState === "DECIDED") {
+    // Old clients use title as their choice. New clients explicitly send state/outcome.
+    outcome = input.outcome === undefined
+      ? input.decisionState === undefined ? input.title : current?.outcome
+      : input.outcome
+    if (!outcome?.trim()) throw new DomainError("Record the final choice.", 400, "OUTCOME_REQUIRED")
+    outcome = outcome.trim()
+  }
+  return {
+    decisionState, outcome,
+    dueDate: input.dueDate === undefined ? current?.dueDate ?? null : input.dueDate,
+    decidedAt: decisionState === "DECIDED" ? current?.decisionState === "DECIDED" ? current.decidedAt : new Date() : null,
   }
 }
 
@@ -96,6 +121,17 @@ export function createRepository(models) {
   async function decisionWhere(workspaceId, filters = {}) {
     const where = { workspaceId }
     if (filters.status && filters.status !== "ALL") where.status = filters.status
+    if (filters.decisionState && filters.decisionState !== "ALL") where.decisionState = filters.decisionState
+    if (filters.deadline && filters.deadline !== "ALL") {
+      if (where.decisionState === "DECIDED") where.id = { [Op.in]: [] }
+      where.decisionState = "PENDING"
+      const day = calendarDay(filters.asOf)
+      const afterWeek = new Date((day + 7) * 86_400_000).toISOString().slice(0, 10)
+      if (filters.deadline === "OVERDUE") where.dueDate = { [Op.lt]: filters.asOf }
+      if (filters.deadline === "DUE_SOON") where.dueDate = { [Op.between]: [filters.asOf, afterWeek] }
+      if (filters.deadline === "UPCOMING") where.dueDate = { [Op.gt]: afterWeek }
+      if (filters.deadline === "UNSCHEDULED") where.dueDate = null
+    }
     if (filters.ownerId && filters.ownerId !== "ALL") {
       if (filters.ownerId.startsWith("name:")) {
         where.ownerId = null
@@ -146,7 +182,7 @@ export function createRepository(models) {
              ON owner.workspace_id = d.workspace_id AND owner.id = d.owner_id
            WHERE d.workspace_id = :workspaceId
              AND concat_ws(' ',
-               d.title, d.why, d.context, d.owner_name, owner.display_name,
+               d.title, d.outcome, d.why, d.context, d.owner_name, owner.display_name,
                d.applies_to::text, d.options_considered::text,
                (SELECT string_agg(t.name, ' ')
                 FROM decision_tags dt JOIN tags t ON t.id = dt.tag_id
@@ -160,6 +196,7 @@ export function createRepository(models) {
         ),
       )
     }
+    if (where.id) idSets.push([])
     if (idSets.length) {
       where.id = {
         [Op.in]: idSets.reduce((left, right) => left.filter((id) => right.includes(id))),
@@ -196,26 +233,27 @@ export function createRepository(models) {
     return decisions.map((decision) => ({
       ...serializeDecision(decision),
       supersededBy: supersededBy.get(decision.id) ?? [],
-    }))
+    })).sort((left, right) => compareDecisions(left, right, filters.sort === "DEADLINE" ? "DEADLINE" : "NEWEST"))
   }
 
-  async function memorySearchCandidates(identity, filters = {}) {
+  async function memorySearchCandidates(identity, filters = {}, { limit } = {}) {
     const { workspace } = await resolveContext(identity)
     const decisions = await Decision.findAll({
-      where: await decisionWhere(workspace.id, filters),
+      where: { [Op.and]: [await decisionWhere(workspace.id, filters), { decisionState: "DECIDED" }] },
       include: [
         { model: User, as: "owner", attributes: ["id", "externalId", "displayName", "avatarUrl"] },
         { model: Tag, as: "tags", attributes: ["id", "name"], through: { attributes: [] } },
         { model: SourceSnapshot, as: "sources", separate: true },
       ],
-      order: [["createdAt", "DESC"]],
+      order: [["createdAt", "DESC"], ["id", "DESC"]],
+      ...(limit === undefined ? {} : { limit }),
     })
     return decisions.map(serializeDecision)
   }
 
   async function memorySearchCandidateCount(identity, filters = {}) {
     const { workspace } = await resolveContext(identity)
-    return Decision.count({ where: await decisionWhere(workspace.id, filters) })
+    return Decision.count({ where: { [Op.and]: [await decisionWhere(workspace.id, filters), { decisionState: "DECIDED" }] } })
   }
 
   async function queueUnindexedDecisions(model) {
@@ -279,7 +317,8 @@ export function createRepository(models) {
   // SQL filters avoid materializing every matching ID into application memory.
   function vectorFilters(workspaceId, filters) {
     const replacements = { workspaceId }
-    const clauses = ["d.workspace_id = :workspaceId"]
+    const clauses = ["d.workspace_id = :workspaceId", "d.decision_state = 'DECIDED'"]
+    if (filters.decisionState === "PENDING" || (filters.deadline && filters.deadline !== "ALL")) clauses.push("FALSE")
     for (const [key, column] of [["status", "status"], ["ownerId", "owner_id"]]) {
       const value = filters[key]
       if (!value || value === "ALL") continue
@@ -457,7 +496,7 @@ export function createRepository(models) {
     const related = relatedIds.length
       ? await Decision.findAll({
           where: { id: { [Op.in]: relatedIds }, workspaceId: workspace.id },
-          attributes: ["id", "decisionKey", "title", "status"],
+          attributes: ["id", "decisionKey", "title", "outcome", "decisionState", "status"],
           transaction,
         })
       : []
@@ -466,15 +505,15 @@ export function createRepository(models) {
     const current = decision.status === "SUPERSEDED"
       ? await sequelize.query(
         `WITH RECURSIVE successors AS (
-           SELECT id, decision_key, title, status FROM decisions
+           SELECT id, decision_key, title, outcome, decision_state, status FROM decisions
            WHERE workspace_id = :workspaceId AND id = :decisionId
            UNION
-           SELECT d.id, d.decision_key, d.title, d.status
+           SELECT d.id, d.decision_key, d.title, d.outcome, d.decision_state, d.status
            FROM successors s
            JOIN decision_relations r ON r.to_decision_id = s.id
              AND r.workspace_id = :workspaceId AND r.relation_type = 'SUPERSEDES'
            JOIN decisions d ON d.id = r.from_decision_id AND d.workspace_id = :workspaceId
-         ) SELECT id, decision_key AS "decisionKey", title, status
+         ) SELECT id, decision_key AS "decisionKey", title, outcome, decision_state AS "decisionState", status
            FROM successors WHERE status = 'ACTIVE' AND id <> :decisionId`,
         { replacements: { workspaceId: workspace.id, decisionId }, type: QueryTypes.SELECT, transaction },
       ) : []
@@ -579,6 +618,7 @@ export function createRepository(models) {
           ownerName: blankToNull(input.ownerName),
           createdById: user.id,
           status: "ACTIVE",
+          ...workflowFields(input),
         },
         { transaction },
       )
@@ -615,6 +655,7 @@ export function createRepository(models) {
       const decision = await Decision.findOne({
         where: { id: decisionId, workspaceId: workspace.id },
         transaction,
+        lock: transaction.LOCK.UPDATE,
       })
       if (!decision) return null
       await decision.update(
@@ -626,11 +667,41 @@ export function createRepository(models) {
           optionsConsidered: listFrom(input.optionsConsidered),
           ownerId: await scopedOwnerId(workspace.id, input.ownerId, transaction),
           ownerName: blankToNull(input.ownerName),
+          ...workflowFields(input, decision),
         },
         { transaction },
       )
       await setTags(decision, workspace.id, input.tags, transaction)
       await setReferences(decision, workspace.id, input, transaction)
+      return getDecision(identity, decision.id, transaction)
+    })
+  }
+
+  async function updateDeadline(identity, decisionId, { dueDate }) {
+    return sequelize.transaction(async (transaction) => {
+      const { workspace } = await resolveContext(identity, transaction)
+      const decision = await Decision.findOne({ where: { id: decisionId, workspaceId: workspace.id }, transaction, lock: transaction.LOCK.UPDATE })
+      if (!decision) return null
+      await decision.update({ dueDate }, { transaction })
+      return getDecision(identity, decision.id, transaction)
+    })
+  }
+
+  async function recordOutcome(identity, decisionId, input) {
+    return sequelize.transaction(async (transaction) => {
+      const { workspace } = await resolveContext(identity, transaction)
+      const decision = await Decision.findOne({ where: { id: decisionId, workspaceId: workspace.id }, transaction, lock: transaction.LOCK.UPDATE })
+      if (!decision) return null
+      const outcome = input.outcome.trim()
+      const why = input.why === undefined ? decision.why : blankToNull(input.why)
+      if (decision.decisionState === "DECIDED") {
+        if (decision.outcome !== outcome || (input.why !== undefined && decision.why !== why)) {
+          throw new DomainError("This decision has already been recorded. Open it to edit the final choice.", 409, "DECISION_ALREADY_RECORDED")
+        }
+      } else {
+        if (!outcome) throw new DomainError("Record the final choice.", 400, "OUTCOME_REQUIRED")
+        await decision.update({ outcome, why, decisionState: "DECIDED", decidedAt: new Date() }, { transaction })
+      }
       return getDecision(identity, decision.id, transaction)
     })
   }
@@ -722,7 +793,7 @@ export function createRepository(models) {
               COUNT(*) FILTER (WHERE status = 'ACTIVE')::int AS "activeCount",
               MAX(created_at) AS "latestDecisionAt"
        FROM decisions d CROSS JOIN LATERAL (SELECT DISTINCT jsonb_array_elements_text(d.applies_to) AS scope) s
-       WHERE d.workspace_id = :workspaceId AND btrim(scope) <> ''
+       WHERE d.workspace_id = :workspaceId AND d.decision_state = 'DECIDED' AND btrim(scope) <> ''
        GROUP BY scope ORDER BY scope`,
       { replacements: { workspaceId: workspace.id }, type: QueryTypes.SELECT },
     )
@@ -731,14 +802,14 @@ export function createRepository(models) {
 
   async function scopeOverview(identity, scope) {
     const { workspace } = await resolveContext(identity)
-    const where = { workspaceId: workspace.id, appliesTo: { [Op.contains]: [scope] } }
+    const where = { workspaceId: workspace.id, decisionState: "DECIDED", appliesTo: { [Op.contains]: [scope] } }
     const [decisionCount, active, changes] = await Promise.all([
       Decision.count({ where }),
       Decision.findAll({ where: { ...where, status: "ACTIVE" }, include: decisionIncludes, order: [["createdAt", "DESC"]] }),
       sequelize.query(
         `SELECT r.replacement_reason AS "replacementReason", r.created_at AS "replacedAt",
-           json_build_object('id', old.id, 'decisionKey', old.decision_key, 'title', old.title, 'status', old.status) AS previous,
-           json_build_object('id', newer.id, 'decisionKey', newer.decision_key, 'title', newer.title, 'status', newer.status) AS replacement
+           json_build_object('id', old.id, 'decisionKey', old.decision_key, 'title', old.title, 'outcome', old.outcome, 'decisionState', old.decision_state, 'status', old.status) AS previous,
+           json_build_object('id', newer.id, 'decisionKey', newer.decision_key, 'title', newer.title, 'outcome', newer.outcome, 'decisionState', newer.decision_state, 'status', newer.status) AS replacement
          FROM decision_relations r
          JOIN decisions old ON old.id = r.to_decision_id AND old.workspace_id = :workspaceId
          JOIN decisions newer ON newer.id = r.from_decision_id AND newer.workspace_id = :workspaceId
@@ -803,6 +874,8 @@ export function createRepository(models) {
     getDecision,
     createDecision,
     updateDecision,
+    updateDeadline,
+    recordOutcome,
     supersedeDecision,
     addReference,
     claimJiraIssueRequest,

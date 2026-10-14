@@ -138,6 +138,7 @@ export function createLocalEmbedder({ allowDownload = false } = {}) {
 export function decisionPassages(decision, tokenizer) {
   const title = String(decision.title ?? "")
   const content = [
+    decision.outcome !== title ? decision.outcome : null,
     decision.why, decision.context,
     ...(decision.appliesTo ?? []), ...(decision.optionsConsidered ?? []),
     decision.owner?.displayName ?? decision.ownerName,

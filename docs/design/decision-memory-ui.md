@@ -220,3 +220,29 @@ Approved in the owner's feature request. Extend the existing restrained design:
 - Existing buttons, fields, selects, dialogs, empty states and loading patterns
   remain the component vocabulary. All new routes have explicit failure/retry
   states and fit a 390px viewport.
+
+## Dual memory search extension — 2026-10-13
+
+Owner-approved: show separate local **Search by memory** and **Search with Gemini**
+actions next to the same query/filters. Disclose Gemini's query/candidate transfer
+and approximate ranking beside its action. Identify the chosen provider in
+results; explain Gemini's newest-200 filtered cap separately from local indexing
+coverage. Keep disabled configuration, loading, retry/fallback, cached navigation
+and stale-response behavior clear on desktop and mobile.
+
+## Deadline views extension — 2026-10-14
+
+Owner-approved: retain Flat by default and add Kanban using the same records,
+search and filters. This explicitly permits compact board cards alongside the
+existing open flat rows. Use one visible All/Pending/Decided/Superseded Status
+filter. Pending question, direct recorded choice and completion each require
+one text field. Optional creation details collapse under More details. Dates and
+owners remain optional. Preserve the original question when recording an outcome.
+
+Board columns: Overdue, Due soon (today through +7), Upcoming, No deadline,
+Decided. Group automatically using the viewer's local date. Exact dates accompany
+textual urgency; completed deadlines are historical. Show full filtered counts;
+Decided initially shows ten and reveals ten more per Show more. Keep mobile
+horizontal scrolling inside the board. Flat/Kanban switches preserve URL filters,
+sort and cached memory results. Use accessible date/completion dialogs and retain
+drafts on failed saves. No dragging or scheduled reminders.

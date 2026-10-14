@@ -1,6 +1,6 @@
 import { ArrowLeft, Link2, Plus, Save, Trash2 } from "lucide-react"
 import { type FormEvent, useEffect, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -16,16 +16,21 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { api } from "@/lib/api"
 import type { DecisionInput, Metadata } from "@/types"
 
 const emptyForm: DecisionInput = {
   title: "",
+  decisionState: "PENDING",
+  outcome: null,
+  dueDate: null,
   why: "",
   context: "",
   appliesTo: [],
@@ -56,6 +61,9 @@ export function DecisionFormPage() {
 function DecisionForm({ id }: { id?: string }) {
   const editing = Boolean(id)
   const navigate = useNavigate()
+  const location = useLocation()
+  const origin = location.state ?? null
+  const libraryUrl = typeof origin?.libraryUrl === "string" ? origin.libraryUrl : "/"
   const [form, setForm] = useState(emptyForm)
   const [listText, setListText] = useState(emptyListText)
   const [metadata, setMetadata] = useState<Metadata | null>(null)
@@ -64,6 +72,7 @@ function DecisionForm({ id }: { id?: string }) {
   const [attempt, setAttempt] = useState(0)
   const [saving, setSaving] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [original, setOriginal] = useState({ title: "", outcome: "" })
 
   useEffect(() => {
     let active = true
@@ -75,8 +84,12 @@ function DecisionForm({ id }: { id?: string }) {
         if (!active) return
         setMetadata(meta)
         if (decision) {
+          setOriginal({ title: decision.title, outcome: decision.outcome ?? decision.title })
           setForm({
             title: decision.title,
+            decisionState: decision.decisionState ?? "DECIDED",
+            outcome: decision.outcome ?? decision.title,
+            dueDate: decision.dueDate ?? null,
             why: decision.why ?? "",
             context: decision.context ?? "",
             appliesTo: decision.appliesTo,
@@ -144,23 +157,29 @@ function DecisionForm({ id }: { id?: string }) {
     }))
   }
 
+  const pending = form.decisionState === "PENDING"
+  const primaryValue = pending ? form.title : form.outcome ?? ""
+
   async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
-    if (loading || loadError || !form.title.trim()) return
+    if (loading || loadError || !primaryValue.trim() || saving) return
     setSaving(true)
     const input: DecisionInput = {
       ...form,
+      title: pending ? form.title.trim() : !form.title.trim() || (editing && original.title === original.outcome && form.title === original.title) ? primaryValue.trim() : form.title.trim(),
+      outcome: pending ? null : primaryValue.trim(),
       appliesTo: splitList(listText.appliesTo, ","),
       tags: splitList(listText.tags, ","),
       optionsConsidered: splitList(listText.options, "\n"),
+      references: form.references.filter((reference) => reference.url.trim()),
     }
     try {
       const decision = id
         ? await api.updateDecision(id, input)
         : await api.createDecision(input)
       toast.success(id ? "Decision updated." : "Decision saved.")
-      navigate(`/decisions/${decision.id}`)
+      navigate(`/decisions/${decision.id}`, { state: origin })
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -192,50 +211,72 @@ function DecisionForm({ id }: { id?: string }) {
 
   return (
     <form className="page-frame max-w-5xl pb-28" onSubmit={submit}>
-      <div className="flex flex-col gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          render={<Link to={id ? `/decisions/${id}` : "/"} />}
-          nativeButton={false}
-          className="-ml-2 w-fit"
-        >
-          <ArrowLeft /> Back
-        </Button>
-        <div>
-          <p className="eyebrow">
-            {editing ? "Edit record" : "Record an outcome"}
-          </p>
-          <h1>{editing ? "Edit Decision" : "New Decision"}</h1>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
-            Capture enough context that the decision remains useful after the
-            original conversation is gone.
-          </p>
-        </div>
+      <Button variant="ghost" size="sm" render={<Link to={id ? `/decisions/${id}` : libraryUrl} state={origin} />} nativeButton={false} className="-ml-2 w-fit"><ArrowLeft data-icon="inline-start" /> Back</Button>
+      <div>
+        <p className="eyebrow">{editing ? "Edit record" : "Capture a question or choice"}</p>
+        <h1>{editing ? "Edit Decision" : "New Decision"}</h1>
+        <p className="mt-2 text-muted-foreground">{pending ? "Start with the question. You can add context and record your choice later." : "Save the choice now; add any supporting context when useful."}</p>
       </div>
-
+      {!editing ? <ToggleGroup aria-label="Decision type" value={[form.decisionState]} onValueChange={(values) => { if (values[0]) set("decisionState", values[0] === "PENDING" ? "PENDING" : "DECIDED") }} variant="outline" spacing={0}>
+        <ToggleGroupItem value="PENDING">Pending decision</ToggleGroupItem>
+        <ToggleGroupItem value="DECIDED">Already decided</ToggleGroupItem>
+      </ToggleGroup> : null}
       <div className="form-layout">
         <FieldGroup className="form-column-main">
-          <Field data-invalid={submitted && !form.title.trim()}>
-            <FieldLabel htmlFor="decision">
-              Decision <span className="text-destructive">*</span>
-            </FieldLabel>
-            <Textarea
-              id="decision"
-              maxLength={500}
-              value={form.title}
-              onChange={(event) => set("title", event.target.value)}
-              aria-invalid={submitted && !form.title.trim()}
-              placeholder="State the decision as a clear outcome..."
-              className="min-h-28 resize-y text-base"
-            />
-            <FieldDescription>
-              This is the only required field.
-            </FieldDescription>
-            {submitted && !form.title.trim() ? (
-              <FieldError>Decision is required.</FieldError>
-            ) : null}
+          <Field data-invalid={submitted && !primaryValue.trim()}>
+            <FieldLabel htmlFor="decision">{pending ? "What needs to be decided?" : "What did you decide?"} <span className="text-destructive">*</span></FieldLabel>
+            <Textarea id="decision" maxLength={500} value={primaryValue} onChange={(event) => set(pending ? "title" : "outcome", event.target.value)} aria-invalid={submitted && !primaryValue.trim()} placeholder={pending ? "Which storage should we use for migration backups?" : "Use object storage for migration backups."} className="min-h-28 resize-y text-base" required />
+            <FieldDescription>This is the only required field.</FieldDescription>
+            {submitted && !primaryValue.trim() ? <FieldError>{pending ? "Enter the question." : "Record the final choice."}</FieldError> : null}
           </Field>
+        </FieldGroup>
+        <FieldGroup className="form-column-side">
+          {pending || editing ? <Field>
+            <FieldLabel htmlFor="due-date">{pending ? "Decide by (optional)" : "Original deadline (optional)"}</FieldLabel>
+            <Input id="due-date" type="date" value={form.dueDate ?? ""} onChange={(event) => set("dueDate", event.target.value || null)} />
+            <FieldDescription>Deadline indicators use your local date.</FieldDescription>
+          </Field> : null}
+          <Field>
+            <FieldLabel>Owner</FieldLabel>
+            <Select
+              value={form.ownerId || "unassigned"}
+              onValueChange={(value) =>
+                setForm((current) => ({
+                  ...current,
+                  ownerId: value === "unassigned" ? "" : (value ?? ""),
+                  ownerName: "",
+                }))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {(metadata?.users.find((user) => user.id === form.ownerId)
+                    ?.displayName ??
+                    form.ownerName) ||
+                    "Unassigned"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent><SelectGroup>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {metadata?.users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.displayName}
+                  </SelectItem>
+                ))}
+              </SelectGroup></SelectContent>
+            </Select>
+          </Field>
+        </FieldGroup>
+      </div>
+      <details className="decision-more-details" open={editing || undefined}>
+        <summary>More details</summary>
+        <div className="form-layout">
+          <FieldGroup className="form-column-main">
+            {!pending ? <Field>
+              <FieldLabel htmlFor="original-question">Original question (optional)</FieldLabel>
+              <Textarea id="original-question" maxLength={500} value={form.title} onChange={(event) => set("title", event.target.value)} />
+              <FieldDescription>Leave blank to use your final choice as the title.</FieldDescription>
+            </Field> : null}
           <Field>
             <FieldLabel htmlFor="why">Why</FieldLabel>
             <Textarea
@@ -271,9 +312,8 @@ function DecisionForm({ id }: { id?: string }) {
               className="min-h-24 resize-y"
             />
           </Field>
-        </FieldGroup>
-
-        <FieldGroup className="form-column-side">
+          </FieldGroup>
+          <FieldGroup className="form-column-side">
           <Field>
             <FieldLabel htmlFor="appliesTo">Applies To</FieldLabel>
             <Input
@@ -287,36 +327,6 @@ function DecisionForm({ id }: { id?: string }) {
               }
               placeholder="Service, project, component"
             />
-          </Field>
-          <Field>
-            <FieldLabel>Owner</FieldLabel>
-            <Select
-              value={form.ownerId || "unassigned"}
-              onValueChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  ownerId: value === "unassigned" ? "" : (value ?? ""),
-                  ownerName: "",
-                }))
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(metadata?.users.find((user) => user.id === form.ownerId)
-                    ?.displayName ??
-                    form.ownerName) ||
-                    "Unassigned"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {metadata?.users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.displayName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor="tags">Tags</FieldLabel>
@@ -366,10 +376,10 @@ function DecisionForm({ id }: { id?: string }) {
                             {reference.kind === "JIRA" ? "Jira" : "URL"}
                           </SelectValue>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent><SelectGroup>
                           <SelectItem value="JIRA">Jira</SelectItem>
                           <SelectItem value="URL">URL</SelectItem>
-                        </SelectContent>
+                        </SelectGroup></SelectContent>
                       </Select>
                       <Input
                         aria-label={`Related link ${index + 1} label`}
@@ -400,7 +410,6 @@ function DecisionForm({ id }: { id?: string }) {
                         }
                         placeholder="https://..."
                         className="pl-9"
-                        required
                       />
                     </div>
                   </div>
@@ -412,22 +421,12 @@ function DecisionForm({ id }: { id?: string }) {
               </FieldDescription>
             )}
           </Field>
-        </FieldGroup>
-      </div>
-
+          </FieldGroup>
+        </div>
+      </details>
       <div className="form-actions">
-        <Button
-          type="button"
-          variant="outline"
-          render={<Link to={id ? `/decisions/${id}` : "/"} />}
-          nativeButton={false}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={saving}>
-          <Save />
-          {saving ? "Saving…" : "Save Decision"}
-        </Button>
+        <Button type="button" variant="outline" render={<Link to={id ? `/decisions/${id}` : libraryUrl} state={origin} />} nativeButton={false}>Cancel</Button>
+        <Button type="submit" disabled={saving}><Save data-icon="inline-start" />{saving ? "Saving…" : "Save Decision"}</Button>
       </div>
     </form>
   )

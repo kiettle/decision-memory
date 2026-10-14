@@ -10,11 +10,14 @@ files after actual product domains, such as `overview.md`, `billing.md`,
 
 ## Current Product Contract
 
+- [Decision deadlines](decision-deadlines.md): pending capture, recorded outcomes,
+  optional deadlines, safe shortcut writes, and Flat/Kanban views.
+
 - [Decision understanding](decision-understanding.md): replacement reasons,
   comparisons, and scope overviews.
 
-- [Local memory search](memory-search.md): offline multilingual retrieval, durable
-  indexing, workspace filters, one-command setup, and recovery.
+- [Memory search](memory-search.md): local vector retrieval and optional Gemini
+  ranking, filtered candidate limits, durable indexing, setup and recovery.
 
 - [Slack Capture](slack-capture.md): message shortcut and `/decide` command
   behavior, shared confirmation, durable context, and safety boundaries.

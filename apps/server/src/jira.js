@@ -17,7 +17,7 @@ export function issueDescription(decision, decisionUrl) {
     type: "doc",
     version: 1,
     content: [
-      labelled("Decision", decision.title),
+      labelled("Decision", decision.outcome || decision.title),
       decision.why ? labelled("Why", decision.why) : null,
       decision.context ? labelled("Context", decision.context) : null,
       decision.appliesTo?.length ? labelled("Applies to", decision.appliesTo.join(", ")) : null,

@@ -11,6 +11,9 @@ const badgeVariants = cva(
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary:
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+        pending: "bg-decision-pending text-decision-pending-foreground",
+        decided: "bg-decision-decided text-decision-decided-foreground",
+        superseded: "bg-decision-superseded text-decision-superseded-foreground",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline:

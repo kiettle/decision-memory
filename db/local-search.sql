@@ -55,7 +55,7 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS decisions_search_dirty ON decisions;
 CREATE TRIGGER decisions_search_dirty AFTER INSERT OR UPDATE OF
-  title, why, context, applies_to, options_considered, owner_id, owner_name
+  title, outcome, decision_state, why, context, applies_to, options_considered, owner_id, owner_name
   ON decisions FOR EACH ROW EXECUTE FUNCTION mark_decision_search_dirty();
 DROP TRIGGER IF EXISTS sources_search_dirty ON source_snapshots;
 CREATE TRIGGER sources_search_dirty AFTER INSERT OR UPDATE OR DELETE

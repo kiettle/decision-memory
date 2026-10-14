@@ -1,5 +1,6 @@
 import crypto from "node:crypto"
 import express from "express"
+import { headline } from "../../../shared/decision-deadlines.js"
 
 import { slackIdempotencyKey } from "./domain.js"
 import { looksLikeDecision, looksLikeQuestion } from "./nudges.js"
@@ -45,7 +46,7 @@ const escapeMrkdwn = (value = "") =>
   String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 const decisionLink = (appBaseUrl, decision) =>
-  `<${appBaseUrl}/#/decisions/${decision.id}|${escapeMrkdwn(`${decision.decisionKey} · ${decision.title}`.slice(0, 150))}>`
+  `<${appBaseUrl}/#/decisions/${decision.id}|${escapeMrkdwn(`${decision.decisionKey} · ${headline(decision)}`.slice(0, 150))}>`
 
 const MAX_SIMILAR = 3
 // Search by memory scores 0–100; weaker matches are noise in a Slack window.
@@ -62,7 +63,7 @@ async function similarDecisions(memorySearch, identity, text) {
       .map(({ decision }) => ({
         id: decision.id,
         decisionKey: decision.decisionKey,
-        title: decision.title.slice(0, 60),
+        title: headline(decision).slice(0, 60),
         status: decision.status,
         why: decision.why?.slice(0, 180) || "",
         appliesTo: (decision.appliesTo ?? []).slice(0, 2).map((scope) => scope.slice(0, 80)),
@@ -74,10 +75,10 @@ async function similarDecisions(memorySearch, identity, text) {
 
 function similarBlocks(appBaseUrl, similar = [], values = {}) {
   if (!similar.length) return []
-  const active = similar.filter((decision) => decision.status === "ACTIVE")
+  const active = similar.filter((decision) => decision.status === "ACTIVE" && decision.decisionState !== "PENDING")
   const chosen = active.find((decision) => decision.id === selectedAt(values, "replaces"))
   const option = (decision) => ({
-    text: { type: "plain_text", text: `${decision.decisionKey} · ${decision.title}`.slice(0, 75) },
+    text: { type: "plain_text", text: `${decision.decisionKey} · ${headline(decision)}`.slice(0, 75) },
     value: decision.id,
   })
   return [
@@ -596,7 +597,7 @@ function decisionSummary(appBaseUrl, decision) {
 
 function recallMessage(appBaseUrl, decision, threadTs) {
   return {
-    text: `Already decided: ${decision.decisionKey} · ${decision.title}`.slice(0, 300),
+    text: `Already decided: ${decision.decisionKey} · ${headline(decision)}`.slice(0, 300),
     blocks: [
       { type: "section", text: { type: "mrkdwn", text: `:bulb: *Already decided*\n${decisionSummary(appBaseUrl, decision)}`.slice(0, 3_000) } },
       { type: "context", elements: [{ type: "mrkdwn", text: "Only you can see this. Decision Memory matched your question to a stored Decision." }] },
@@ -691,7 +692,7 @@ async function recallNudge(config, repository, { memorySearch }, event, text, th
   const match = [...matches]
     .sort((a, b) => b.score - a.score)
     .find(({ score, decision }) =>
-      score >= RECALL_MIN_SCORE && decision.status === "ACTIVE" && !savedHere.includes(decision.id))
+      score >= RECALL_MIN_SCORE && decision.decisionState !== "PENDING" && decision.status === "ACTIVE" && !savedHere.includes(decision.id))
   if (!match) return
   const claimed = await repository.claimSlackNudge(identity, {
     channelId: event.channel, threadTs: thread.threadTs, kind: "RECALL", decisionId: match.decision.id,
@@ -758,7 +759,7 @@ async function shareDecision(config, repository, payload, action, channelId) {
   if (!UUID.test(decisionId ?? "") || !SLACK_TS.test(threadTs ?? "")) return
   const identity = identityForSlack(config, payload)
   const decision = await repository.getDecision(identity, decisionId)
-  if (!decision) {
+  if (!decision || decision.decisionState === "PENDING") {
     await respond(payload.response_url, { replace_original: true, text: "That Decision is no longer available." })
     return
   }
@@ -768,7 +769,7 @@ async function shareDecision(config, repository, payload, action, channelId) {
       channel: channelId,
       thread_ts: threadTs,
       unfurl_links: false,
-      text: `Already decided: ${decision.decisionKey} · ${decision.title}`.slice(0, 300),
+      text: `Already decided: ${decision.decisionKey} · ${headline(decision)}`.slice(0, 300),
       blocks: [{
         type: "section",
         text: { type: "mrkdwn", text: `<@${payload.user.id}> shared a Decision on record:\n${decisionSummary(config.appBaseUrl, decision)}`.slice(0, 3_000) },

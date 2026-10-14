@@ -3,6 +3,31 @@ import { once } from "node:events"
 import { it } from "node:test"
 import { createApp } from "../src/app.js"
 
+it("memory search defaults to local, requires explicit Gemini selection, and preserves validated filters", async (t) => {
+  const calls = []
+  const app = createApp({
+    config: { nodeEnv: "development", localDemoMode: true, localWorkspaceId: "fixture" },
+    repository: { metadata: async () => ({}) },
+    memorySearch: { enabled: true, search: async (...args) => { calls.push(["LOCAL", ...args]); return { matches: [], candidateCount: 0 } } },
+    geminiMemorySearch: { enabled: true, search: async (...args) => { calls.push(["GEMINI", ...args]); return { matches: [], candidateCount: 0 } } },
+  })
+  const server = app.listen(0, "127.0.0.1")
+  await once(server, "listening")
+  t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections() }))
+  const base = `http://127.0.0.1:${server.address().port}/api`
+  const post = (body) => fetch(`${base}/decisions/memory-search`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+  const filters = { channel: "migration", ownerId: "name:Maya", tag: "storage", status: "ACTIVE", appliesTo: "Migration", dateRange: "30" }
+  assert.equal((await (await post({ query: "migration", filters })).json()).method, "LOCAL")
+  assert.equal((await (await post({ query: "migration", filters, method: "GEMINI" })).json()).method, "GEMINI")
+  assert.deepEqual(calls.map(c => c[0]), ["LOCAL", "GEMINI"])
+  assert.ok(calls.every(c => c[1].workspaceExternalKey === "fixture"))
+  assert.deepEqual(calls[1][2].filters, filters)
+  assert.equal((await post({ query: "migration", method: "UNKNOWN" })).status, 400)
+  assert.equal((await post({ query: "migration", method: "GEMINI", filters: { status: "UNKNOWN" } })).status, 400)
+  assert.equal(calls.length, 2)
+  assert.equal((await (await fetch(`${base}/metadata`)).json()).features.geminiMemorySearch, true)
+})
+
 it("replacement reasons are optional, trimmed, and bounded before lifecycle mutation", async (t) => {
   const calls = []
   const app = createApp({

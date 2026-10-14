@@ -238,6 +238,20 @@ try {
   const backgroundResult = await memorySearch.search(identity, { query: "Changed background indexing proof", filters: { appliesTo: "Background proof" } })
   assert.equal(backgroundResult.matches[0]?.decision.title, "Changed background indexing proof")
   await indexer.stop()
+  const outcomeFixture = await repository.createDecision(identity, {
+    title: "Which approach should this team take?", decisionState: "PENDING", tags: ["outcome-only-proof"],
+  })
+  await indexer.drain()
+  const outcomeQuery = "Use object storage for migration backup files to avoid database timeouts."
+  assert.equal((await memorySearch.search(identity, { query: outcomeQuery, filters: { tag: "outcome-only-proof" } })).totalCandidateCount, 0, "Indexed pending questions remain outside memory answers")
+  await repository.recordOutcome(identity, outcomeFixture.id, { outcome: outcomeQuery })
+  const staleOutcome = await memorySearch.search(identity, { query: outcomeQuery, filters: { tag: "outcome-only-proof" } })
+  assert.equal(staleOutcome.totalCandidateCount, 1)
+  assert.equal(staleOutcome.candidateCount, 0, "Completion invalidates the previous question embedding")
+  await indexer.drain()
+  const finalOutcome = await memorySearch.search(identity, { query: outcomeQuery, filters: { tag: "outcome-only-proof" } })
+  assert.equal(finalOutcome.matches[0]?.decision.id, outcomeFixture.id, "Recall retrieves the final choice independently of its unrelated original question")
+  assert.match(finalOutcome.matches[0].explanation, /object storage/)
   assert.equal(networkRequests, 0)
   console.log("Local search proof passed: real offline bilingual/no-match inference, durable/background indexing, edits/concurrency, source/owner/tag invalidation, tenant/FK isolation, combined filters, supersession, >200 retrieval, deletion and HTTP API.")
 } finally {

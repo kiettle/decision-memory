@@ -2,6 +2,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -13,20 +14,23 @@ export function FilterSelect({
   value,
   options,
   onChange,
+  includeAll = true,
 }: {
   label: string
   value: string
   options: FilterOption[]
   onChange: (value: string) => void
+  includeAll?: boolean
 }) {
   const selected = options.find((option) => option.value === value)?.label
   return (
     <Select value={value} onValueChange={(next) => onChange(next ?? "ALL")}>
-      <SelectTrigger className="h-10 min-w-29 rounded-lg px-3">
+      <SelectTrigger aria-label={label} className="h-10 min-w-29 rounded-lg px-3">
         <SelectValue>{value === "ALL" ? label : selected}</SelectValue>
       </SelectTrigger>
       <SelectContent align="start">
-        <SelectItem value="ALL">All {label.toLowerCase()}</SelectItem>
+        <SelectGroup>
+        {includeAll ? <SelectItem value="ALL">All {label.toLowerCase()}</SelectItem> : null}
         {options
           .filter((option) => option.value !== "ALL")
           .map((option) => (
@@ -34,6 +38,7 @@ export function FilterSelect({
               {option.label}
             </SelectItem>
           ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   )

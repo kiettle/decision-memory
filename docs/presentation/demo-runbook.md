@@ -19,6 +19,10 @@ dependencies, the database image and cached model files. Prepare before the
 presentation; runtime local search uses the cached model.
 
 - Confirm the library loads and the local Search by memory feature is available.
+- If presenting Search with Gemini, verify the key/network beforehand, choose
+  the synthetic take's scope/channel/tag/owner filters, and rehearse the query.
+  Show searched/total coverage; older decisions beyond the newest 200 filtered
+  candidates are omitted and AI ranking may be wrong. Local search remains usable.
 - Confirm Scopes, Compare decisions and a detail page open.
 - Use the existing Slack setup instructions in the [README](../../README.md#connect-slack-locally).
   Expose only the Slack listener on port 3012. Rehearse the message shortcut in

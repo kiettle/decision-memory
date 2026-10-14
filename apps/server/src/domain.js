@@ -40,6 +40,9 @@ export function validateSupersession({ current, target, workspaceId }) {
       "INACTIVE_SUPERSESSION",
     )
   }
+  if (current.decisionState === "PENDING" || target.decisionState === "PENDING") {
+    throw new DomainError("Record both final choices before replacing a decision (decision-deadlines.md).", 409, "PENDING_SUPERSESSION")
+  }
 }
 
 export function slackIdempotencyKey(payload) {

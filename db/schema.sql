@@ -70,6 +70,35 @@ CREATE TABLE IF NOT EXISTS source_snapshots (
 );
 
 ALTER TABLE decisions ADD COLUMN IF NOT EXISTS owner_name text;
+-- A nullable state identifies legacy rows exactly once. Never re-backfill edits.
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS decision_state text;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS due_date date;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS outcome text;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS decided_at timestamptz;
+UPDATE decisions SET decision_state = 'DECIDED', outcome = title
+  WHERE decision_state IS NULL;
+ALTER TABLE decisions ALTER COLUMN decision_state SET DEFAULT 'DECIDED';
+ALTER TABLE decisions ALTER COLUMN decision_state SET NOT NULL;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'decisions_state_check' AND conrelid = 'decisions'::regclass) THEN
+    ALTER TABLE decisions ADD CONSTRAINT decisions_state_check CHECK (
+      (decision_state = 'PENDING' AND status = 'ACTIVE' AND outcome IS NULL AND decided_at IS NULL)
+      OR (decision_state = 'DECIDED' AND length(btrim(outcome)) > 0 AND outcome IS NOT NULL)
+    );
+  END IF;
+END $$;
+-- Direct legacy SQL inserts (including the seed) still record a final choice.
+CREATE OR REPLACE FUNCTION default_decision_outcome() RETURNS trigger AS $$
+BEGIN
+  IF NEW.decision_state = 'DECIDED' AND NEW.outcome IS NULL THEN NEW.outcome := NEW.title; END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS decisions_default_outcome ON decisions;
+CREATE TRIGGER decisions_default_outcome BEFORE INSERT ON decisions
+  FOR EACH ROW EXECUTE FUNCTION default_decision_outcome();
+CREATE INDEX IF NOT EXISTS decisions_workspace_pending_due_idx
+  ON decisions (workspace_id, due_date) WHERE decision_state = 'PENDING';
 ALTER TABLE source_snapshots
   ADD COLUMN IF NOT EXISTS source_context jsonb NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE source_snapshots ADD COLUMN IF NOT EXISTS anchor_text text;

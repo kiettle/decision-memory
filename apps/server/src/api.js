@@ -4,18 +4,23 @@ import { z } from "zod"
 import { createLinkedJiraIssue } from "./jira.js"
 import { DomainError } from "./domain.js"
 
-import { decisionInput, replacementReasonInput } from "./validation.js"
+import { calendarDateInput, deadlineInput, decideInput, decisionInput, replacementReasonInput } from "./validation.js"
 
 const decisionFilters = z.object({
   channel: z.string().max(200).optional(),
   ownerId: z.string().max(205).optional(),
   tag: z.string().max(80).optional(),
   status: z.enum(["ALL", "ACTIVE", "SUPERSEDED"]).optional(),
+  decisionState: z.enum(["ALL", "PENDING", "DECIDED"]).optional(),
+  deadline: z.enum(["ALL", "OVERDUE", "DUE_SOON", "UPCOMING", "UNSCHEDULED"]).optional(),
+  asOf: calendarDateInput.optional(),
+  sort: z.enum(["NEWEST", "DEADLINE"]).optional(),
   appliesTo: z.string().max(200).optional(),
   dateRange: z.string().max(20).optional(),
-})
+}).refine((filters) => !filters.deadline || filters.deadline === "ALL" || Boolean(filters.asOf), { message: "Deadline filters need the viewer's local date.", path: ["asOf"] })
 const memorySearchInput = z.object({
   query: z.string().trim().min(3).max(500),
+  method: z.enum(["LOCAL", "GEMINI"]).default("LOCAL"),
   filters: decisionFilters.optional(),
 })
 
@@ -30,7 +35,7 @@ const jiraIssueInput = z.object({
   summary: z.string().trim().min(1, "Summary is required.").max(255),
 })
 
-export function createApiRouter(repository, identityMiddleware, { memorySearch, jira }, features = {}) {
+export function createApiRouter(repository, identityMiddleware, { memorySearch, geminiMemorySearch, jira }, features = {}) {
   const router = express.Router()
   router.use(identityMiddleware)
 
@@ -48,7 +53,7 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
     asyncRoute(async (req, res) => {
       res.json({
         ...(await repository.metadata(req.identity)),
-        features: { ...features, memorySearch: memorySearch.enabled },
+        features: { ...features, memorySearch: memorySearch.enabled, geminiMemorySearch: geminiMemorySearch.enabled },
       })
     }),
   )
@@ -57,7 +62,8 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
     "/decisions/memory-search",
     asyncRoute(async (req, res) => {
       const input = memorySearchInput.parse(req.body)
-      res.json(await memorySearch.search(req.identity, input))
+      const service = input.method === "GEMINI" ? geminiMemorySearch : memorySearch
+      res.json({ ...(await service.search(req.identity, input)), method: input.method })
     }),
   )
 
@@ -77,13 +83,8 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
     asyncRoute(async (req, res) => {
       res.json(
         await repository.listDecisions(req.identity, {
+          ...decisionFilters.parse(req.query),
           q: typeof req.query.q === "string" ? req.query.q : undefined,
-          status: req.query.status,
-          channel: req.query.channel,
-          ownerId: req.query.ownerId,
-          tag: req.query.tag,
-          appliesTo: req.query.appliesTo,
-          dateRange: req.query.dateRange,
         }),
       )
     }),
@@ -121,6 +122,18 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
       res.json(decision)
     }),
   )
+
+  router.put("/decisions/:id/deadline", asyncRoute(async (req, res) => {
+    const decision = await repository.updateDeadline(req.identity, req.params.id, deadlineInput.parse(req.body))
+    if (!decision) return res.status(404).json({ error: "Decision not found." })
+    res.json(decision)
+  }))
+
+  router.post("/decisions/:id/decide", asyncRoute(async (req, res) => {
+    const decision = await repository.recordOutcome(req.identity, req.params.id, decideInput.parse(req.body))
+    if (!decision) return res.status(404).json({ error: "Decision not found." })
+    res.json(decision)
+  }))
 
   router.get(
     "/jira/projects",

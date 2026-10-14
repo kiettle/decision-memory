@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, Box, Search } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 
+import { headline } from "../../../../shared/decision-deadlines.js"
 import { StatusBadge } from "@/components/status-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -233,7 +234,7 @@ function ScopeDetail({ scope }: { scope: string }) {
                 {overview.activeDecisions.map((decision) => (
                   <article key={decision.id} className="grid gap-3 py-6">
                     <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge status={decision.status} />
+                      <StatusBadge status={decision.status} decisionState={decision.decisionState} />
                       <span className="decision-key">
                         {decision.decisionKey}
                       </span>
@@ -249,7 +250,7 @@ function ScopeDetail({ scope }: { scope: string }) {
                         state={{ libraryUrl: scopeHref(scope) }}
                         className="hover:text-primary"
                       >
-                        {decision.title}
+                        {headline(decision)}
                       </Link>
                     </h3>
                     <p className="text-sm leading-6 break-words whitespace-pre-wrap">
@@ -317,7 +318,7 @@ function ScopeDetail({ scope }: { scope: string }) {
                           className="underline underline-offset-4"
                         >
                           {change.previous.decisionKey} ·{" "}
-                          {change.previous.title}
+                          {headline(change.previous)}
                         </Link>
                       </p>
                       <p>
@@ -329,7 +330,7 @@ function ScopeDetail({ scope }: { scope: string }) {
                           className="underline underline-offset-4"
                         >
                           {change.replacement.decisionKey} ·{" "}
-                          {change.replacement.title}
+                          {headline(change.replacement)}
                         </Link>{" "}
                         <StatusBadge status={change.replacement.status} />
                       </p>

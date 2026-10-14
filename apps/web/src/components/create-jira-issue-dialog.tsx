@@ -1,3 +1,4 @@
+import { headline } from "../../../../shared/decision-deadlines.js"
 import { TicketPlus } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -101,7 +102,7 @@ export function CreateJiraIssueDialog({
     setProjectKey(attempt?.projectKey ?? "")
     setIssueTypes(null)
     setIssueTypeId(attempt?.issueTypeId ?? "")
-    setSummary(attempt?.summary ?? decision.title.slice(0, 255))
+    setSummary(attempt?.summary ?? headline(decision).slice(0, 255))
     setError("")
   }
 

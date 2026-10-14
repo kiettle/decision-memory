@@ -3,12 +3,14 @@ import crypto from "node:crypto"
 import { once } from "node:events"
 import { setTimeout as delay } from "node:timers/promises"
 import { createApp } from "../apps/server/src/app.js"
+import { createGeminiMemorySearchService } from "../apps/server/src/gemini-memory-search.js"
 
 import { config } from "../apps/server/src/config.js"
 import { createLinkedJiraIssue } from "../apps/server/src/jira.js"
 import { DomainError } from "../apps/server/src/domain.js"
 import { createDatabase } from "../apps/server/src/models.js"
 import { createRepository } from "../apps/server/src/repository.js"
+import { verifyDecisionDeadlines } from "./verify-decision-deadlines.mjs"
 
 if (config.nodeEnv !== "development" || !config.localDemoMode) {
   throw new Error("Integration verification only runs in development demo mode.")
@@ -479,6 +481,30 @@ try {
   assert.equal(bounded.some((d) => d.id === oldMemory.id), true)
   assert.deepEqual((await repository.listDecisions(identity, { q: "Older bounded recall sentinel" })).map((d) => d.id), [oldMemory.id])
   assert.equal(await repository.memorySearchCandidateCount(otherIdentity, boundedFilters), 0)
+
+  const capped = await repository.memorySearchCandidates(identity, boundedFilters, { limit: 200 })
+  assert.equal(capped.length, 200)
+  assert.equal(capped.some(d => d.id === oldMemory.id), false, "Gemini's newest 200 exclude the older matching record")
+  await repository.updateDecision(identity, oldMemory.id, { title: oldMemory.title, appliesTo: oldMemory.appliesTo, ownerName: "Recorded Gemini owner", tags: ["gemini-filter-proof"] })
+  let sentCards = []
+  const gemini = createGeminiMemorySearchService({ config: { geminiModel: "fixture-model" }, repository,
+    generateContent: async (request) => {
+      sentCards = JSON.parse(request.contents.split("Candidate Decisions:\n")[1])
+      return { text: JSON.stringify({ matches: [{ decisionId: sentCards[0].decisionId, score: 90, explanation: "Stored choice", matchedConcepts: [] }] }) }
+    } })
+  const limited = await gemini.search(identity, { query: "migration memory", filters: boundedFilters })
+  assert.equal(limited.candidateCount, 200)
+  assert.equal(limited.totalCandidateCount, 202)
+  assert.equal(limited.truncated, true)
+  const narrowed = await gemini.search(identity, { query: "migration memory", filters: { ...boundedFilters, ownerId: "name:Recorded Gemini owner", tag: "gemini-filter-proof", status: "ACTIVE" } })
+  assert.deepEqual(sentCards.map(d => d.decisionId), [oldMemory.id], "All filters are applied before the newest-200 cap")
+  assert.equal(narrowed.truncated, false)
+  assert.equal((await gemini.search(identity, { query: "migration memory", filters: { ...boundedFilters, dateRange: "7", tag: "gemini-filter-proof" } })).candidateCount, 0)
+  const channelFilters = { channel: "integration-channel", tag: "integration-memory", ownerId: user.id, status: "SUPERSEDED", appliesTo: "Integration API", dateRange: "7" }
+  assert.equal((await gemini.search(identity, { query: "durable rollback", filters: channelFilters })).matches[0].decisionId, first.id)
+  assert.equal((await gemini.search(otherIdentity, { query: "migration memory", filters: boundedFilters })).candidateCount, 0)
+  await verifyDecisionDeadlines({ repository, models, config, identity, otherIdentity, source: capturedSource })
+  console.log("Gemini candidate proof passed: newest 200, filter-first channel/tag/owner/name/status/scope/date, counts and workspace isolation; provider mocked")
   console.log("Review regressions passed: active successor, durable Jira recovery/concurrency/isolation, uncapped recall filter inputs")
 
   console.log(

@@ -136,6 +136,11 @@ each.
 Submission defaults the Decision to `ACTIVE`. Slack retries and repeated modal
 submissions must not create duplicate Decisions.
 
+The [deadline workflow](decision-deadlines.md) additionally defaults Slack saves
+to DECIDED with the captured title as final outcome. It adds no Slack form fields.
+Remembered answers, similar replacement candidates and public sharing exclude
+pending questions; saved final outcomes appear in answer text.
+
 ## Already Decided? (Optional)
 
 With Search by memory available, the message shortcut also searches stored

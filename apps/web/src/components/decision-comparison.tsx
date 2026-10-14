@@ -1,4 +1,5 @@
 import { ArrowRight, FileText } from "lucide-react"
+import { headline } from "../../../../shared/decision-deadlines.js"
 import { Link } from "react-router-dom"
 
 import { StatusBadge } from "@/components/status-badge"
@@ -9,7 +10,8 @@ import { recordedDate, scopeHref } from "@/lib/decision-links"
 import type { Decision } from "@/types"
 
 const values = (decision: Decision) => [
-  ["Decision", decision.title],
+  ["Decision", decision.decisionState === "PENDING" ? "Not decided yet." : headline(decision)],
+  ["Original question", decision.title],
   ["Why", decision.why || "No rationale recorded."],
   ["Context", decision.context || "No context recorded."],
   [
@@ -34,6 +36,7 @@ export function DecisionComparison({
   const rightValues = values(right)
   const comparable = (decision: Decision) =>
     [
+      decision.decisionState === "PENDING" ? "Not decided yet." : headline(decision),
       decision.title,
       decision.why ?? "",
       decision.context ?? "",
@@ -55,7 +58,7 @@ export function DecisionComparison({
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
         <Badge variant="secondary">
-          {differences.filter(Boolean).length} of 5 fields differ
+          {differences.filter(Boolean).length} of {leftFields.length} fields differ
         </Badge>
         <span>
           {sharedScopes.length
@@ -93,11 +96,11 @@ export function DecisionComparison({
           >
             <div className="mb-5 grid gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={decision.status} />
+                <StatusBadge status={decision.status} decisionState={decision.decisionState} />
                 <span className="decision-key">{decision.decisionKey}</span>
               </div>
               <h2 className="text-xl leading-7 font-semibold">
-                {decision.title}
+                {headline(decision)}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {decision.owner?.displayName ??
@@ -132,7 +135,7 @@ export function DecisionComparison({
                           {decision.appliesTo.map((scope) => (
                             <Link
                               key={scope}
-                              to={scopeHref(scope)}
+                              to={scopeHref(scope, decision.decisionState)}
                               className="text-primary underline underline-offset-4"
                             >
                               {scope}

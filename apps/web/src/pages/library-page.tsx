@@ -8,10 +8,17 @@ import {
   SlidersHorizontal,
   Sparkles,
   Hash,
+  Columns3,
+  List,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
+import { headline } from "../../../../shared/decision-deadlines.js"
+import { DecisionBoard } from "@/components/decision-board"
+import { DecisionDeadline } from "@/components/decision-deadline"
+import { useLocalDate } from "@/hooks/use-local-date"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { CompareDecisionsDialog } from "@/components/compare-decisions-dialog"
 import { FilterSelect } from "@/components/filter-select"
 import { StatusBadge } from "@/components/status-badge"
@@ -41,9 +48,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, type DecisionFilters } from "@/lib/api"
 import { slackChannels } from "@/lib/slack"
-import type { Decision, MemorySearchMatch, MemorySearchResponse, Metadata } from "@/types"
+import type { Decision, MemorySearchMatch, MemorySearchMethod, MemorySearchResponse, Metadata } from "@/types"
 
-const initialFilters: Required<DecisionFilters> = {
+const initialFilters = {
   q: "",
   channel: "ALL",
   ownerId: "ALL",
@@ -51,27 +58,53 @@ const initialFilters: Required<DecisionFilters> = {
   status: "ALL",
   appliesTo: "ALL",
   dateRange: "ALL",
+  deadline: "ALL",
 }
 
 export function LibraryPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const filters = useMemo(() => Object.fromEntries(
+  const serializedFilters = JSON.stringify(Object.fromEntries(
     Object.entries(initialFilters).map(([key, value]) => [key, searchParams.get(key) ?? value])
-  ) as typeof initialFilters, [searchParams])
-  const setFilters = (next: typeof initialFilters) => setSearchParams(
-    Object.fromEntries(Object.entries(next).filter(([key, value]) => value !== initialFilters[key as keyof typeof initialFilters])),
-    { replace: true }
-  )
+  ))
+  // Changing presentation does not refetch the same dataset or flash loading rows.
+  const filters = useMemo(() => JSON.parse(serializedFilters) as typeof initialFilters, [serializedFilters])
+  const setFilters = (next: typeof initialFilters) => {
+    const params = new URLSearchParams(searchParams)
+    for (const [key, value] of Object.entries(next)) {
+      if (value === initialFilters[key as keyof typeof initialFilters]) params.delete(key)
+      else params.set(key, value)
+    }
+    setSearchParams(params, { replace: true, state: null })
+  }
+  const view = searchParams.get("view") === "kanban" ? "kanban" : "flat"
+  const sort = searchParams.get("sort") === "DEADLINE" ? "DEADLINE" : "NEWEST"
+  const setPresentation = (key: "view" | "sort", value: string) => {
+    const params = new URLSearchParams(searchParams)
+    if (value === "flat" || value === "NEWEST") params.delete(key)
+    else params.set(key, value)
+    setSearchParams(params, { replace: true, state: location.state })
+  }
+  const today = useLocalDate()
+  const navigationUrl = useRef(location.pathname + location.search)
+  useEffect(() => { navigationUrl.current = location.pathname + location.search }, [location.pathname, location.search])
   const [decisions, setDecisions] = useState<Decision[]>([])
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [memoryResult, setMemoryResult] = useState<MemorySearchResponse | null>(location.state?.memoryResult ?? null)
-  const [memorySearching, setMemorySearching] = useState(false)
+  const [memorySearching, setMemorySearching] = useState<MemorySearchMethod | null>(null)
   const [memoryError, setMemoryError] = useState("")
   const recentOnly = location.pathname === "/recent"
+  const apiFilters = useMemo<DecisionFilters>(() => ({
+    ...filters,
+    status: filters.status === "PENDING" || filters.status === "DECIDED" ? "ACTIVE" : filters.status,
+    decisionState: filters.status === "PENDING" ? "PENDING" : filters.status !== "ALL" ? "DECIDED" : "ALL",
+    asOf: today,
+    sort: recentOnly ? "NEWEST" : sort,
+  }), [filters, today, sort, recentOnly])
+  const memoryAllowed = filters.status !== "PENDING" && filters.deadline === "ALL"
   const latestRequest = useRef(0)
   const memoryRequest = useRef(0)
 
@@ -90,7 +123,7 @@ export function LibraryPage() {
     setLoading(true)
     setError("")
     try {
-      const decisionRows = await api.decisions(filters)
+      const decisionRows = await api.decisions(apiFilters)
       if (request !== latestRequest.current) return
       setDecisions(recentOnly ? decisionRows.slice(0, 5) : decisionRows)
     } catch (loadError) {
@@ -103,7 +136,7 @@ export function LibraryPage() {
     } finally {
       if (request === latestRequest.current) setLoading(false)
     }
-  }, [filters, recentOnly])
+  }, [apiFilters, recentOnly])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), filters.q ? 180 : 0)
@@ -113,7 +146,7 @@ export function LibraryPage() {
   const invalidateMemory = () => {
     void navigate(location.pathname + location.search, { replace: true, state: null })
     memoryRequest.current++
-    setMemorySearching(false)
+    setMemorySearching(null)
     setMemoryResult(null)
     setMemoryError("")
   }
@@ -131,16 +164,20 @@ export function LibraryPage() {
     setMemoryError("")
   }
 
-  const searchByMemory = async () => {
-    if (filters.q.trim().length < 3 || !metadata?.features.memorySearch) return
+  const searchByMemory = async (method: MemorySearchMethod = "LOCAL") => {
+    const enabled = method === "GEMINI" ? metadata?.features.geminiMemorySearch : metadata?.features.memorySearch
+    if (filters.q.trim().length < 3 || !enabled || !memoryAllowed) return
     const request = ++memoryRequest.current
-    setMemorySearching(true)
+    void navigate(location.pathname + location.search, { replace: true, state: null })
+    setMemorySearching(method)
+    setMemoryResult(null)
     setMemoryError("")
     try {
-      const result = await api.memorySearch(filters.q.trim(), filters)
+      const result = await api.memorySearch(filters.q.trim(), apiFilters, method)
       if (request === memoryRequest.current) {
-        setMemoryResult(result)
-        void navigate(location.pathname + location.search, { replace: true, state: { memoryResult: result } })
+        const labeledResult = { ...result, method }
+        setMemoryResult(labeledResult)
+        void navigate(navigationUrl.current, { replace: true, state: { memoryResult: labeledResult } })
       }
     } catch (searchError) {
       if (request !== memoryRequest.current) return
@@ -150,9 +187,11 @@ export function LibraryPage() {
           : "Search by memory failed. Normal search is still available; please retry."
       )
     } finally {
-      if (request === memoryRequest.current) setMemorySearching(false)
+      if (request === memoryRequest.current) setMemorySearching(null)
     }
   }
+
+  const geminiResult = memoryResult?.method === "GEMINI"
 
   const displayedDecisions = memoryResult
     ? memoryResult.matches.map((match) => match.decision)
@@ -205,9 +244,10 @@ export function LibraryPage() {
       />
       <FilterSelect
         label="Status"
-        value={filters.status}
+        value={filters.status === "ACTIVE" ? "DECIDED" : filters.status}
         options={[
-          { label: "Active", value: "ACTIVE" },
+          { label: "Pending", value: "PENDING" },
+          { label: "Decided", value: "DECIDED" },
           { label: "Superseded", value: "SUPERSEDED" },
         ]}
         onChange={(value) => updateFilter("status", value)}
@@ -218,6 +258,10 @@ export function LibraryPage() {
         options={options.appliesTo}
         onChange={(value) => updateFilter("appliesTo", value)}
       />
+      <FilterSelect label="Deadline" value={filters.deadline} options={[
+        { label: "Overdue", value: "OVERDUE" }, { label: "Due soon", value: "DUE_SOON" },
+        { label: "Upcoming", value: "UPCOMING" }, { label: "No deadline", value: "UNSCHEDULED" },
+      ]} onChange={(value) => updateFilter("deadline", value)} />
       <FilterSelect
         label="Date Range"
         value={filters.dateRange}
@@ -231,6 +275,15 @@ export function LibraryPage() {
     </>
   )
 
+  const onSaved = (saved: Decision) => {
+    if (memoryResult) {
+      const next = { ...memoryResult, matches: memoryResult.matches.map((match) => match.decisionId === saved.id ? { ...match, decision: saved } : match) }
+      setMemoryResult(next)
+      void navigate(navigationUrl.current, { replace: true, state: { memoryResult: next } })
+    }
+    void load()
+  }
+
   return (
     <div className="page-frame">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -240,7 +293,7 @@ export function LibraryPage() {
         </div>
         <div className="flex flex-wrap gap-2"><Button variant="outline" render={<Link to="/scopes" />} nativeButton={false}><Box data-icon="inline-start" /> Explore scopes</Button><CompareDecisionsDialog />
         <Button
-          render={<Link to="/decisions/new" />}
+          render={<Link to="/decisions/new" state={{ libraryUrl: location.pathname + location.search, libraryState: location.state }} />}
           nativeButton={false}
           size="lg"
         >
@@ -249,8 +302,8 @@ export function LibraryPage() {
         </Button></div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <InputGroup className="h-13 rounded-lg border-border bg-white">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <InputGroup className="h-13 rounded-lg border-border bg-white sm:col-span-2 lg:col-span-1">
           <InputGroupInput
             aria-label="Search decisions"
             placeholder="Search decisions, context, channels, or captured discussion..."
@@ -268,8 +321,9 @@ export function LibraryPage() {
           className="h-13"
           onClick={() => void searchByMemory()}
           disabled={
-            memorySearching ||
+            Boolean(memorySearching) ||
             filters.q.trim().length < 3 ||
+            !memoryAllowed ||
             !metadata?.features.memorySearch
           }
           title={
@@ -279,13 +333,25 @@ export function LibraryPage() {
           }
         >
           <Sparkles data-icon="inline-start" />
-          {memorySearching ? "Searching memory…" : "Search by memory"}
+          {memorySearching === "LOCAL" ? "Searching memory…" : "Search by memory"}
         </Button>
-        {metadata && !metadata.features.memorySearch ? (
-          <p className="text-xs text-muted-foreground sm:col-start-2 sm:text-right">
-            Run npm run setup:local to prepare local memory search.
-          </p>
-        ) : null}
+        <Button
+          size="lg"
+          variant="outline"
+          className="h-13"
+          onClick={() => void searchByMemory("GEMINI")}
+          disabled={Boolean(memorySearching) || !memoryAllowed || filters.q.trim().length < 3 || !metadata?.features.geminiMemorySearch}
+          title={metadata && !metadata.features.geminiMemorySearch ? "Add GEMINI_API_KEY to enable Gemini search." : undefined}
+        >
+          <Sparkles data-icon="inline-start" />
+          {memorySearching === "GEMINI" ? "Searching Gemini…" : "Search with Gemini"}
+        </Button>
+        <p className="text-xs leading-5 text-muted-foreground sm:col-span-2 lg:col-span-3">
+          Memory search finds recorded choices. Search by memory uses local vectors. Gemini sends your query and up to 200 decisions matching your filters to Google. Narrow with filters; AI can miss or misrank results.
+          {!memoryAllowed ? " Use normal search for pending questions and deadline filters." : ""}
+          {metadata && !metadata.features.geminiMemorySearch ? " Gemini search is not configured." : ""}
+          {metadata && !metadata.features.memorySearch ? " Run npm run setup:local to prepare local memory search." : ""}
+        </p>
       </div>
 
       {memoryError ? (
@@ -298,10 +364,14 @@ export function LibraryPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="bg-primary text-primary-foreground">
-              <Sparkles /> Local semantic match
+              <Sparkles /> {geminiResult ? "Gemini AI match" : "Local semantic match"}
             </Badge>
             <span className="text-slate-700">
-              {memoryResult.truncated
+              {geminiResult
+                ? memoryResult.truncated
+                  ? `Gemini searched the newest ${memoryResult.candidateCount} of ${memoryResult.totalCandidateCount} decisions matching your filters. Older matching decisions were not included. Narrow your filters or use local search; AI can miss or misrank results.`
+                  : `Gemini searched ${memoryResult.candidateCount} decisions matching your filters. AI can miss or misrank results; review the stored evidence.`
+                : memoryResult.truncated
                 ? `Searched ${memoryResult.candidateCount} of ${memoryResult.totalCandidateCount} decisions matching your filters. The remaining decisions are waiting for local indexing. Retry shortly or use normal search.`
                 : `Searched the local index of ${memoryResult.candidateCount} stored decisions. No external AI request.`}
             </span>
@@ -346,13 +416,20 @@ export function LibraryPage() {
         </Sheet>
       </div>
 
+      {!recentOnly ? <div className="flex flex-wrap items-center justify-between gap-3">
+        <ToggleGroup aria-label="Library view" variant="outline" spacing={0} value={[view]} onValueChange={(values) => { if (values[0]) setPresentation("view", values[0]) }}>
+          <ToggleGroupItem value="flat"><List /> Flat</ToggleGroupItem>
+          <ToggleGroupItem value="kanban"><Columns3 /> Kanban</ToggleGroupItem>
+        </ToggleGroup>
+        {view === "flat" && !memoryResult ? <FilterSelect label="Sort" includeAll={false} value={sort} options={[{ label: "Newest first", value: "NEWEST" }, { label: "Earliest deadline first", value: "DEADLINE" }]} onChange={(value) => setPresentation("sort", value)} /> : null}
+      </div> : null}
       <div className="result-bar">
         <span>
           {loading && !memoryResult
             ? "Loading decisions…"
             : `${displayedDecisions.length} decision${displayedDecisions.length === 1 ? "" : "s"}`}
         </span>
-        <span className="font-normal text-muted-foreground">{memoryResult ? "Best match first" : "Newest first"}</span>
+        <span className="font-normal text-muted-foreground">{memoryResult ? "Best match first" : !recentOnly && view === "kanban" ? "Grouped by deadline" : !recentOnly && sort === "DEADLINE" ? "Earliest deadline first" : "Newest first"}</span>
       </div>
 
       {error && !memoryResult ? (
@@ -369,8 +446,10 @@ export function LibraryPage() {
         </Empty>
       ) : loading && !memoryResult ? (
         <LoadingRows />
+      ) : !recentOnly && view === "kanban" ? (
+        <DecisionBoard key={location.search.replace(/(?:\?|&)view=[^&]+/, "")} decisions={displayedDecisions} today={today} matches={matchesByDecision} onSaved={onSaved} />
       ) : displayedDecisions.length ? (
-        <DecisionList decisions={displayedDecisions} matches={matchesByDecision} />
+        <DecisionList decisions={displayedDecisions} today={today} matches={matchesByDecision} method={memoryResult?.method ?? "LOCAL"} />
       ) : (
         <Empty className="border-y py-20">
           <EmptyHeader>
@@ -388,9 +467,13 @@ export function LibraryPage() {
 function DecisionList({
   decisions,
   matches,
+  method,
+  today,
 }: {
+  today: string
   decisions: Decision[]
   matches: Map<string, MemorySearchMatch>
+  method: MemorySearchMethod
 }) {
   return (
     <div className="decision-list">
@@ -402,7 +485,7 @@ function DecisionList({
         <span>Channel</span>
         <span>Owner</span>
         <span>Evidence</span>
-        <span>Date</span>
+        <span>Created</span>
         <span />
       </div>
       {decisions.map((decision) => (
@@ -410,6 +493,8 @@ function DecisionList({
           key={decision.id}
           decision={decision}
           memoryMatch={matches.get(decision.id)}
+          method={method}
+          today={today}
         />
       ))}
     </div>
@@ -419,9 +504,13 @@ function DecisionList({
 function DecisionRow({
   decision,
   memoryMatch,
+  method,
+  today,
 }: {
+  today: string
   decision: Decision
   memoryMatch?: MemorySearchMatch
+  method: MemorySearchMethod
 }) {
   const location = useLocation()
   const ownerLabel = decision.owner?.displayName ?? decision.ownerName
@@ -434,10 +523,10 @@ function DecisionRow({
   return (
     <Link className="decision-row" to={`/decisions/${decision.id}`} state={{ libraryUrl: location.pathname + location.search, libraryState: location.state }}>
       <div className="decision-status">
-        <StatusBadge status={decision.status} />
+        <StatusBadge status={decision.status} decisionState={decision.decisionState} />
       </div>
       <div className="decision-primary">
-        <span className="decision-title">{decision.title}</span>
+        <span className="decision-title">{headline(decision)}</span>
         <span className="decision-key">
           {decision.decisionKey}
           {decision.supersededBy?.length
@@ -457,9 +546,10 @@ function DecisionRow({
             </Badge>
           ))}
         </div>
+        {decision.decisionState === "PENDING" || decision.dueDate ? <DecisionDeadline decision={decision} today={today} /> : null}
         {memoryMatch ? (
           <div className="mt-1 grid gap-1.5 rounded-md border border-blue-100 bg-blue-50/80 p-2.5 text-xs leading-5 text-blue-950">
-            <span className="font-semibold">Local semantic match · relevance {Math.round(memoryMatch.score)}/100</span>
+            <span className="font-semibold">{method === "GEMINI" ? "Gemini AI match" : "Local semantic match"} · relevance {Math.round(memoryMatch.score)}/100</span>
             <span>{memoryMatch.explanation}</span>
             {memoryMatch.matchedConcepts.length ? (
               <span className="text-blue-700">

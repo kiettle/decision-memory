@@ -1,4 +1,5 @@
 export type DecisionStatus = "ACTIVE" | "SUPERSEDED"
+export type DecisionState = "PENDING" | "DECIDED"
 
 export type User = {
   id: string
@@ -52,6 +53,8 @@ export type RelatedDecision = {
   decisionKey: string
   title: string
   status: DecisionStatus
+  decisionState?: DecisionState
+  outcome?: string | null
   replacementReason?: string | null
   replacedAt?: string
 }
@@ -60,6 +63,10 @@ export type Decision = {
   id: string
   decisionKey: string
   title: string
+  decisionState: DecisionState
+  outcome: string | null
+  dueDate: string | null
+  decidedAt: string | null
   why?: string | null
   context?: string | null
   appliesTo: string[]
@@ -98,6 +105,7 @@ export type Metadata = {
   appliesTo: string[]
   features: {
     memorySearch: boolean
+    geminiMemorySearch: boolean
     jira: boolean
     slack: boolean
   }
@@ -111,7 +119,10 @@ export type MemorySearchMatch = {
   decision: Decision
 }
 
+export type MemorySearchMethod = "LOCAL" | "GEMINI"
+
 export type MemorySearchResponse = {
+  method?: MemorySearchMethod
   candidateCount: number
   totalCandidateCount?: number
   truncated?: boolean
@@ -120,6 +131,9 @@ export type MemorySearchResponse = {
 
 export type DecisionInput = {
   title: string
+  decisionState: DecisionState
+  outcome: string | null
+  dueDate: string | null
   why: string
   context: string
   appliesTo: string[]

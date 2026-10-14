@@ -1,3 +1,4 @@
+import { headline } from "../../../../shared/decision-deadlines.js"
 import { Columns2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -85,6 +86,7 @@ export function CompareDecisionsDialog({ decision }: { decision?: Decision }) {
           {(["First Decision", "Second Decision"] as const).map(
             (label, index) => {
               const selected = index === 0 ? left : right
+              const selectedRow = rows.find((item) => item.id === selected)
               return (
                 <Field key={label}>
                   <FieldLabel>{label}</FieldLabel>
@@ -97,8 +99,8 @@ export function CompareDecisionsDialog({ decision }: { decision?: Decision }) {
                   >
                     <SelectTrigger aria-label={label} className="w-full">
                       <SelectValue>
-                        {rows.find((item) => item.id === selected)?.title ??
-                          (index === 0 ? decision?.title : null) ??
+                        {(selectedRow ? headline(selectedRow) : null) ??
+                          (index === 0 ? (decision ? headline(decision) : null) : null) ??
                           (loading
                             ? "Loading Decisions…"
                             : "Choose a Decision")}
@@ -112,7 +114,7 @@ export function CompareDecisionsDialog({ decision }: { decision?: Decision }) {
                           )
                           .map((item) => (
                             <SelectItem key={item.id} value={item.id}>
-                              {item.decisionKey} · {item.title}
+                              {item.decisionKey} · {headline(item)}
                             </SelectItem>
                           ))}
                       </SelectGroup>

@@ -15,6 +15,10 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useLocation, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
+import { headline } from "../../../../shared/decision-deadlines.js"
+import { useLocalDate } from "@/hooks/use-local-date"
+import { DecisionActions } from "@/components/decision-actions"
+import { DecisionDeadline } from "@/components/decision-deadline"
 import { CompareDecisionsDialog } from "@/components/compare-decisions-dialog"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
@@ -53,6 +57,7 @@ export function DecisionDetailPage() {
 
 function DecisionDetail({ id }: { id: string }) {
   const location = useLocation()
+  const today = useLocalDate()
   const libraryState = location.state?.libraryState ?? null
   const libraryUrl = typeof location.state?.libraryUrl === "string" ? location.state.libraryUrl : "/"
   const [decision, setDecision] = useState<Decision | null>(null)
@@ -94,7 +99,7 @@ function DecisionDetail({ id }: { id: string }) {
   useEffect(() => {
     if (!supersedeOpen) return
     let active = true
-    void api.decisions({ status: "ACTIVE" })
+    void api.decisions({ status: "ACTIVE", decisionState: "DECIDED" })
       .then((rows) => { if (active) setCandidates(rows.filter((row) => row.id !== id)) })
       .catch(() => { if (active) setCandidateError("Could not load active Decisions. Close and reopen to retry.") })
     return () => { active = false }
@@ -167,13 +172,14 @@ function DecisionDetail({ id }: { id: string }) {
           <ArrowLeft /> Back to decisions
         </Button>
         <div className="flex flex-wrap justify-end gap-2">
+          <DecisionActions decision={decision} onSaved={setDecision} />
           <CompareDecisionsDialog decision={decision} />
           <CreateJiraIssueDialog
             decision={decision}
             enabled={jiraEnabled}
             onCreated={setDecision}
           />
-          {decision.status === "ACTIVE" ? (
+          {decision.status === "ACTIVE" && decision.decisionState !== "PENDING" ? (
             <SupersedeDialog
               open={supersedeOpen}
               onOpenChange={(open) => {
@@ -196,7 +202,7 @@ function DecisionDetail({ id }: { id: string }) {
           ) : null}
           <Button
             variant="outline"
-            render={<Link to={`/decisions/${decision.id}/edit`} />}
+            render={<Link to={`/decisions/${decision.id}/edit`} state={location.state} />}
             nativeButton={false}
           >
             <Pencil /> Edit
@@ -206,18 +212,20 @@ function DecisionDetail({ id }: { id: string }) {
 
       <div className="detail-title-block">
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge status={decision.status} />
+          <StatusBadge status={decision.status} decisionState={decision.decisionState} />
           <span className="decision-key">{decision.decisionKey}</span>
         </div>
-        <h1>{decision.title}</h1>
+        <h1>{headline(decision)}</h1>
         <p>
-          Recorded {created}
+          {decision.decisionState === "PENDING" ? "Created" : "Recorded"} {created}
           {decision.owner?.displayName || decision.ownerName
             ? ` · Owned by ${decision.owner?.displayName ?? decision.ownerName}`
             : ""}
           {channels.length ? ` · Discussed in ${channels.join(", ")}` : ""}
         </p>
       </div>
+
+      {decision.decisionState === "PENDING" || decision.dueDate ? <DecisionDeadline decision={decision} today={today} /> : null}
 
       {decision.lifecycle?.supersededBy.map((item) => (
         <Link
@@ -229,7 +237,7 @@ function DecisionDetail({ id }: { id: string }) {
           <RefreshCcw aria-hidden="true" className="size-4 shrink-0" />
           <span className="min-w-0 flex-1">
             This Decision was replaced by{" "}
-            <strong>{item.decisionKey}</strong> · {item.title}
+            <strong>{item.decisionKey}</strong> · {headline(item)}
           </span>
           <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
         </Link>
@@ -237,7 +245,7 @@ function DecisionDetail({ id }: { id: string }) {
 
       {decision.lifecycle?.current?.map((item) => (
         <Link key={item.id} to={`/decisions/${item.id}`} state={{ libraryUrl, libraryState }} className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
-          <span className="min-w-0 flex-1">Current active Decision: <strong>{item.decisionKey}</strong> · {item.title}</span>
+          <span className="min-w-0 flex-1">Current active Decision: <strong>{item.decisionKey}</strong> · {headline(item)}</span>
           <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
         </Link>
       ))}
@@ -264,7 +272,7 @@ function DecisionDetail({ id }: { id: string }) {
                 decision.appliesTo.map((item) => (
                   <Badge key={item} variant="outline">
                     <Box />
-                    <Link to={scopeHref(item)} className="hover:underline">{item}</Link>
+                    <Link to={scopeHref(item, decision.decisionState)} className="hover:underline">{item}</Link>
                   </Badge>
                 ))
               ) : (
@@ -272,9 +280,10 @@ function DecisionDetail({ id }: { id: string }) {
               )}
             </div>
           </EditorialSection>
-          <EditorialSection title="Decision">
-            <p>{decision.title}</p>
-          </EditorialSection>
+          {decision.decisionState === "PENDING" ? <EditorialSection title="Question"><p>{decision.title}</p></EditorialSection> : <>
+            <EditorialSection title="Decision"><p>{headline(decision)}</p></EditorialSection>
+            {decision.title !== headline(decision) ? <EditorialSection title="Original question"><p>{decision.title}</p></EditorialSection> : null}
+          </>}
           <EditorialSection title="Why">
             <p>{decision.why || "No rationale was recorded."}</p>
           </EditorialSection>
@@ -400,7 +409,7 @@ function DecisionDetail({ id }: { id: string }) {
                   key={item.id}
                 >
                   Superseded by <strong>{item.decisionKey}</strong>
-                  <span>{item.title}</span>
+                  <span>{headline(item)}</span>
                 </Link>
               ))}
               {decision.lifecycle?.supersedes.map((item) => (
@@ -411,13 +420,13 @@ function DecisionDetail({ id }: { id: string }) {
                   key={item.id}
                 >
                   Supersedes <strong>{item.decisionKey}</strong>
-                  <span>{item.title}</span>
+                  <span>{headline(item)}</span>
                 </Link>
               ))}
               {!decision.lifecycle?.supersededBy.length &&
               !decision.lifecycle?.supersedes.length ? (
                 <p className="text-sm text-muted-foreground">
-                  This is the current recorded outcome.
+                  {decision.decisionState === "PENDING" ? "This question has not been decided yet." : "This is the current recorded outcome."}
                 </p>
               ) : null}
             </div>
@@ -604,10 +613,10 @@ function SupersedeDialog({
         <FieldGroup>
           <Field><FieldLabel>Earlier Decision</FieldLabel><Select value={targetId} disabled={loading} onValueChange={(value) => setTargetId(value ?? "")}>
             <SelectTrigger aria-label="Earlier Decision" className="w-full"><SelectValue>{earlier?.title ?? "Select an active Decision"}</SelectValue></SelectTrigger>
-            <SelectContent><SelectGroup>{candidates.map((item) => <SelectItem key={item.id} value={item.id}>{item.decisionKey} · {item.title}</SelectItem>)}</SelectGroup></SelectContent>
+            <SelectContent><SelectGroup>{candidates.map((item) => <SelectItem key={item.id} value={item.id}>{item.decisionKey} · {headline(item)}</SelectItem>)}</SelectGroup></SelectContent>
           </Select></Field>
           {earlier ? <div className="grid gap-4 border-y py-4 sm:grid-cols-2">{[earlier, decision].map((item, index) => <section key={item.id} aria-label={index === 0 ? "Earlier choice" : "Replacing choice"} className="grid min-w-0 content-start gap-2">
-            <p className="text-xs font-semibold text-muted-foreground">{index === 0 ? "Earlier choice" : "Replacing choice"} · {item.decisionKey}</p><h3 className="break-words text-sm font-semibold">{item.title}</h3><p className="break-words text-xs text-muted-foreground">Applies to: {item.appliesTo.join(", ") || "No scope recorded"}</p><p className="whitespace-pre-wrap break-words text-sm leading-6">{item.why || "No rationale recorded."}</p>
+            <p className="text-xs font-semibold text-muted-foreground">{index === 0 ? "Earlier choice" : "Replacing choice"} · {item.decisionKey}</p><h3 className="break-words text-sm font-semibold">{headline(item)}</h3><p className="break-words text-xs text-muted-foreground">Applies to: {item.appliesTo.join(", ") || "No scope recorded"}</p><p className="whitespace-pre-wrap break-words text-sm leading-6">{item.why || "No rationale recorded."}</p>
           </section>)}</div> : null}
           <Field><FieldLabel htmlFor="replacement-reason">What changed?</FieldLabel><Textarea id="replacement-reason" value={replacementReason} maxLength={2000} disabled={loading} onChange={(event) => setReplacementReason(event.target.value)} placeholder="For example: exports now exceed local disk capacity, so the earlier approach no longer fits." /><FieldDescription>Optional. Record the circumstance or assumption that changed, so teammates can understand this replacement later.</FieldDescription></Field>
         </FieldGroup>

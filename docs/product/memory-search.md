@@ -1,10 +1,52 @@
-# Local memory search
+# Memory search: local vectors and Gemini
 
 ## Accepted outcome
 
 On 2026-10-12 the owner approved local multilingual embeddings with PostgreSQL
 vector retrieval, zero paid-service dependencies, and easy CLI setup. This
-supersedes the earlier Gemini ranking and newest-200 limits for memory search.
+supersedes the earlier Gemini ranking and newest-200 limits for local memory search.
+
+On 2026-10-13 the owner approved restoring optional Gemini AI ranking alongside
+local vectors. The web library provides **Search by memory** (local vectors) and
+**Search with Gemini**. Both use the current channel, tag, linked/recorded owner,
+status, Applies To and date filters. Neither runs automatically as the user types.
+Slack recall, similar-decision suggestions and nudges continue to use local search.
+
+## Optional Gemini AI search
+
+Set `GEMINI_API_KEY` and restart the server to enable the Gemini action. Its
+adjacent copy discloses that the query and compact stored decision/evidence
+excerpts are sent to Google. Local search requires no key and remains offline.
+An explicit Gemini request uses the existing configured Gemini model, without
+automatically falling back to another provider.
+
+Apply the authenticated workspace and metadata filters in PostgreSQL before
+selecting at most the newest 200 matching decisions (created date descending,
+ID descending for ties). The query describes the remembered meaning; it is not
+an additional keyword restriction on the candidates. Compact cards bound title,
+rationale, context, alternatives, owners, tags, channels and an anchor-first
+discussion excerpt. Long records are excerpted; this is not full-document analysis.
+
+Gemini returns at most five matches. IDs must belong to the supplied candidates;
+unknown/duplicate IDs are discarded. Returned titles and records come from the
+database, and list payloads preserve source/channel metadata without full captured
+discussion. Generated explanations and relevance scores can be wrong and must
+be checked against the stored evidence; scores are not factual confidence.
+
+Results identify the method and disclose searched/total filtered counts. If more
+than 200 decisions match, the UI explicitly says older matching decisions were
+excluded and recommends narrower filters or local search. The owner accepts
+approximate/inaccurate ranking and omissions; filtered input improves focus but
+does not guarantee correctness. Missing credentials, timeouts, rate limits and
+invalid output have visible errors while local and keyword search remain usable.
+
+`POST /api/decisions/memory-search` accepts `method: LOCAL | GEMINI`, defaulting to
+LOCAL for existing clients, plus query and filters. Metadata exposes separate
+`memorySearch` and `geminiMemorySearch` availability flags. Results/cached return
+navigation retain their method; changed queries/filters invalidate pending results.
+
+Proof: Gemini unit/API tests, real filter-before-cap PostgreSQL integration,
+dual-method browser interactions and the existing offline local-search proof.
 
 ## Run locally
 
@@ -30,7 +72,13 @@ Google when configured; Slack and Jira need their own network access.
 
 ## Retrieval contract
 
-- Default keyword search stays available. Explicit memory search embeds only
+The approved [deadline workflow](decision-deadlines.md) keeps pending questions
+in normal keyword search and restricts memory candidates/counts to DECIDED
+records. Include final outcome separately from the preserved question; identical
+legacy title/outcome text is not duplicated in local passages. Outcome/state
+changes invalidate the local index before the new choice can be retrieved.
+
+- Default keyword search stays available. Explicit local memory search embeds only
   the query locally and retrieves up to five distinct original decisions.
 - Queries enforce the authenticated workspace and channel, owner (including
   recorded owner names), tag, status, applies-to and date filters in SQL.

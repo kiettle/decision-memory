@@ -38,6 +38,12 @@ and use comparison before deciding whether to replace it.
 
 ## Scope overviews
 
+Under the [deadline workflow](decision-deadlines.md), current choices and scope
+counts include only decided records. Pending scope links open the filtered
+pending library, so a scope with only questions does not lead to a missing
+recorded-choice overview. Comparisons preserve the question and show the final
+choice separately; replacement candidates must be decided and active.
+
 The **Scopes** navigation item and **Explore scopes** library action open a
 directory of exact existing Applies To values. A scope name in a decision or
 comparison also links to its overview. No aliases or inferred scope groupings

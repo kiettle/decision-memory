@@ -286,6 +286,18 @@ Buildathon newest-200 and embedding-deferral rules for memory search.
 
 Current contract: `docs/product/memory-search.md`.
 
+### 7.3.1 Optional Gemini search alongside local vectors — 2026-10-13
+
+Owner-approved: retain local Search by memory and restore **Search with Gemini**
+as a separate explicit web action. This amends the external-inference prohibition
+above only for that selected action. Gemini receives the query and at most the
+newest 200 compact decisions after authenticated workspace, channel, tag, owner,
+status, scope and date filtering. Disclose provider, searched/total coverage and
+excluded older decisions. The owner accepts imperfect AI rankings; narrower
+filters improve focus without guaranteeing accuracy. Unknown IDs cannot become
+matches, and original stored decisions/evidence remain truth. Local search and
+Slack recall/nudges retain their existing offline behavior.
+
 ## 7.4 AI output requirements
 
 Preferred structured output:
@@ -1044,6 +1056,9 @@ indexed workspace, without the former newest-200 cap. It returns at most five
 stored decisions with deterministic explanations. Missing model files or
 indexing failures leave normal keyword search usable. See §7.3 and
 `docs/product/memory-search.md` for the current owner-approved behavior.
+The optional Search with Gemini action ranks the newest 200 matching decisions
+after metadata filters, with generated explanations and explicit coverage/AI
+uncertainty as described in §7.3.1.
 
 ---
 
@@ -1208,6 +1223,18 @@ Not MVP.
 ---
 
 # 20. Decision Lifecycle
+
+## Approved deadline workflow — 2026-10-14
+
+The owner-approved [deadline contract](docs/product/decision-deadlines.md) adds
+PENDING/DECIDED workflow state independently of ACTIVE/SUPERSEDED replacement
+status. Web creation defaults to a pending question; Slack retains decided
+capture. Optional Decide by dates organize the Flat/Kanban library, using each
+viewer's local date and a seven-day Due soon window. Recording a final outcome
+preserves the question. Deadline editing and completion use scoped write APIs;
+pending questions cannot become remembered/current choices or replacements.
+Only one text field is required per capture/completion step. Review scheduling
+below remains a separate future capability.
 
 ## MVP
 
