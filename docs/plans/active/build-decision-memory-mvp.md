@@ -1,23 +1,34 @@
-# Execution Plan: Build Decision Memory MVP
+# Execution Plan: Build Decision Memory MVP and Local Demo Readiness
 
 Date: 2026-10-06
 
+Current readiness revision: 2026-10-14.
+
 ## Status
 
-Active
+Active. Local logic and documentation are the current agent scope. Live
+rehearsal, first-time observation and recording are deferred to the owner.
 
 ## Outcome
 
-A locally runnable Jira Forge demo proves the complete Decision Memory loop: a
-Slack message can be saved as a durable Decision, the Decision can be searched
-and filtered in a polished Jira-hosted React application, its details remain
-understandable without Slack, and a newer Decision can supersede it.
+A locally runnable web demo proves the Decision Memory loop: capture a pending
+question or a confirmed choice, find approaching deadlines in Flat/Kanban,
+record a choice without losing its question/evidence, retrieve confirmed
+decisions, understand their reasons, and preserve replacements.
+
+The owner accepted the Local Demo Readiness plan on 2026-10-14, then narrowed
+this execution to logic checks and deferred the real demo. Complete local
+verification, refresh presentation documentation, and commit reviewed work.
+Track human/external evidence as pending; do not claim complete demo readiness
+until those observations exist.
 
 ## Context
 
 - Product authority: [`decision-memory-final-spec.md`](../../../decision-memory-final-spec.md)
 - Repository workflow: [`docs/WORKFLOW.md`](../../WORKFLOW.md)
 - Accepted architecture: [`docs/decisions/0001-demo-first-forge-remote-architecture.md`](../../decisions/0001-demo-first-forge-remote-architecture.md)
+- Current deadline contract: [`docs/product/decision-deadlines.md`](../../product/decision-deadlines.md)
+- Readiness evidence and owner follow-up: [`docs/presentation/readiness-validation.md`](../../presentation/readiness-validation.md)
 - Reference implementation: `/Users/kietle/Documents/workspace/projects/agile-test`
 
 ## Scope
@@ -25,7 +36,8 @@ understandable without Slack, and a newer Decision can supersede it.
 In scope:
 
 - React Custom UI Decision Library, detail, create, and edit flows.
-- Search and combined owner, team, tag, status, applies-to, and date filters.
+- Search and combined owner, channel, tag, status, applies-to and date filters;
+  Flat/Kanban, pending/decided state, deadlines and preserved original questions.
 - Active and superseded lifecycle with bidirectional navigation.
 - Jira and generic external references.
 - Express API with Forge request authentication and development-only local
@@ -37,19 +49,22 @@ In scope:
 - Explicit Gemini-assisted Search by memory over at most 200 filtered stored
   Decisions, with normal PostgreSQL search preserved as the default and
   fallback.
+- Offline multilingual vector retrieval, optional Slack AI drafting, private
+  Ask/nudge flows, Jira creation/retry recovery, comparison and scope history.
 - Environment templates for Jira/Forge, PostgreSQL, Slack, and optional Gemini.
 - Focused business-rule tests and browser-level proof of the core demo flow.
 
 Out of scope:
 
 - Deployment and production infrastructure.
-- Notification delivery until event and channel policy are specified.
+- Additional notification delivery beyond the already accepted Slack nudges.
 - Slack multi-workspace OAuth installation.
-- Jira issue creation, marketplace panels, or full Jira integration beyond the
-  Forge-hosted global page and related Jira links.
-- Graph UI, embeddings, vector databases, graph databases, autonomous knowledge
-  assistants, and other roadmap features.
+- Marketplace panels, verified Jira-hosted rendering or additional integrations.
+- Graph UI, graph databases, autonomous knowledge assistants, dragging, scheduled
+  reminders, reopening completed choices and other roadmap features.
 - Redis, microservices, event buses, and generic provider frameworks.
+- CI, hooks and deployment settings; live external writes and demo recording in
+  this execution, following the owner's latest instruction.
 
 ## Approach
 
@@ -67,10 +82,13 @@ Out of scope:
 6. Implement Slack signature verification, message shortcut and `/decide`
    entry points, their shared modal flow, source capture, and idempotent
    submission.
-7. Add the approved explicit Gemini Search by memory action only after the
-   non-AI loop is stable; keep AI capture extraction deferred.
+7. Preserve both explicit memory-search providers and optional AI capture with
+   grounded candidates, manual fallback and recorded-choice boundaries.
 8. Validate lint, types/build, database behavior, API integration, and the
    browser-rendered core workflow at desktop and mobile sizes.
+9. Reconcile stale presentation/checklist instructions, record current evidence,
+   and commit reviewed work. The owner will perform the live/human rehearsal
+   and recording later.
 
 ## Risks And Recovery
 
@@ -131,8 +149,9 @@ Out of scope:
 - [x] Loop feature 3, Create Jira issue (spec §18): from the Decision page,
   choose project and issue type, pre-fill the summary, create the issue with
   the Jira Cloud REST API, and save its key under Related Work.
-- [ ] Re-paste the updated Slack manifest (new shortcut and `/why`), add Jira
-  credentials, and rehearse all three features live. Local proof so far: 53
+- [ ] Owner follow-up: verify the installed Slack manifest (shortcut and `/why`)
+  and Jira configuration, then rehearse all three features live. Deferred on
+  2026-10-14. Historical local proof on 2026-10-07: 53
   unit tests (Slack ask and replace flows, Jira client and route), the database
   integration check (a real supersede through a signed Slack save, workspace-
   scoped Jira links), and the browser test (Jira dialog with Jira mocked). Real
@@ -155,11 +174,11 @@ Out of scope:
   optional typed title; `app_mention` event and `app_mentions:read` scope.
   Proof: 3 unit tests (thread anchor, typed title into the form, hint, no
   double reply from the duplicate message event).
-- [ ] Re-paste the manifest with event subscriptions and the mention scope,
-  reinstall, and rehearse the nudges and the mention live in Slack.
-- [ ] Before submission: move or remove the nested `apps/web/.git` (a single
-  scaffold commit) and confirm `apps/web/src` is tracked by the submitted
-  repository.
+- [ ] Owner follow-up: verify installed event subscriptions and mention scope,
+  reinstall if required, and rehearse nudges/mention live. Deferred on 2026-10-14.
+- [x] Submission source check, 2026-10-14: `apps/web/.git` is absent and
+  `apps/web/src` plus the deadline/shared verification files are tracked in
+  implementation commit `1aa48806d423267f56ae6b40b28d79ae059ce865`.
 
 ## Decisions
 
@@ -246,7 +265,11 @@ Observed proof:
   browser console errors. No Browser plugin was available, so this proof used
   the skill's Playwright fallback with the existing local Chrome installation.
 
-Remaining external validation:
+Historical initial external-validation notes (before later live checks):
+
+These notes describe the initial scaffold's environment, not current readiness.
+Later dated progress above records some live checks. The current fresh-rehearsal
+status is in the readiness record linked above.
 
 - Forge CLI manifest lint could not run because the installed CLI could not
   access macOS Keychain and its telemetry host from the managed environment.
@@ -279,7 +302,7 @@ workspace, and durable-context rules; review P0 findings accepted by the user.
 - [x] Isolate public Slack ingress from local synthetic-identity API.
 - [x] Reduce environment template and local file to user-supplied integration values.
 - [x] Run native checks and isolated API/database/browser proof.
-- [ ] Live Slack/Jira rehearsal: pending user-supplied credentials.
+- [ ] Fresh live Slack/Jira rehearsal: deferred to the owner on 2026-10-14.
 
 Enforcement is local tests; no CI/hook/branch-protection changes authorized.
 
@@ -296,17 +319,60 @@ optional Gemini key; fixed demo configuration lives in code.
 No Browser skill/plugin is available; browser validation used the established
 Playwright/Chrome fallback. Native tests enforce locally; no CI or optional hook
 invocation found, and external branch protection remains unverified.
-Real Slack delivery, actual Jira links, and the live capture-duration rehearsal
-remain pending credentials. No queue or deployment infrastructure was added.
+At this historical checkpoint, real Slack delivery, actual Jira links and live
+capture timing were pending. Current evidence is recorded separately by date.
+No queue or deployment infrastructure was added.
 
 ## P0/P1 completion follow-up — 2026-10-07
 
-User authorized all remaining P0/P1 findings. Preserve the four-key environment
-file and the bounded local-demo architecture. Accepted authority is the final
+User authorized all remaining P0/P1 findings. The environment originally had
+four integration keys; current Jira support adds three integration values as
+documented in the root README. Preserve the bounded local-demo architecture.
+Accepted authority is the final
 spec, Slack contract, and the user's acceptance of review priorities.
 
-- [ ] Owner-name filters, source pagination/truncation fidelity.
-- [ ] Form failure/reset, stale/duplicate AI results, scope prominence.
-- [ ] Sanitized API logs, effective typecheck, consistent setup guidance.
-- [ ] Isolation/rollback/lifecycle/search integration and browser regression proof.
-- [ ] Real provider/Jira rehearsal remains dependent on supplied credentials.
+- [x] Owner-name filters, source pagination/truncation fidelity: repository
+  filter proof and thread pagination/domain tests, rechecked on 2026-10-14.
+- [x] Form load failure, stale/duplicate AI results, scope prominence: API/AI
+  unit cases and browser failure/navigation/scope proof, rechecked on 2026-10-14.
+- [x] Sanitized API logs, effective typecheck and setup guidance: API diagnostic
+  test, native typecheck and documented startup, rechecked on 2026-10-14.
+- [x] Isolation/rollback/lifecycle/search integration and browser regression
+  proof: real PostgreSQL, offline model and native browser owners.
+- [ ] Fresh real provider/Jira rehearsal: deferred to the owner on 2026-10-14.
+
+## Local Demo Readiness — 2026-10-14
+
+Authority: the owner's accepted readiness plan and subsequent instruction:
+"just check the logic, I'll make a real demo later". No live provider requests,
+Slack messages, Jira issues or installed manifest/tunnel changes belong to this
+execution. The first-time observation means watching an unfamiliar target user
+complete four tasks without explaining which controls to use; it remains pending.
+
+Current implementation baseline: `1aa48806d423267f56ae6b40b28d79ae059ce865`.
+The working tree was clean at the start; all feature files were already committed.
+
+- [x] Review tracked/staged/untracked implementation and identify current authority.
+- [x] Correct Already decided/More details baseline instructions and add the
+  pending → due soon → recorded-choice walkthrough.
+- [x] Refresh presenter/Q&A claims and prepare dated readiness/observation records.
+- [x] Finish fresh lint/typecheck/build/unit/integration/offline-search/UI checks:
+  96 unit tests and all native owners passed; rendered screenshots inspected;
+  owned processes/databases removed. See the dated readiness record.
+- [x] Review preparation documentation for the local handoff commit. Its
+  identifier is reported at handback and recoverable through the readiness
+  record's Git lookup.
+- [ ] Owner: observe one first-time participant performing all four tasks unaided.
+- [ ] Owner: designate synthetic destinations and perform installed integration
+  rehearsal, including the Slack-only tunnel and Jira test issue.
+- [ ] Owner: record/rehearse the 60–90 second demo and save its actual location.
+
+Recovery: preserve existing data and credentials. Validation uses owned temporary
+databases and processes. Deliberate failure/duplicate/partial-success cases remain
+isolated; clean up only owned fixtures. This plan stays active for owner follow-up.
+
+Acceptance: local checks pass for final source and current docs match its behavior.
+Overall readiness additionally requires uncoached human task completion, fresh
+installed integration checks, and an actual demo recording. Automated timings are
+not human capture/retrieval measurements. See the readiness record for results
+and unresolved evidence.

@@ -1,6 +1,6 @@
 # Decision Memory — Judge Q&A
 
-Updated: 2026-10-12. Answers describe the current local MVP. Use them as speaking
+Updated: 2026-10-14. Answers describe the current local MVP. Use them as speaking
 notes; do not turn proposed pilot outcomes into completed results.
 
 ## Product and value
@@ -26,10 +26,27 @@ capture and find. Do not claim that other tools cannot search or cite messages.
 
 **Does capture create extra work?**
 
-Only the Decision field is mandatory. Slack supplies source metadata and
-selected-thread context, with optional AI prefill. Why and Applies To improve
-future usefulness. The pilot must measure whether people consistently capture
-choices and whether the benefit justifies that effort.
+Each save requires one text field. Web creation defaults to a Pending question;
+Already decided requires the final choice instead. Recording a pending choice
+preserves its question automatically. Owner, dates and additional metadata are
+optional. Slack keeps its recorded-decision flow and supplies source metadata
+and selected-thread context, with optional AI prefill. Why and Applies To improve
+future usefulness. First-time observation and a pilot must establish whether
+people understand the flow and whether the benefit justifies capture effort.
+
+**What does Kanban add?**
+
+It groups the same filtered library by deadline: Overdue, Due soon (today through
+seven days ahead), Upcoming, No deadline, and Decided. Exact dates accompany
+relative labels using each viewer's local calendar. Flat remains the default;
+Recent remains the newest five in Flat. Completed choices retain historical
+deadlines without overdue warnings. Dragging and scheduled reminders are deferred.
+
+**Can an unanswered question appear as an already-made decision?**
+
+Pending questions are available in ordinary search, but the server excludes
+them from memory answers, current scope choices and supersession participants.
+The final choice is stored separately from the original question.
 
 **Does the product know which decision is correct?**
 
@@ -112,21 +129,25 @@ another service just for the demo.
 
 **What has actually been verified?**
 
-The [decision-understanding validation record](../plans/completed/decision-understanding.md)
-reports, on 2026-10-12:
+Use the dated [readiness record](readiness-validation.md) for the latest command
+results, environment and gaps. The
+[deadline validation record](../plans/completed/decision-deadline-views.md)
+and [decision-understanding validation record](../plans/completed/decision-understanding.md)
+preserve earlier feature proof. Local checks exercise:
 
-- 85 passing automated tests plus lint, TypeScript and build.
-- PostgreSQL integration proof for durable capture, retry behavior, workspace
-  isolation, supersession, replacement reasons and scope history.
-- Desktop/mobile browser proof for capture-related library behavior, comparison,
-  human replacement reasons, scope overviews and load-failure recovery.
+- Unit/HTTP logic, lint, TypeScript and production build.
+- Real PostgreSQL migration reruns, safe shortcut preservation, completion
+  retries, workspace isolation, supersession, replacement reasons and scope history.
+- Desktop/mobile capture, both views, deadlines, navigation, comparison,
+  scope overviews, keyboard interaction and save/load-failure recovery.
 
 The [local-search proof](../product/memory-search.md#validation-and-limits)
 also describes real cached-model testing with outbound inference fetch blocked,
 bilingual retrieval, stale-index handling and longer-content recall cases.
 
-The latest feature validation used signed Slack fixtures and mocked outbound
-Slack/Jira services; it did not establish a fresh live Slack/Jira rehearsal.
+Current logic validation uses signed Slack fixtures and mocked outbound
+Slack/Jira/Gemini services. The owner deferred the fresh live rehearsal and
+recording. No first-time human usability observation has been completed.
 Do not present a successful mocked test as proof that the installed external
 integration is currently configured correctly.
 
@@ -156,6 +177,7 @@ user needs and usage, with evidence that it improves this workflow.
 | Human-confirmed capture and stored evidence | Fresh live rehearsal of all configured integrations |
 | Local multilingual retrieval without paid inference calls | Pilot retrieval accuracy and time saved |
 | Replacement reasons, comparison and scope overviews | Real capture/retrieval timing against UX targets |
+| Flat/Kanban deadline grouping and single-field save behavior | First-time completion of the four tasks without coaching |
 | Automated, integration and desktop/mobile browser checks | Authenticated shared deployment and production access/retention policies |
 
 Refresh this slide from repository proof and actual rehearsal notes before

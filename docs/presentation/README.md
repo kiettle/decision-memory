@@ -1,8 +1,13 @@
 # Decision Memory — Presenter guide
 
-Updated: 2026-10-12. Start here when preparing the Buildathon submission.
+Updated: 2026-10-14. Start here when preparing the Buildathon submission.
 
-**Prepare:** [Demo rehearsal](demo-runbook.md) · [Judge Q&A](judge-qa.md)
+**Prepare:** [Demo rehearsal](demo-runbook.md) · [Judge Q&A](judge-qa.md) ·
+[Readiness evidence](readiness-validation.md)
+
+The current readiness work checks local logic and prepares documentation.
+The owner will run the live rehearsal and recording later. First-time human
+usability and fresh installed Slack/Jira/Gemini integration checks remain pending.
 
 **Event format:** 60–90 second showcase video; finalists have a seven-minute
 pitch/demo and five-minute Q&A. Submission closes at 23:59 on 2026-11-01.
@@ -41,10 +46,14 @@ where it applies, and what changed later.”
 | What changed? + supersession | Understand which guidance applies now and why it evolved | Old record remains visible; both records show the replacement reason |
 | Compare before and after | Examine the reasons and scope of two choices together | Two recorded decisions and their evidence links appear side by side |
 | Scope overviews | Understand a service's current choices | Active decisions and recent replacements appear for one Applies To value |
+| Pending questions and deadline views | Make approaching decision dates visible | Capture one question, find it in Due soon, and record its choice while preserving the question |
 
 Keep Ask in Slack, private nudges, richer similar-decision suggestions and Jira
 issue creation available for Q&A. Include them in the main recording only if
 the core story remains clear within the time limit.
+The pending/deadline flow also has a separate walkthrough in the rehearsal
+guide. Validate usability with an unfamiliar participant before claiming it
+reduces effort.
 
 ## The 90-second video
 
@@ -128,6 +137,13 @@ company demo link.
 **Team members:** Fill in the actual registered team.
 
 ## Evidence to collect before presenting impact
+
+Start with the four uncoached tasks in the
+[readiness record](readiness-validation.md): create a pending question, find
+one due soon, record its choice, and capture an already-made decision. Watching
+someone unfamiliar with the app exposes confusion that scripted checks cannot
+measure. Record hesitation, errors and assistance as well as elapsed time.
+Each save should require one text field; optional metadata should never block it.
 
 Ask 5–8 target users to capture a decision, find it using different wording,
 explain its rationale and identify its latest replacement. Compare retrieval

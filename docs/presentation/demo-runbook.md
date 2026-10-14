@@ -1,6 +1,10 @@
 # Decision Memory — Demo rehearsal
 
-Updated: 2026-10-12. Companion to the [presenter guide](README.md).
+Updated: 2026-10-14. Companion to the [presenter guide](README.md).
+
+Current evidence and pending live checks are in the
+[readiness record](readiness-validation.md). The owner is preparing the real
+demo later; automated fixtures do not establish installed integration readiness.
 
 Use one synthetic story throughout: the team extends migration-backup retention,
 changes its storage choice, and preserves the reason for that change.
@@ -39,11 +43,14 @@ existing decisions and seeds only an empty database.
 
 ## 2. Create known state for this take
 
-Create one earlier ACTIVE decision using **New Decision** before recording:
+Open **New Decision**, select **Already decided**, and create the earlier
+recorded choice before recording. Open **More details** for Why, Context,
+Applies To, Tags and Options Considered. Only the final choice is required;
+the other fields below make this synthetic story understandable.
 
 | Field | Value |
 | --- | --- |
-| Decision | Use standard object storage for all migration backups |
+| What did you decide? | Use standard object storage for all migration backups |
 | Why | Recent backups need quick access during migration rollback. |
 | Context | Our initial retention window is 14 days. |
 | Applies To | Migration Demo — Take 1 |
@@ -59,6 +66,8 @@ Archive storage
 
 Write down its generated DM key. Do not assume a fixed key or UUID. Reload the
 library after preparation so the new scope appears in its filter options.
+Confirm its visible status is **Decided**. A Pending question cannot be used as
+a supersession baseline or a remembered choice.
 
 For another recording or live rehearsal, create a fresh earlier decision and
 use **Migration Demo — Take 2**, then Take 3, etc. Copy that exact scope string
@@ -174,6 +183,37 @@ Point to:
 
 Say: “A teammate joining this service can see what applies today, why it was
 chosen, and what changed—without reconstructing the whole conversation.”
+
+## Optional walkthrough: pending question to recorded choice
+
+Use this as a separate short walkthrough or during Q&A; retain the core
+60–90 second capture/evidence/replacement story above.
+
+1. Open **New Decision**. Keep **Pending decision** and enter
+   `Which storage should we use for migration backups?` in **What needs to be
+   decided?**. Set the optional **Decide by** to three days after the viewer's
+   current local date. Leave Owner unassigned; other metadata is optional.
+2. Save, return to the library, and switch to **Kanban**. Find the question in
+   **Due soon** and show both the exact date and relative deadline label.
+   **Flat** shows the same filtered record.
+3. Click **Record decision**. Enter
+   `Use object storage for migration backups.` in **What did you decide?**.
+   Why is optional. Save and confirm the card moves to **Decided** only after
+   the save succeeds.
+4. Open the record. Show its final choice, preserved original question, and
+   historical deadline. Completed choices have no overdue warning.
+5. Open **New Decision**, select **Already decided**, enter
+   `Use exponential backoff for failed backup uploads.`, and save with the
+   original question and all other metadata blank.
+
+Only one text field is required for each save. Normal search includes pending
+questions and recorded choices. Memory search finds recorded choices; it is
+disabled for Pending or pending-deadline filters. The board groups records
+automatically; moving a question means editing its deadline or recording its
+choice.
+
+This guided rehearsal is not a first-time usability observation. Use the
+uncoached prompts in the [readiness record](readiness-validation.md) for that.
 
 ## If something fails during the presentation
 
