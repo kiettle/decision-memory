@@ -1,0 +1,586 @@
+{
+  "version": "synthetic-holdout-v1",
+  "model": "gemini-3.5-flash-lite",
+  "date": "2026-10-15T01:30:42.441Z",
+  "limitation": "Controlled candidate retrieval; tests live assessment, not end-to-end recall or user value. Expected labels are authored, not independent user adjudication.",
+  "total": 24,
+  "attempted": 24,
+  "completed": 18,
+  "correct": 17,
+  "results": [
+    {
+      "id": "m01",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1281,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal to keep migration backup files on the database host directly conflicts with the active decision to store them in object storage.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000001:outcome",
+                "quote": "Store migration backup files in object storage, not on the database host."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m02",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1251,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal suggests transcoding every video inside the upload HTTP request, which directly contradicts the active decision to transcode videos asynchronously after upload due to HTTP request time budget constraints.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000002:outcome",
+                "quote": "Transcode videos asynchronously after upload."
+              },
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000002:why",
+                "quote": "Encoding exceeds the HTTP request time budget."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m03",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1061,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal suggests making customer export links public and permanent, which directly contradicts the active decision to use signed URLs that expire after ten minutes due to privacy requirements.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000003:outcome",
+                "quote": "Serve customer exports through signed URLs that expire after ten minutes."
+              },
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000003:why",
+                "quote": "Exports contain private customer data."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m04",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1196,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal suggests retrying failed webhooks immediately in a tight loop, which directly contradicts the confirmed decision to use exponential backoff because immediate retries amplified provider outages.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000004:outcome",
+                "quote": "Retry failed payment webhooks with exponential backoff."
+              },
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000004:why",
+                "quote": "Immediate retries amplified provider outages."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m05",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1120,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất commit khóa production vào repository trực tiếp mâu thuẫn với quyết định hiện tại là lưu trữ thông tin xác thực trên secret manager và giữ chúng ngoài Git.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000005:outcome",
+                "quote": "Keep production credentials in the secret manager and out of Git."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m06",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1220,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất gửi lệnh ghi dữ liệu vào read replica mâu thuẫn trực tiếp với quyết định hiện tại là chỉ gửi lệnh ghi đến database chính, vì các bản sao chỉ đọc (read replicas) không cho phép ghi.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000006:outcome",
+                "quote": "Send writes to the primary; read replicas are read-only."
+              },
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000006:why",
+                "quote": "Replicas cannot accept application writes."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m07",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1018,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất bỏ timeout mâu thuẫn trực tiếp với quyết định hiện tại là mọi request API công khai đều có giới hạn thời gian mười giây.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000007:outcome",
+                "quote": "Every public API request has a ten-second deadline."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m08",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1103,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất lưu mọi audit log trong hot storage mãi mãi mâu thuẫn với quyết định hiện tại là chuyển log sang cold storage sau 90 ngày.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000008:outcome",
+                "quote": "Move audit logs to cold storage after 90 days."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c01",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 973,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposed choice to keep uploaded files in the object bucket and store only metadata in Postgres directly aligns with the active team decision for Uploads.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000009:outcome",
+                "quote": "Store upload binaries in object storage and metadata in PostgreSQL."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c02",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1059,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposed choice to use the company OIDC provider for staff sign-in matches the active recorded choice for authentication.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000010:outcome",
+                "quote": "Authenticate staff through the company OIDC provider."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c03",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1138,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to use idempotency keys for retried jobs aligns directly with the active decision to require idempotency keys for retried background jobs.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000011:outcome",
+                "quote": "Require idempotency keys for retried background jobs."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c04",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1124,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal aligns with the active decision to run memory-search embeddings locally without sending queries to hosted AI.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000012:outcome",
+                "quote": "Run memory-search embeddings locally without sending queries to hosted AI."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c05",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1343,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất mã hóa bản backup và giữ khóa riêng trong secret manager hoàn toàn trùng khớp với quyết định hiện tại là mã hóa bản backup và lưu khóa riêng trong secret manager.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000013:outcome",
+                "quote": "Encrypt backups and keep their keys separately in the secret manager."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c06",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 953,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất gộp thông báo ít quan trọng thành bản tổng hợp hằng ngày hoàn toàn trùng khớp với quyết định đã được ghi nhận trong hệ thống.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000014:outcome",
+                "quote": "Batch low-priority notifications into a daily digest."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c07",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1054,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất giữ orchestration thanh toán trong service hiện có hoàn toàn phù hợp với quyết định hiện tại trong phạm vi Billing.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000015:outcome",
+                "quote": "Keep billing orchestration in the existing service."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c08",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 944,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất trùng khớp hoàn toàn với quyết định đã được ghi nhận về việc chỉ log mã lỗi an toàn và không log nội dung request hay token trong phạm vi Observability.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000016:outcome",
+                "quote": "Log safe error codes, never request bodies or tokens."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u01",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 983,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The available decision record for the Portal scope addresses file storage rather than typography.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000017:why",
+                "quote": "This decision covers file storage, not typography."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u02",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 1086,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal specifies a retention period of 60 days, whereas the active recorded decision explicitly states that no retention period or deletion requirement was agreed.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000018:why",
+                "quote": "No retention period or deletion requirement was agreed."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u03",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 264,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini analysis could not be verified or completed. Local evidence remains available; try again.",
+        "findings": []
+      }
+    },
+    {
+      "id": "u04",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 294,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini analysis could not be verified or completed. Local evidence remains available; try again.",
+        "findings": []
+      }
+    },
+    {
+      "id": "u05",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 206,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini analysis could not be verified or completed. Local evidence remains available; try again.",
+        "findings": []
+      }
+    },
+    {
+      "id": "u06",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 203,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini analysis could not be verified or completed. Local evidence remains available; try again.",
+        "findings": []
+      }
+    },
+    {
+      "id": "u07",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 310,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini analysis could not be verified or completed. Local evidence remains available; try again.",
+        "findings": []
+      }
+    },
+    {
+      "id": "u08",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 276,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini analysis could not be verified or completed. Local evidence remains available; try again.",
+        "findings": []
+      }
+    }
+  ]
+}

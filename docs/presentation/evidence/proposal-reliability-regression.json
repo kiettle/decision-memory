@@ -1,0 +1,527 @@
+{
+  "version": "synthetic-regression-failures",
+  "implementationSha256": "c783c7ba9326199cefc6d7c463a6cfe06a5affc1902fc2aae57748ff33cd1212",
+  "fixturesSha256": "bc8f2f36156e028a3f2b8dff36ef58419862a1af962f52ddcec2a5943bfb9e27",
+  "model": "gemini-3.5-flash-lite",
+  "date": "2026-10-15T08:45:02.844Z",
+  "limitation": "Controlled candidate retrieval; tests live assessment, not end-to-end recall or user value. Expected labels are authored, not independent user adjudication.",
+  "total": 12,
+  "attempted": 12,
+  "completed": 11,
+  "correct": 11,
+  "results": [
+    {
+      "id": "u02",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4936,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice specifies storing order metadata in PostgreSQL, but explicitly notes that no retention period or deletion requirement was agreed. Therefore, there is insufficient evidence to determine consistency or mismatch for a 60-day retention proposal.",
+            "citations": [
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000018:outcome",
+                "quote": "Store order metadata in PostgreSQL."
+              },
+              {
+                "evidenceId": "44444444-4444-4444-8444-000000000018:why",
+                "quote": "No retention period or deletion requirement was agreed."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"INSUFFICIENT_EVIDENCE\",\n      \"explanation\": \"The recorded choice specifies storing order metadata in PostgreSQL, but explicitly notes that no retention period or deletion requirement was agreed. Therefore, there is insufficient evidence to determine consistency or mismatch for a 60-day retention proposal.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"44444444-4444-4444-8444-000000000018:outcome\",\n          \"quote\": \"Store order metadata in PostgreSQL.\"\n        },\n        {\n          \"evidenceId\": \"44444444-4444-4444-8444-000000000018:why\",\n          \"quote\": \"No retention period or deletion requirement was agreed.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4932
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"44444444-4444-4444-8444-000000000018\",\n      \"relation\": \"UNSETTLED\",\n      \"reason\": \"The existing decision covers the storage location in PostgreSQL and explicitly notes that no retention period was agreed, making the proposal's retention period unrelated to the storage choice.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4453
+        }
+      ]
+    },
+    {
+      "id": "u23",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 6082,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000019:outcome",
+                "quote": "Use managed hosting; the vendor has not been selected."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000019:why",
+                "quote": "Azure and AWS are still candidates, with no approved vendor."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal selects Azure as the managed hosting provider, but the recorded choice explicitly states that the vendor has not been selected yet and notes that both Azure and AWS are still candidates.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000019:outcome\",\n          \"quote\": \"Use managed hosting; the vendor has not been selected.\"\n        },\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000019:why\",\n          \"quote\": \"Azure and AWS are still candidates, with no approved vendor.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 6078
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"55555555-5555-4555-8555-000000000019\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The decision explicitly states to use managed hosting while leaving the vendor unselected, and choosing Azure follows this open option without conflicting with any prior prohibition.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4248
+        }
+      ]
+    },
+    {
+      "id": "u24",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4482,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000020:outcome",
+                "quote": "Generate small reports synchronously while they remain below 1 MB."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000020:why",
+                "quote": "Revisit the execution model if reports exceed that size."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"APPEARS_CONSISTENT\",\n      \"explanation\": \"The current decision explicitly states to revisit the execution model if reports exceed 1 MB, and the proposal suggests generating reports asynchronously once they grow to 2 GB, which aligns with the provided rationale.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000020:outcome\",\n          \"quote\": \"Generate small reports synchronously while they remain below 1 MB.\"\n        },\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000020:why\",\n          \"quote\": \"Revisit the execution model if reports exceed that size.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4482
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"55555555-5555-4555-8555-000000000020\",\n      \"relation\": \"UNSETTLED\",\n      \"reason\": \"The existing decision only covers reports below 1 MB, whereas the proposal addresses reports at 2 GB, placing it outside the stated threshold.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4346
+        }
+      ]
+    },
+    {
+      "id": "u26",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4065,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000022:outcome",
+                "quote": "Show invoice amounts using integer minor-unit calculations."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000022:why",
+                "quote": "No chart or reporting layout was selected."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"Đề xuất thêm biểu đồ cột mâu thuẫn với quyết định đã ghi nhận là không chọn biểu đồ hay bố cục báo cáo cho màn hình hóa đơn.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000022:outcome\",\n          \"quote\": \"Show invoice amounts using integer minor-unit calculations.\"\n        },\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000022:why\",\n          \"quote\": \"No chart or reporting layout was selected.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4063
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"55555555-5555-4555-8555-000000000022\",\n      \"relation\": \"UNSETTLED\",\n      \"reason\": \"The existing decision specifies integer minor-unit calculations and notes no chart was selected, but adding a bar chart addresses a visualization feature rather than contradicting the numeric calculation rule.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4057
+        }
+      ]
+    },
+    {
+      "id": "m32",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4280,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal to accept any URL as an OAuth callback directly conflicts with the active decision to allow OAuth callbacks only to registered redirect URLs.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000002:outcome",
+                "quote": "Allow OAuth callbacks only to registered redirect URLs."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000002:why",
+                "quote": "An arbitrary callback can redirect authorization to an attacker."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal to accept any URL as an OAuth callback directly conflicts with the active decision to allow OAuth callbacks only to registered redirect URLs.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000002:outcome\",\n          \"quote\": \"Allow OAuth callbacks only to registered redirect URLs.\"\n        },\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000002:why\",\n          \"quote\": \"An arbitrary callback can redirect authorization to an attacker.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4260
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000002\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal to accept any URL as an OAuth callback directly contradicts the active decision requiring OAuth callbacks only to registered redirect URLs.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4279
+        }
+      ]
+    },
+    {
+      "id": "m33",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4708,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal to render customer comments as raw HTML directly contradicts the active decision to render them as escaped text due to untrusted markup.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000003:outcome",
+                "quote": "Render customer comments as escaped text, not raw HTML."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000003:why",
+                "quote": "Comments may contain untrusted markup."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal to render customer comments as raw HTML directly contradicts the active decision to render them as escaped text due to untrusted markup.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000003:outcome\",\n          \"quote\": \"Render customer comments as escaped text, not raw HTML.\"\n        },\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000003:why\",\n          \"quote\": \"Comments may contain untrusted markup.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4708
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000003\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal requests rendering customer comments as raw HTML, which directly contradicts the active decision to render them as escaped text.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4533
+        }
+      ]
+    },
+    {
+      "id": "m34",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 738,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini analysis could not be verified or completed. Local evidence remains available; try again.",
+        "findings": []
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "error": "ApiError",
+          "status": 503,
+          "elapsedMs": 737
+        },
+        {
+          "stage": "verification",
+          "error": "ApiError",
+          "status": 503,
+          "elapsedMs": 603
+        }
+      ]
+    },
+    {
+      "id": "m35",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4843,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất cho phép link reset mật khẩu dùng lại nhiều lần mâu thuẫn trực tiếp với quyết định hiện tại là link chỉ được dùng một lần.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000005:outcome",
+                "quote": "Password-reset links are single-use."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000005:why",
+                "quote": "A used recovery token must not grant access again."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"Đề xuất cho phép link reset mật khẩu dùng lại nhiều lần mâu thuẫn trực tiếp với quyết định hiện tại là link chỉ được dùng một lần.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000005:outcome\",\n          \"quote\": \"Password-reset links are single-use.\"\n        },\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000005:why\",\n          \"quote\": \"A used recovery token must not grant access again.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4842
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"66666666-6666-4666-8666-000000000005\",\"relation\":\"CONFLICTS\",\"reason\":\"The proposal requests password-reset links to be reusable, which directly contradicts the active decision that they are single-use.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 4688
+        }
+      ]
+    },
+    {
+      "id": "m36",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4715,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất sử dụng trực tiếp database production cho môi trường staging trực tiếp mâu thuẫn với quyết định đã được ghi nhận là môi trường staging phải dùng cơ sở dữ liệu giả lập riêng và không bao giờ dùng database production.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000006:outcome",
+                "quote": "Staging must use a separate synthetic database, never the production database."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000006:why",
+                "quote": "Tests must not alter live customer records."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\"findings\":[{\"assessment\":\"POSSIBLE_MISMATCH\",\"explanation\":\"Đề xuất sử dụng trực tiếp database production cho môi trường staging trực tiếp mâu thuẫn với quyết định đã được ghi nhận là môi trường staging phải dùng cơ sở dữ liệu giả lập riêng và không bao giờ dùng database production.\",\"citations\":[{\"evidenceId\":\"66666666-6666-4666-8666-000000000006:outcome\",\"quote\":\"Staging must use a separate synthetic database, never the production database.\"},{\"evidenceId\":\"66666666-6666-4666-8666-000000000006:why\",\"quote\":\"Tests must not alter live customer records.\"}]}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 4712
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000006\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal states that the staging environment should use the production database directly, which directly negates the active decision requiring a separate synthetic database.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4583
+        }
+      ]
+    },
+    {
+      "id": "m37",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4891,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất trả nguyên SQL và stack trace mâu thuẫn trực tiếp với quyết định đã được ghi nhận là không bao giờ phơi bày SQL hoặc stack trace cho người dùng.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000007:outcome",
+                "quote": "Return generic API errors to users; never expose SQL or stack traces."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000007:why",
+                "quote": "Internal diagnostics can reveal implementation and data."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"Đề xuất trả nguyên SQL và stack trace mâu thuẫn trực tiếp với quyết định đã được ghi nhận là không bao giờ phơi bày SQL hoặc stack trace cho người dùng.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000007:outcome\",\n          \"quote\": \"Return generic API errors to users; never expose SQL or stack traces.\"\n        },\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000007:why\",\n          \"quote\": \"Internal diagnostics can reveal implementation and data.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4889
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000007\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal explicitly requests returning raw SQL and stack traces, which directly contradicts the recorded decision to return generic API errors and never expose SQL or stack traces.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 3875
+        }
+      ]
+    },
+    {
+      "id": "c38",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4926,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất hiển thị tiền tệ theo locale người dùng đã chọn hoàn toàn khớp với quyết định hiện tại của nhóm về định dạng tiền tệ.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000016:outcome",
+                "quote": "Format currency using the user's selected locale."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000016:why",
+                "quote": "Number formatting differs between supported locales."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\"findings\":[{\"assessment\":\"APPEARS_CONSISTENT\",\"explanation\":\"Đề xuất hiển thị tiền tệ theo locale người dùng đã chọn hoàn toàn khớp với quyết định hiện tại của nhóm về định dạng tiền tệ.\",\"citations\":[{\"evidenceId\":\"66666666-6666-4666-8666-000000000016:outcome\",\"quote\":\"Format currency using the user's selected locale.\"},{\"evidenceId\":\"66666666-6666-4666-8666-000000000016:why\",\"quote\":\"Number formatting differs between supported locales.\"}]}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 4925
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000016\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The proposal matches the active decision to format currency using the user's selected locale.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4828
+        }
+      ]
+    },
+    {
+      "id": "u33",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5727,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000019:outcome",
+                "quote": "Use a dedicated search index; vendor selection remains open."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000019:why",
+                "quote": "OpenSearch and Elasticsearch are candidates, not approved choices."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The recorded choice states that vendor selection remains open and explicitly notes that OpenSearch is a candidate rather than an approved choice.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000019:outcome\",\n          \"quote\": \"Use a dedicated search index; vendor selection remains open.\"\n        },\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000019:why\",\n          \"quote\": \"OpenSearch and Elasticsearch are candidates, not approved choices.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4015
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000019\",\n      \"relation\": \"UNSETTLED\",\n      \"reason\": \"The existing decision explicitly states that vendor selection remains open, so choosing OpenSearch is neither a conflict nor a confirmed agreement.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5726
+        }
+      ]
+    }
+  ]
+}

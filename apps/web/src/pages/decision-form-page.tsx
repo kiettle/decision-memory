@@ -64,8 +64,15 @@ function DecisionForm({ id }: { id?: string }) {
   const location = useLocation()
   const origin = location.state ?? null
   const libraryUrl = typeof origin?.libraryUrl === "string" ? origin.libraryUrl : "/"
-  const [form, setForm] = useState(emptyForm)
-  const [listText, setListText] = useState(emptyListText)
+  const [form, setForm] = useState(() => {
+    const proposal = origin?.proposalDraft?.proposal
+    return !editing && typeof proposal === "string" && proposal.trim()
+      ? { ...emptyForm, decisionState: "DECIDED" as const, outcome: proposal.slice(0, 500) }
+      : emptyForm
+  })
+  const [listText, setListText] = useState(() => !editing && typeof origin?.proposalDraft?.appliesTo === "string"
+    ? { ...emptyListText, appliesTo: origin.proposalDraft.appliesTo }
+    : emptyListText)
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
@@ -169,7 +176,8 @@ function DecisionForm({ id }: { id?: string }) {
       ...form,
       title: pending ? form.title.trim() : !form.title.trim() || (editing && original.title === original.outcome && form.title === original.title) ? primaryValue.trim() : form.title.trim(),
       outcome: pending ? null : primaryValue.trim(),
-      appliesTo: splitList(listText.appliesTo, ","),
+      appliesTo: !editing && origin?.proposalDraft?.appliesTo && listText.appliesTo === origin.proposalDraft.appliesTo
+        ? [listText.appliesTo] : splitList(listText.appliesTo, ","),
       tags: splitList(listText.tags, ","),
       optionsConsidered: splitList(listText.options, "\n"),
       references: form.references.filter((reference) => reference.url.trim()),

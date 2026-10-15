@@ -5,6 +5,7 @@ import { headline } from "../../../shared/decision-deadlines.js"
 import { slackIdempotencyKey } from "./domain.js"
 import { looksLikeDecision, looksLikeQuestion } from "./nudges.js"
 import { decisionInput, replacementReasonInput } from "./validation.js"
+import { createSlackProposalHandler } from "./slack-proposal-review.js"
 
 const FIVE_MINUTES_SECONDS = 60 * 5
 const MAX_CAPTURED_MESSAGES = 100
@@ -927,6 +928,7 @@ async function handleSlackPayload(config, repository, services, payload) {
 
 export function createSlackRouter(config, repository, services) {
   const router = express.Router()
+  const handleProposal = createSlackProposalHandler({ config, proposalReview: services.proposalReview, slackApi, identityForSlack, plainSlackText })
   router.post(
     "/interactions",
     express.raw({ type: "application/x-www-form-urlencoded", limit: "1mb" }),
@@ -956,6 +958,11 @@ export function createSlackRouter(config, repository, services) {
       const teamId = payload.team?.id ?? payload.team_id
       if (teamId !== config.slackTeamId) {
         res.status(403).send("Slack workspace is not configured")
+        return
+      }
+      if (payload.callback_id === "check_proposed_decision" || payload.view?.callback_id === "decision_memory_review") {
+        res.status(200).send("")
+        void handleProposal(payload).catch(() => { console.error("Slack proposal review could not update its private view.") })
         return
       }
       if (payload.type === "view_submission") {

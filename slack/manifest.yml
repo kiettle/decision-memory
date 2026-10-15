@@ -8,6 +8,10 @@ features:
     display_name: Decision Memory
     always_online: false
   shortcuts:
+    - name: Check proposed decision
+      type: message
+      callback_id: check_proposed_decision
+      description: Review this proposal against recorded decisions and evidence.
     - name: Save as Decision
       type: message
       callback_id: save_as_decision

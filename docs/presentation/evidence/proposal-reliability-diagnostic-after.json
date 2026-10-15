@@ -1,0 +1,140 @@
+[
+  {
+    "id": "m32",
+    "expected": "POSSIBLE_MISMATCH",
+    "analysis": {
+      "status": "COMPLETE",
+      "assessment": "POSSIBLE_MISMATCH",
+      "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+      "findings": [
+        {
+          "assessment": "POSSIBLE_MISMATCH",
+          "explanation": "The proposal to accept any URL as an OAuth callback directly contradicts the active decision to allow callbacks only to registered redirect URLs.",
+          "citations": [
+            {
+              "evidenceId": "66666666-6666-4666-8666-000000000002:outcome",
+              "quote": "Allow OAuth callbacks only to registered redirect URLs."
+            },
+            {
+              "evidenceId": "66666666-6666-4666-8666-000000000002:why",
+              "quote": "An arbitrary callback can redirect authorization to an attacker."
+            }
+          ]
+        }
+      ]
+    },
+    "calls": [
+      {
+        "stage": "assessment",
+        "ms": 5243,
+        "text": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal to accept any URL as an OAuth callback directly contradicts the active decision to allow callbacks only to registered redirect URLs.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000002:outcome\",\n          \"quote\": \"Allow OAuth callbacks only to registered redirect URLs.\"\n        },\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000002:why\",\n          \"quote\": \"An arbitrary callback can redirect authorization to an attacker.\"\n        }\n      ]\n    }\n  ]\n}",
+        "finish": "STOP"
+      },
+      {
+        "stage": "verification",
+        "ms": 4789,
+        "text": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000002\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal to accept any URL as an OAuth callback directly contradicts the active decision requiring callbacks to be restricted to registered redirect URLs.\"\n    }\n  ]\n}",
+        "finish": "STOP"
+      }
+    ]
+  },
+  {
+    "id": "m35",
+    "expected": "POSSIBLE_MISMATCH",
+    "analysis": {
+      "status": "COMPLETE",
+      "assessment": "POSSIBLE_MISMATCH",
+      "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+      "findings": [
+        {
+          "assessment": "POSSIBLE_MISMATCH",
+          "explanation": "Đề xuất cho phép link reset mật khẩu dùng lại nhiều lần mâu thuẫn trực tiếp với quyết định hiện tại là link chỉ được dùng một lần.",
+          "citations": [
+            {
+              "evidenceId": "66666666-6666-4666-8666-000000000005:outcome",
+              "quote": "Password-reset links are single-use."
+            },
+            {
+              "evidenceId": "66666666-6666-4666-8666-000000000005:why",
+              "quote": "A used recovery token must not grant access again."
+            }
+          ]
+        }
+      ]
+    },
+    "calls": [
+      {
+        "stage": "assessment",
+        "ms": 5252,
+        "text": "{\"findings\":[{\"assessment\":\"POSSIBLE_MISMATCH\",\"explanation\":\"Đề xuất cho phép link reset mật khẩu dùng lại nhiều lần mâu thuẫn trực tiếp với quyết định hiện tại là link chỉ được dùng một lần.\",\"citations\":[{\"evidenceId\":\"66666666-6666-4666-8666-000000000005:outcome\",\"quote\":\"Password-reset links are single-use.\"},{\"evidenceId\":\"66666666-6666-4666-8666-000000000005:why\",\"quote\":\"A used recovery token must not grant access again.\"}]}]}",
+        "finish": "STOP"
+      },
+      {
+        "stage": "verification",
+        "ms": 4525,
+        "text": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000005\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal states that password-reset links can be reused multiple times, which directly negates the active recorded choice that password-reset links are single-use.\"\n    }\n  ]\n}",
+        "finish": "STOP"
+      }
+    ]
+  },
+  {
+    "id": "c38",
+    "expected": "APPEARS_CONSISTENT",
+    "analysis": {
+      "status": "COMPLETE",
+      "assessment": "APPEARS_CONSISTENT",
+      "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+      "findings": [
+        {
+          "assessment": "APPEARS_CONSISTENT",
+          "explanation": "Đề xuất hiển thị tiền tệ theo locale người dùng đã chọn hoàn toàn khớp với quyết định hiện hành về việc định dạng tiền tệ sử dụng locale do người dùng lựa chọn.",
+          "citations": [
+            {
+              "evidenceId": "66666666-6666-4666-8666-000000000016:outcome",
+              "quote": "Format currency using the user's selected locale."
+            },
+            {
+              "evidenceId": "66666666-6666-4666-8666-000000000016:why",
+              "quote": "Number formatting differs between supported locales."
+            }
+          ]
+        }
+      ]
+    },
+    "calls": [
+      {
+        "stage": "assessment",
+        "ms": 4777,
+        "text": "{\"findings\":[{\"assessment\":\"APPEARS_CONSISTENT\",\"explanation\":\"Đề xuất hiển thị tiền tệ theo locale người dùng đã chọn hoàn toàn khớp với quyết định hiện hành về việc định dạng tiền tệ sử dụng locale do người dùng lựa chọn.\",\"citations\":[{\"evidenceId\":\"66666666-6666-4666-8666-000000000016:outcome\",\"quote\":\"Format currency using the user's selected locale.\"},{\"evidenceId\":\"66666666-6666-4666-8666-000000000016:why\",\"quote\":\"Number formatting differs between supported locales.\"}]}]}",
+        "finish": "STOP"
+      },
+      {
+        "stage": "verification",
+        "ms": 4425,
+        "text": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"66666666-6666-4666-8666-000000000016\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The proposal matches the active decision to format currency using the user's selected locale.\"\n    }\n  ]\n}",
+        "finish": "STOP"
+      }
+    ]
+  },
+  {
+    "id": "u23",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "analysis": {
+      "status": "UNAVAILABLE",
+      "assessment": null,
+      "message": "Gemini timed out. Local evidence remains available; try again.",
+      "findings": []
+    },
+    "calls": [
+      {
+        "stage": "assessment"
+      },
+      {
+        "stage": "verification",
+        "ms": 4519,
+        "text": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"55555555-5555-4555-8555-000000000019\",\n      \"relation\": \"UNSETTLED\",\n      \"reason\": \"The previous decision explicitly stated that the vendor had not been selected, making the choice of Azure an open option rather than a conflict or confirmed agreement.\"\n    }\n  ]\n}",
+        "finish": "STOP"
+      }
+    ]
+  }
+]

@@ -108,6 +108,7 @@ export type Metadata = {
     geminiMemorySearch: boolean
     jira: boolean
     slack: boolean
+    proposalAnalysis: boolean
   }
 }
 
@@ -120,6 +121,34 @@ export type MemorySearchMatch = {
 }
 
 export type MemorySearchMethod = "LOCAL" | "GEMINI"
+
+export type ProposalAssessment = "POSSIBLE_MISMATCH" | "APPEARS_CONSISTENT" | "INSUFFICIENT_EVIDENCE"
+export type ProposalEvidence = {
+  decisionId: string
+  decisionKey: string
+  title: string
+  status: DecisionStatus
+  appliesTo: string[]
+  role: "MATCH" | "CURRENT_SUCCESSOR"
+  inScope: boolean
+  currentIds: string[]
+  replacements: { decisionId: string; decisionKey: string; reason: string | null }[]
+  excerpts: { id: string; decisionId: string; field: string; label: string; text: string }[]
+  excerpted: boolean
+}
+export type ProposalReview = {
+  proposal: string
+  appliesTo: string | null
+  method: MemorySearchMethod
+  coverage: { indexed: number; total: number; retrieved: number; omittedSuccessors: number; excerpted: boolean }
+  evidence: ProposalEvidence[]
+  analysis: {
+    status: "NOT_REQUESTED" | "COMPLETE" | "UNAVAILABLE"
+    assessment: ProposalAssessment | null
+    message: string
+    findings: { assessment: ProposalAssessment; explanation: string; citations: { evidenceId: string; quote: string }[] }[]
+  }
+}
 
 export type MemorySearchResponse = {
   method?: MemorySearchMethod

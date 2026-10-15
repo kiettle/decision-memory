@@ -1,5 +1,140 @@
 # Local demo readiness evidence
 
+## Proposal review increment — 2026-10-15
+
+### Later rehearsal handoff
+
+The owner requested a handoff instead of a live session. Read-only Slack
+`auth.test` succeeded with the configured workspace and a bot identity.
+Tailscale Funnel's existing `/decision-memory` route targets port 3012. No app
+listeners were running on 3011/3012/5173. Installed manifest, shortcut visibility,
+signing-secret validity and live interaction behavior remain unverified; no
+Slack messages, app settings or tunnel settings were changed.
+
+Prepared the [Slack handoff](slack-rehearsal-handoff.md) and
+[coworker study guide](study/facilitator.md), with separate participant cards,
+14 synthetic records, eight task prompts and a blank measurement worksheet.
+[Offline fixture proof](evidence/proposal-study-fixture-proof.json) passed all
+eight tasks for expected current evidence, including replacement history and
+pending exclusion. It used an owned temporary database and blocked external
+inference; the database was removed. This proves fixture retrieval, not task
+equivalence, Gemini judgments, usability or measured benefit. No participants
+have been recruited or observed by this work.
+
+### Gemini reliability follow-up
+
+The owner authorized improving model reliability. Assessment and verification
+now run concurrently under the same eight-second deadline. Verification judges
+explicit conflict/alignment/unsettled aspects per current decision without
+seeing the assessment's answer. A proposed opposite action is distinguished
+from a changed applicability condition. Citation validation, exact scope,
+pending exclusion, evidence revalidation and conservative fallback remain.
+HTTP 503 retries once per call within the same deadline; invalid output and
+rate limits do not retry. No model/account change was made.
+
+| Evidence | Observed outcome |
+| --- | --- |
+| [Before diagnostic](evidence/proposal-reliability-diagnostic-before.json) | Four existing cases timed out; first calls took roughly 4–5 seconds, leaving too little time for sequential verification |
+| [Concurrent diagnostic](evidence/proposal-reliability-diagnostic-after.json) | Three matched; one timed out. Both inspected conflicts were recognized |
+| [12 known failures](evidence/proposal-reliability-regression.json) | 11/12 matched, no incorrect completed verdict; m34 received HTTP 503 from both calls. This preceded the bounded 503-retry addition |
+| [Fresh V4](evidence/proposal-evaluation-v4.json) | 23/24 matched: 7/8 conflict, 8/8 consistent, 8/8 insufficient. m41 timed out waiting for verification; no incorrect completed verdict |
+| Native verification | 117/117 unit/HTTP tests; lint, typecheck, build, database integration and desktop/mobile browser regression checks passed |
+
+V4 is balanced by expected verdict and language, including missing rationale,
+negation, replacement history, pending exclusion, wrong scope, changed limits
+and malicious text in evidence. It was authored and frozen before its first
+live run. Twenty-two cases invoked Gemini (21 completed); wrong-scope and
+pending-only cases abstained locally. Candidate retrieval is controlled, so
+these results do not measure real retrieval recall or user benefit. Explanations
+were inspected against the authored fixtures; no independent human adjudication
+has occurred. The verifier suppressed an unsupported initial finding on u43
+(changed payload size). Both passes still use the same provider.
+
+Across the 22 provider-backed checks, median elapsed time was 5.052 seconds
+and nearest-rank p95 was 6.314 seconds; the failed check reached 8.011 seconds.
+These timings include the evaluation's controlled retrieval, not production
+database/local-embedding latency, and should not be presented as full-app speed.
+
+Reports retain intermediate outputs, timing, source/fixture hashes and all
+failures. The evaluation exits nonzero for the single timeout; it is not a
+perfect pass and was not rerun to remove the failure. Native proof logs:
+`/private/tmp/proposal-reliability-unit.log` and
+`/private/tmp/proposal-reliability-runtime.log`. The latter confirms cleanup
+of owned test resources. The final 503 retry path has deterministic success,
+retry-limit, cancellation and deadline tests; the live run need not encounter
+that transient failure to validate other cases.
+
+The earlier excessive-abstention issue improved on both regression and new
+examples. Provider tail latency remains. Proceed to owner-operated Slack
+rehearsal and coworker evaluation; the main-demo user-benefit gate remains open.
+The older V1–V3 results below are retained historical evidence.
+
+
+Follow-up fixes: the Slack modal now includes the required **Done** submit
+control; dismissal cancels pending result publication without analysis or
+saving. Evidence/comparison/saved-choice return controls now restore proposal
+text and scope. These were defects missed by the original suite. Expanded
+verification passed 113/113 unit tests, lint, typecheck, build, native database
+integration and the full desktop/mobile browser suite. Logs:
+`/private/tmp/decision-memory-fixes-unit.log` and
+`/private/tmp/decision-memory-fixes-runtime.log`. The runtime log confirms
+cleanup of the owned database. Restored-input screenshot:
+`/private/tmp/decision-memory-proposal-return-fixed.png`.
+This does not resolve the model-quality or installed-rehearsal gates below.
+
+Implemented local proposal retrieval, explicit scoped Gemini assessment, separate
+stored evidence and citations, current replacement hydration, safe web prefill,
+and the private Slack message shortcut. No schema migration or analysis history.
+The owner deferred interviews and authorized synthetic examples.
+
+| Check | Observed result |
+| --- | --- |
+| Unit/HTTP/signed Slack tests | 112/112 passed, no skips |
+| Lint, TypeScript, production build | Passed |
+| Native database integration | Passed on an isolated temporary database, including replacement chains and workspace isolation |
+| Native local-search verification | Passed with real offline bilingual inference, including proposal retrieval |
+| Full native Playwright/Chrome suite | Passed desktop/mobile, keyboard focus, explicit save, retry, edit/navigation races and input preservation; no page errors |
+| Installed Slack | Pending owner rehearsal; signed mocked HTTP tests do not prove installed behavior |
+| Coworker interviews and comparative study | Pending; no measured user benefit yet |
+
+Runtime proof: `/private/tmp/decision-memory-proposal-runtime.log` ends with
+`CURRENT QA PASSED` and removal of the owned temporary database. Unit and local
+search logs are `/private/tmp/decision-memory-proposal-unit.log` and
+`/private/tmp/decision-memory-proposal-search.log`. Screenshots are
+`/private/tmp/decision-memory-proposal-desktop.png` and
+`/private/tmp/decision-memory-proposal-mobile.png`; their Gemini answer is mocked.
+No Slack/Jira messages or installed manifest changes were made.
+
+### Live Gemini assessment evidence
+
+Configured model: `gemini-3.5-flash-lite`. Each fresh set contains 24 synthetic
+cases, balanced across three expected verdicts, half English/half Vietnamese.
+Retrieval is controlled, labels are authored, and this is not user acceptance
+or an end-to-end recall benchmark. All results, including failures, are retained.
+
+| Run | Completed | Expected labels matched | Failures |
+| --- | --- | --- | --- |
+| [V1](evidence/proposal-evaluation-v1.json) | 18/24 | 17/24 | One unsupported mismatch on unspecified retention; six unavailable results |
+| [V2](evidence/proposal-evaluation-v2.json) | 24/24 | 21/24 | Two unsupported mismatches on undecided vendor/chart; one unsupported agreement under changed size constraints |
+| [V3](evidence/proposal-evaluation-v3.json) | 22/24 | 16/24 | Six genuine conflicts downgraded to insufficient evidence (m32–m37); two eight-second timeouts (c38/u33) |
+
+After V1, tightened outcome-citation and missing-parameter rules. After V2,
+added a second skeptical verification within the same deadline. V3 is the first
+set evaluated against that final implementation: no false mismatch observed,
+but excessive abstention makes it unsuitable as the main demonstration today.
+Two of eight genuine conflicts were detected; seven of eight consistent and
+seven of eight insufficient-evidence cases matched, with two unavailable cases.
+A same-provider second pass is not an independent semantic guarantee.
+
+**V3 demo gate:** the V4 follow-up above addresses excessive abstention on a
+new set; provider tail latency remains. Complete owner-operated installed Slack
+rehearsal and the 5–8-person comparative study before claiming benefit. Use the
+established local evidence/replacement workflow in the meantime. The
+[study and rehearsal kit](proposal-review-validation.md) and
+[active plan](../plans/active/proposal-review.md) contain the remaining work.
+
+## Previous baseline — 2026-10-14
+
 Date: 2026-10-14. Current source baseline:
 `1aa48806d423267f56ae6b40b28d79ae059ce865`.
 

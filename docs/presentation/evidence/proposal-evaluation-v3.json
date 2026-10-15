@@ -1,0 +1,690 @@
+{
+  "version": "synthetic-holdout-v3",
+  "model": "gemini-3.5-flash-lite",
+  "date": "2026-10-15T01:40:45.235Z",
+  "limitation": "Controlled candidate retrieval; tests live assessment, not end-to-end recall or user value. Expected labels are authored, not independent user adjudication.",
+  "total": 24,
+  "attempted": 24,
+  "completed": 22,
+  "correct": 16,
+  "results": [
+    {
+      "id": "m31",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4599,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal to store users' passwords as plaintext directly contradicts the active decision to store only salted password hashes and never plaintext passwords.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000001:outcome",
+                "quote": "Store only salted password hashes, never plaintext passwords."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m32",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 4616,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000002:outcome",
+                "quote": "Allow OAuth callbacks only to registered redirect URLs."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000002:why",
+                "quote": "An arbitrary callback can redirect authorization to an attacker."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m33",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 2317,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000003:outcome",
+                "quote": "Render customer comments as escaped text, not raw HTML."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000003:why",
+                "quote": "Comments may contain untrusted markup."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m34",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 2680,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000004:outcome",
+                "quote": "Announcements require human review before publication."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000004:why",
+                "quote": "Draft text can contain unconfirmed information."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m35",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 2343,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000005:outcome",
+                "quote": "Password-reset links are single-use."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000005:why",
+                "quote": "A used recovery token must not grant access again."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m36",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 2302,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000006:outcome",
+                "quote": "Staging must use a separate synthetic database, never the production database."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m37",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 2376,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000007:outcome",
+                "quote": "Return generic API errors to users; never expose SQL or stack traces."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000007:why",
+                "quote": "Internal diagnostics can reveal implementation and data."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m38",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2056,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất tắt kiểm tra quyền trái ngược với quyết định hiện tại là phải kiểm tra quyền trên mọi lượt tải xuống tệp đính kèm.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000008:outcome",
+                "quote": "Check authorization on every attachment download."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000008:why",
+                "quote": "Knowing a file ID does not grant permission to read it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c31",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2198,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to expose a lightweight readiness endpoint for the load balancer directly aligns with the active recorded choice.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000009:outcome",
+                "quote": "Provide a lightweight readiness endpoint for load-balancer probes."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c32",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4406,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to save display preferences per user rather than globally matches the active decision to keep display preferences scoped to each user.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000010:outcome",
+                "quote": "Keep display preferences scoped to each user."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000010:why",
+                "quote": "One user's changes must not alter another user's interface."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c33",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4098,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to soft-delete projects and retain a recoverable state for 14 days matches the active recorded choice and its rationale exactly.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000011:outcome",
+                "quote": "Soft-delete projects with a 14-day recovery window."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000011:why",
+                "quote": "Accidental project removal should be reversible during that period."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c34",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2578,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to revoke every session when the account is disabled directly matches the recorded active decision that disabling an account revokes all its active sessions.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000012:outcome",
+                "quote": "Disabling an account revokes all its active sessions."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000012:why",
+                "quote": "A disabled account must not retain access through old sessions."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c35",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2307,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất quét file đính kèm trước khi cho phép tải về hoàn toàn khớp với quyết định đã được ghi nhận trong hệ thống.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000013:outcome",
+                "quote": "Scan attachments before making them downloadable."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000013:why",
+                "quote": "Unscanned files must not be distributed to other users."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c36",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2937,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất ghi lại thay đổi trạng thái service cùng thời điểm xảy ra hoàn toàn phù hợp với quyết định đã được ghi nhận về việc ghi lại các chuyển đổi trạng thái service kèm theo dấu thời gian.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000014:outcome",
+                "quote": "Record service-state transitions with timestamps."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000014:why",
+                "quote": "Operators need a history of state changes."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c37",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4554,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất trùng khớp hoàn toàn với quyết định đã được ghi nhận về việc lời mời workspace chỉ được chấp nhận một lần.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000015:outcome",
+                "quote": "Workspace invitations can be accepted only once."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000015:why",
+                "quote": "Replaying an accepted invitation must not add another membership."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c38",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 8007,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini timed out. Local evidence remains available; try again.",
+        "findings": []
+      }
+    },
+    {
+      "id": "u31",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2990,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice requires invitation tokens but explicitly notes that the token expiry duration has not been chosen, leaving the proposal undetermined.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000017:outcome",
+                "quote": "Require invitation tokens when joining a workspace."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000017:why",
+                "quote": "Token expiry duration has not been chosen."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u32",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2186,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice specifies how to count active users but explicitly notes that no visualization type has been selected, leaving the choice of a line chart unsettled.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000018:outcome",
+                "quote": "Count active users once per calendar week."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000018:why",
+                "quote": "No visualization type has been selected."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u33",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 8005,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini timed out. Local evidence remains available; try again.",
+        "findings": []
+      }
+    },
+    {
+      "id": "u34",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2260,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice only specifies in-memory imports for datasets smaller than ten thousand rows, and explicitly notes that larger inputs require a new design review with no approach previously agreed, leaving the proposal for fifty million rows unsettled.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000020:outcome",
+                "quote": "Use an in-memory import for datasets smaller than ten thousand rows."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000020:why",
+                "quote": "Larger inputs require a new design review; no approach for them was agreed."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u35",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 3301,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice deals with displaying appointment times in the user's timezone, and explicitly states that the first day of the calendar week was not discussed. Therefore, there is insufficient evidence to establish a relationship with the proposal.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000021:outcome",
+                "quote": "Display appointment times in the user's timezone."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000021:why",
+                "quote": "The first day of the calendar week was not discussed."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u36",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1673,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "Recorded choice covers autosave but explicitly states that undo behavior and controls have not been decided. Silence on the undo button does not constitute a mismatch.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000022:outcome",
+                "quote": "Autosave documents after edits."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000022:why",
+                "quote": "Undo behavior and controls have not been decided."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u37",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1624,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice states that the delivery channel for customer shipment notifications is undecided, but silence or an undecided detail is not a mismatch and does not prohibit choosing SMS.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000023:outcome",
+                "quote": "Notify customers when their orders ship; delivery channel is undecided."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000023:why",
+                "quote": "Email and SMS remain possible channels; neither was selected."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u38",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1434,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "Recorded decision establishes the use of connection pooling, but explicitly leaves the pool size pending measurements.",
+            "citations": [
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000024:outcome",
+                "quote": "Use connection pooling for database requests."
+              },
+              {
+                "evidenceId": "66666666-6666-4666-8666-000000000024:why",
+                "quote": "The pool size was left open pending measurements."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

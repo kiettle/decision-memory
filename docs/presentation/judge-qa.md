@@ -5,6 +5,17 @@ notes; do not turn proposed pilot outcomes into completed results.
 
 ## Product and value
 
+**Does proposal review know whether our plan is correct?**
+
+No. It retrieves recorded choices and their current replacements. Explicit Gemini
+analysis suggests possible mismatch, consistency, or insufficient evidence for
+a confirmed scope. Citations must match supplied stored excerpts, and a
+non-abstaining assessment must quote a current recorded choice. Correct quotes
+still permit an incorrect interpretation. Missing evidence is not a prohibition
+or approval. People inspect the evidence and decide what to save. The
+[evaluation kit](proposal-review-validation.md) separates live synthetic model
+checks, installed integration rehearsal and comparative user observations.
+
 **Who benefits first?**
 
 Developers, tech leads, PMs and QA who need to understand an earlier choice or

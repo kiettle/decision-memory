@@ -1,0 +1,202 @@
+{
+  "synthetic": true,
+  "version": 1,
+  "sets": {
+    "A": {
+      "records": [
+        {
+          "alias": "A1",
+          "decisionState": "DECIDED",
+          "text": "Run large CSV imports in background workers.",
+          "why": "Imports exceed the HTTP request time budget.",
+          "appliesTo": "Pilot A · Imports"
+        },
+        {
+          "alias": "A2-old",
+          "decisionState": "DECIDED",
+          "text": "Store migration backups on the database host.",
+          "why": "The first rehearsal needed a temporary storage location.",
+          "appliesTo": "Pilot A · Backups"
+        },
+        {
+          "alias": "A2-current",
+          "decisionState": "DECIDED",
+          "text": "Store migration backups in object storage.",
+          "why": "Large backup files exhausted the database host.",
+          "appliesTo": "Pilot A · Backups"
+        },
+        {
+          "alias": "A3-current",
+          "decisionState": "DECIDED",
+          "text": "Cache internal dashboard results for ten minutes.",
+          "why": "Internal users accept delayed updates to reduce database load.",
+          "appliesTo": "Pilot A · Internal dashboard"
+        },
+        {
+          "alias": "A3-other",
+          "decisionState": "DECIDED",
+          "text": "Cache public status results for fifteen seconds.",
+          "why": "Customers need recent incident status.",
+          "appliesTo": "Pilot A · Public status"
+        },
+        {
+          "alias": "A4-current",
+          "decisionState": "DECIDED",
+          "text": "Require an invitation token to join a workspace.",
+          "why": "The invitation expiry duration has not been decided.",
+          "appliesTo": "Pilot A · Invitations"
+        },
+        {
+          "alias": "A4-pending",
+          "decisionState": "PENDING",
+          "text": "How long should invitation tokens remain valid?",
+          "why": "The expiry duration is still an open question.",
+          "appliesTo": "Pilot A · Invitations"
+        }
+      ],
+      "replacements": [
+        {
+          "current": "A2-current",
+          "previous": "A2-old",
+          "reason": "Large backup files exhausted the database host after the first rehearsal."
+        }
+      ],
+      "tasks": [
+        {
+          "id": "A1",
+          "scope": "Pilot A · Imports",
+          "proposal": "Process large CSV imports inside the upload HTTP request.",
+          "expectedCurrentAliases": [
+            "A1"
+          ],
+          "prompt": "Identify the current choice and explain its reason."
+        },
+        {
+          "id": "A2",
+          "scope": "Pilot A · Backups",
+          "proposal": "Keep migration backup files on the database host.",
+          "expectedCurrentAliases": [
+            "A2-current"
+          ],
+          "prompt": "Identify the current choice, its earlier choice, and why it changed."
+        },
+        {
+          "id": "A3",
+          "scope": "Pilot A · Internal dashboard",
+          "proposal": "Cache internal dashboard results for fifteen seconds.",
+          "expectedCurrentAliases": [
+            "A3-current"
+          ],
+          "prompt": "Identify the choice that applies to this scope and explain why a similar record does not apply."
+        },
+        {
+          "id": "A4",
+          "scope": "Pilot A · Invitations",
+          "proposal": "Expire invitation tokens after 24 hours.",
+          "expectedCurrentAliases": [
+            "A4-current"
+          ],
+          "prompt": "Determine whether the recorded decisions settle this proposal. Explain what remains unknown."
+        }
+      ]
+    },
+    "B": {
+      "records": [
+        {
+          "alias": "B1",
+          "decisionState": "DECIDED",
+          "text": "Run large photo conversions in background workers.",
+          "why": "Conversions exceed the HTTP request time budget.",
+          "appliesTo": "Pilot B · Photo processing"
+        },
+        {
+          "alias": "B2-old",
+          "decisionState": "DECIDED",
+          "text": "Return generated report files in the API response.",
+          "why": "The first release only produced small report files.",
+          "appliesTo": "Pilot B · Reports"
+        },
+        {
+          "alias": "B2-current",
+          "decisionState": "DECIDED",
+          "text": "Deliver generated report files through signed object-storage links.",
+          "why": "Large report files exceeded the API response size limit.",
+          "appliesTo": "Pilot B · Reports"
+        },
+        {
+          "alias": "B3-current",
+          "decisionState": "DECIDED",
+          "text": "Cache operations report results for one hour.",
+          "why": "Internal users accept delayed updates to reduce database load.",
+          "appliesTo": "Pilot B · Operations reports"
+        },
+        {
+          "alias": "B3-other",
+          "decisionState": "DECIDED",
+          "text": "Cache customer tracking results for one minute.",
+          "why": "Customers need recent delivery status.",
+          "appliesTo": "Pilot B · Customer tracking"
+        },
+        {
+          "alias": "B4-current",
+          "decisionState": "DECIDED",
+          "text": "Require a signed link to download a private export.",
+          "why": "The download link expiry duration has not been decided.",
+          "appliesTo": "Pilot B · Downloads"
+        },
+        {
+          "alias": "B4-pending",
+          "decisionState": "PENDING",
+          "text": "How long should signed download links remain valid?",
+          "why": "The expiry duration is still an open question.",
+          "appliesTo": "Pilot B · Downloads"
+        }
+      ],
+      "replacements": [
+        {
+          "current": "B2-current",
+          "previous": "B2-old",
+          "reason": "Large generated report files exceeded the API response size limit after the first release."
+        }
+      ],
+      "tasks": [
+        {
+          "id": "B1",
+          "scope": "Pilot B · Photo processing",
+          "proposal": "Process large photo conversions inside the upload HTTP request.",
+          "expectedCurrentAliases": [
+            "B1"
+          ],
+          "prompt": "Identify the current choice and explain its reason."
+        },
+        {
+          "id": "B2",
+          "scope": "Pilot B · Reports",
+          "proposal": "Return large generated report files inside the API response.",
+          "expectedCurrentAliases": [
+            "B2-current"
+          ],
+          "prompt": "Identify the current choice, its earlier choice, and why it changed."
+        },
+        {
+          "id": "B3",
+          "scope": "Pilot B · Operations reports",
+          "proposal": "Cache operations report results for one minute.",
+          "expectedCurrentAliases": [
+            "B3-current"
+          ],
+          "prompt": "Identify the choice that applies to this scope and explain why a similar record does not apply."
+        },
+        {
+          "id": "B4",
+          "scope": "Pilot B · Downloads",
+          "proposal": "Expire signed download links after 24 hours.",
+          "expectedCurrentAliases": [
+            "B4-current"
+          ],
+          "prompt": "Determine whether the recorded decisions settle this proposal. Explain what remains unknown."
+        }
+      ]
+    }
+  }
+}

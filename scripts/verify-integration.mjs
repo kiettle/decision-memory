@@ -11,6 +11,7 @@ import { DomainError } from "../apps/server/src/domain.js"
 import { createDatabase } from "../apps/server/src/models.js"
 import { createRepository } from "../apps/server/src/repository.js"
 import { verifyDecisionDeadlines } from "./verify-decision-deadlines.mjs"
+import { verifyProposalReview } from "./verify-proposal-review.mjs"
 
 if (config.nodeEnv !== "development" || !config.localDemoMode) {
   throw new Error("Integration verification only runs in development demo mode.")
@@ -504,6 +505,7 @@ try {
   assert.equal((await gemini.search(identity, { query: "durable rollback", filters: channelFilters })).matches[0].decisionId, first.id)
   assert.equal((await gemini.search(otherIdentity, { query: "migration memory", filters: boundedFilters })).candidateCount, 0)
   await verifyDecisionDeadlines({ repository, models, config, identity, otherIdentity, source: capturedSource })
+  await verifyProposalReview({ repository, identity, otherIdentity })
   console.log("Gemini candidate proof passed: newest 200, filter-first channel/tag/owner/name/status/scope/date, counts and workspace isolation; provider mocked")
   console.log("Review regressions passed: active successor, durable Jira recovery/concurrency/isolation, uncapped recall filter inputs")
 

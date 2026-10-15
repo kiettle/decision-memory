@@ -6,6 +6,7 @@ import { createApp } from "../apps/server/src/app.js"
 import { config } from "../apps/server/src/config.js"
 import { createLocalEmbedder, decisionPassages } from "../apps/server/src/local-embeddings.js"
 import { createMemorySearchService } from "../apps/server/src/memory-search.js"
+import { createProposalReviewService } from "../apps/server/src/proposal-review.js"
 import { createDatabase } from "../apps/server/src/models.js"
 import { createRepository } from "../apps/server/src/repository.js"
 import { createSearchIndexer } from "../apps/server/src/search-indexer.js"
@@ -100,6 +101,12 @@ try {
   const identity = { workspaceExternalKey: config.localWorkspaceId, cloudId: config.localCloudId,
     userExternalId: config.localUserId, userDisplayName: config.localUserName }
   const memorySearch = createMemorySearchService({ repository, embedder })
+  const proposalReview = createProposalReviewService({ config: {}, repository, memorySearch })
+  const proposal = await proposalReview.check(identity, { proposal: "Keep migration backup files on the database host", appliesTo: "Atlas migration" })
+  assert.ok(proposal.evidence.some(d => d.decisionKey === "DM-104" && d.status === "ACTIVE" && d.inScope))
+  assert.ok(proposal.evidence.every(d => d.excerpts.length > 0))
+  assert.equal(proposal.analysis.status, "NOT_REQUESTED")
+  console.log("Proposal review real local retrieval passed: migration proposal finds scoped stored evidence offline")
   for (const query of [
     "How did we avoid timeouts for large migration backup files?",
     "Hồi trước mình xử lý file migration lớn hay timeout như thế nào?",

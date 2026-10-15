@@ -5,6 +5,13 @@ Updated: 2026-10-14. Start here when preparing the Buildathon submission.
 **Prepare:** [Demo rehearsal](demo-runbook.md) · [Judge Q&A](judge-qa.md) ·
 [Readiness evidence](readiness-validation.md)
 
+The 2026-10-15 competition extension adds **Check a proposed decision**. Its
+candidate story is “Before your team repeats a mistake, recover what it decided,
+why, and what changed.” Use the [proposal-review evaluation and user-study
+kit](proposal-review-validation.md). This becomes the main story only after
+the comparative user study demonstrates benefit; synthetic tests alone do not
+establish mistakes prevented, time saved, or a first-place outcome.
+
 The current readiness work checks local logic and prepares documentation.
 The owner will run the live rehearsal and recording later. First-time human
 usability and fresh installed Slack/Jira/Gemini integration checks remain pending.
@@ -164,3 +171,7 @@ claims. Automated tests establish behavior; they do not establish time saved.
 
 Use [Judge Q&A](judge-qa.md) for accurate technical and product answers, and
 [Demo rehearsal](demo-runbook.md) for exact fields, setup and repeat-take steps.
+
+For the deferred live session, use the [Slack rehearsal handoff](slack-rehearsal-handoff.md).
+For user acceptance, use the [facilitator guide](study/facilitator.md) and share
+only the [participant task cards](study/participant-tasks.md) with coworkers.

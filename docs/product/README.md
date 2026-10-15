@@ -10,6 +10,9 @@ files after actual product domains, such as `overview.md`, `billing.md`,
 
 ## Current Product Contract
 
+- [Proposal review](proposal-review.md): local proposal checking, explicit scoped
+  Gemini assessment, exact citations, current replacements and private Slack review.
+
 - [Decision deadlines](decision-deadlines.md): pending capture, recorded outcomes,
   optional deadlines, safe shortcut writes, and Flat/Kanban views.
 

@@ -9,11 +9,14 @@ import { createJiraClient } from "./jira.js"
 import { createMemorySearchService } from "./memory-search.js"
 import { createGeminiMemorySearchService } from "./gemini-memory-search.js"
 import { createSlackRouter } from "./slack.js"
+import { createProposalReviewService } from "./proposal-review.js"
 
 // The integrations shared by the API and the Slack listener. Tests pass fakes.
-export function createServices({ config, repository, memorySearch, geminiMemorySearch, captureDrafter, jira }) {
+export function createServices({ config, repository, memorySearch, geminiMemorySearch, captureDrafter, jira, proposalReview }) {
+  const localSearch = memorySearch ?? createMemorySearchService({ config, repository })
   return {
-    memorySearch: memorySearch ?? createMemorySearchService({ config, repository }),
+    memorySearch: localSearch,
+    proposalReview: proposalReview ?? createProposalReviewService({ config, repository, memorySearch: localSearch }),
     geminiMemorySearch: geminiMemorySearch ?? createGeminiMemorySearchService({ config, repository }),
     captureDrafter: captureDrafter ?? createCaptureDrafter({ config }),
     jira: jira ?? createJiraClient({ config }),

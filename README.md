@@ -57,6 +57,17 @@ intentionally outside this MVP.
 
 ## Understand decisions and their evolution
 
+**Check a proposal** reviews a short proposed choice against stored decisions
+and their current replacements. Check locally first; then confirm an exact
+Applies To scope and explicitly choose **Analyze with Gemini** for a cited
+suggestion: possible mismatch, appears consistent, or insufficient evidence.
+The action discloses the synthetic/sanitized proposal and excerpts sent to Google.
+It never saves or supersedes a decision automatically. Local evidence remains
+available when analysis fails. The same review is available through Slack's
+**Check proposed decision** message shortcut after updating the app manifest.
+See [Proposal review](docs/product/proposal-review.md) and the
+[evaluation/user-study kit](docs/presentation/proposal-review-validation.md).
+
 - **Explore scopes** opens a service/feature overview with its current decisions,
   reasons, owners, saved evidence links, and recent replacement history.
 - **Compare decisions** shows the stored rationale, scope, alternatives, and
@@ -195,7 +206,7 @@ not connect a workspace with confidential conversations.
 
 The Slack manifest is [slack/manifest.yml](slack/manifest.yml). It defines:
 
-- the **Save as Decision** and **Ask Decision Memory** message shortcuts;
+- the **Check proposed decision**, **Save as Decision** and **Ask Decision Memory** message shortcuts;
 - the `/decide` and `/why` slash commands;
 - `@Decision Memory decide`, which works in threads where Slack does not allow
   slash commands;

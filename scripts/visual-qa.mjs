@@ -4,6 +4,7 @@ import { chromium } from "playwright-core"
 import { config } from "../apps/server/src/config.js"
 import { createDatabase } from "../apps/server/src/models.js"
 import { verifyDeadlineUi } from "./verify-deadline-ui.mjs"
+import { verifyProposalUi } from "./verify-proposal-ui.mjs"
 
 const browser = await chromium.launch({
   executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -230,7 +231,7 @@ try {
   const navigationDialog = page.getByRole("dialog", { name: "Navigation", exact: true })
   await navigationDialog.waitFor()
   const mobileNavigation = page.getByRole("navigation", { name: "Mobile navigation" })
-  assert.equal(await mobileNavigation.getByRole("link").count(), 4)
+  assert.equal(await mobileNavigation.getByRole("link").count(), 5)
   await page.waitForTimeout(200)
   await page.screenshot({ path: "/private/tmp/decision-memory-mobile-navigation-fixed.png" })
   await mobileNavigation.getByRole("link", { name: "Recent", exact: true }).click()
@@ -624,6 +625,7 @@ try {
   console.log("Decision understanding QA passed: comparison, human replacement reason, scope overview, mobile layout, and failure recovery")
 
   await verifyDeadlineUi({ browser, models, workspace })
+  await verifyProposalUi({ browser, models, workspace })
   assert.deepEqual(pageErrors, [], `Page errors: ${pageErrors.join(" | ")}`)
   assert.deepEqual(consoleErrors, [], `Console errors: ${consoleErrors.join(" | ")}`)
   console.log("UI QA passed with Playwright/Chrome fallback: independent keyword and memory search, collapsed/expanded evidence, create/edit, desktop and mobile screenshots")

@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { createLinkedJiraIssue } from "./jira.js"
 import { DomainError } from "./domain.js"
+import { proposalReviewInput } from "./proposal-review.js"
 
 import { calendarDateInput, deadlineInput, decideInput, decisionInput, replacementReasonInput } from "./validation.js"
 
@@ -35,7 +36,7 @@ const jiraIssueInput = z.object({
   summary: z.string().trim().min(1, "Summary is required.").max(255),
 })
 
-export function createApiRouter(repository, identityMiddleware, { memorySearch, geminiMemorySearch, jira }, features = {}) {
+export function createApiRouter(repository, identityMiddleware, { memorySearch, geminiMemorySearch, jira, proposalReview }, features = {}) {
   const router = express.Router()
   router.use(identityMiddleware)
 
@@ -53,8 +54,15 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
     asyncRoute(async (req, res) => {
       res.json({
         ...(await repository.metadata(req.identity)),
-        features: { ...features, memorySearch: memorySearch.enabled, geminiMemorySearch: geminiMemorySearch.enabled },
+        features: { ...features, memorySearch: memorySearch.enabled, geminiMemorySearch: geminiMemorySearch.enabled, proposalAnalysis: proposalReview.enabled },
       })
+    }),
+  )
+
+  router.post(
+    "/decisions/check-proposal",
+    asyncRoute(async (req, res) => {
+      res.json(await proposalReview.check(req.identity, proposalReviewInput.parse(req.body)))
     }),
   )
 

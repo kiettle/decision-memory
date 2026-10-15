@@ -1,0 +1,700 @@
+{
+  "version": "synthetic-holdout-v2",
+  "model": "gemini-3.5-flash-lite",
+  "date": "2026-10-15T01:34:34.397Z",
+  "limitation": "Controlled candidate retrieval; tests live assessment, not end-to-end recall or user value. Expected labels are authored, not independent user adjudication.",
+  "total": 24,
+  "attempted": 24,
+  "completed": 24,
+  "correct": 21,
+  "results": [
+    {
+      "id": "m21",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 3193,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal to deploy a new artifact built from source directly in production directly conflicts with the recorded choice to promote the same immutable artifact tested in staging.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000001:outcome",
+                "quote": "Promote the same immutable artifact tested in staging to production."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000001:why",
+                "quote": "A rebuild may differ from the artifact that passed tests."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m22",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 2740,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal aims to enable the experimental checkout for every customer immediately, whereas the recorded choice specifies rolling it out to only one percent of customers first.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000002:outcome",
+                "quote": "Roll out experimental checkout to one percent of customers first."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m23",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1310,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal suggests using the same cache key for every tenant, which directly contradicts the active decision to include tenant identity in every account-settings cache key to prevent cross-tenant data leaks.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000003:outcome",
+                "quote": "Include tenant identity in every account-settings cache key."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000003:why",
+                "quote": "Shared keys can return another tenant's configuration."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m24",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1282,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal suggests removing the old database column before updating readers, which directly contradicts the active decision requiring readers to be migrated first.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000004:outcome",
+                "quote": "Migrate all readers before removing an old database column."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000004:why",
+                "quote": "Older application instances still read that column."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m25",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1467,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất sử dụng số thực floating point để cộng tiền hóa đơn mâu thuẫn trực tiếp với quyết định đã được ghi nhận là sử dụng số nguyên đơn vị nhỏ (integer minor units) và tránh dùng floating point.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000005:outcome",
+                "quote": "Represent invoice money as integer minor units, not floating point."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000005:why",
+                "quote": "Floating-point rounding can alter invoice totals."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m26",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1478,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất \"Tin hoàn toàn MIME type do trình duyệt gửi lên.\" mâu thuẫn trực tiếp với quyết định hiện tại là không tin tưởng loại MIME do client gửi và yêu cầu xác thực nội dung tệp trên máy chủ.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000006:outcome",
+                "quote": "Validate uploaded file contents on the server; do not trust client MIME type."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000006:why",
+                "quote": "Clients may mislabel uploaded files."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m27",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1296,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất chuyển từ cursor sang offset pagination mâu thuẫn trực tiếp với quyết định hiện tại là sử dụng cursor pagination và lý do tránh việc dịch chuyển offset khi người dùng phân trang.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000007:outcome",
+                "quote": "Use cursor pagination for the event stream."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000007:why",
+                "quote": "New events can shift offsets while a user paginates."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "m28",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1397,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất xóa tài khoản ngay khi mở trang cài đặt mâu thuẫn với quyết định ghi nhận rằng việc xóa tài khoản chỉ được thực hiện sau khi có xác nhận rõ ràng, vì mở trang cài đặt không đồng nghĩa với việc ủy quyền xóa.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000008:outcome",
+                "quote": "Delete an account only after explicit confirmation of the delete action."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000008:why",
+                "quote": "Opening settings does not authorize deletion."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c21",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1168,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to load UI copy from translation keys directly aligns with the active recorded choice to use translation keys for user-facing interface copy.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000009:outcome",
+                "quote": "Use translation keys for user-facing interface copy."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c22",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1266,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to persist event instants in UTC and format them in the viewer's zone directly aligns with the active decision to store event timestamps in UTC and display them in the viewer's timezone.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000010:outcome",
+                "quote": "Store event timestamps in UTC and display them in the viewer's timezone."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000010:why",
+                "quote": "Teams work across timezones."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c23",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1234,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to keep original images intact and store thumbnails as separate objects directly matches the confirmed team decision.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000011:outcome",
+                "quote": "Preserve original images; store generated thumbnails separately."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c24",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1334,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to not run destructive migrations automatically at application startup is fully consistent with the recorded team decision to run them explicitly and never automatically on startup.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000012:outcome",
+                "quote": "Run destructive migrations explicitly, never automatically on startup."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000012:why",
+                "quote": "Startup must not unexpectedly delete existing data."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c25",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1338,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất cho phép dùng bàn phím để mở và đóng dialog hoàn toàn phù hợp với quyết định hiện tại yêu cầu mọi dialog phải vận hành được bằng bàn phím.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000013:outcome",
+                "quote": "All dialogs must be operable with keyboard-only navigation."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000013:why",
+                "quote": "The interface supports users who cannot use a mouse."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c26",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1487,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất kiểm tra dữ liệu đầu vào trên server dù client đã validate hoàn toàn khớp với quyết định đã được ghi nhận trong hệ thống.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000014:outcome",
+                "quote": "Validate request input on the server even when the client validates it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c27",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1200,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất thêm field mới dạng optional hoàn toàn phù hợp với quyết định đã được ghi nhận về việc các trường phản hồi mới phải là tùy chọn cho các client hiện tại.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000015:outcome",
+                "quote": "New response fields must be optional for existing clients."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000015:why",
+                "quote": "Older clients remain supported during gradual rollout."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c28",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1376,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất trùng khớp trực tiếp với quyết định hiện tại trong phạm vi về việc tạo ID lưu trữ riêng và giữ tên gốc của file chỉ làm metadata hiển thị.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000016:outcome",
+                "quote": "Use generated storage IDs; keep original file names only as display metadata."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u21",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1316,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice states that the delivery weekday and time are undecided, so the current choice does not settle the aspect being proposed.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000017:outcome",
+                "quote": "Deliver the report by email; delivery weekday and time are undecided."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u22",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1257,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice covers dependency caching and explicitly states it does not cover dashboard styling, leaving the proposal about a dark theme unsettled.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000018:outcome",
+                "quote": "Cache downloaded build dependencies between CI runs."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000018:why",
+                "quote": "This decision covers dependency downloads, not dashboard styling."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u23",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 1452,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The recorded choice explicitly states that the vendor has not been selected yet, whereas the proposal suggests choosing Azure.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000019:outcome",
+                "quote": "Use managed hosting; the vendor has not been selected."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000019:why",
+                "quote": "Azure and AWS are still candidates, with no approved vendor."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u24",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 1242,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to generate the report asynchronously when it grows to 2 GB aligns with the recorded instruction to revisit the execution model when reports exceed the small report threshold.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000020:outcome",
+                "quote": "Generate small reports synchronously while they remain below 1 MB."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000020:why",
+                "quote": "Revisit the execution model if reports exceed that size."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u25",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1208,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice specifies secure cookies but explicitly states that session lifetime has not been specified. Therefore, there is insufficient evidence to establish a mismatch or consistency regarding the 8-hour login session limit proposed.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000021:why",
+                "quote": "Session lifetime has not been specified."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u26",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": false,
+      "elapsedMs": 1294,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất thêm biểu đồ cột vào giao diện hóa đơn có thể mâu thuẫn với quyết định hiện tại là không lựa chọn biểu đồ hoặc bố cục báo cáo cho màn hình này.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000022:outcome",
+                "quote": "Show invoice amounts using integer minor-unit calculations."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000022:why",
+                "quote": "No chart or reporting layout was selected."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u27",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1229,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "Quyết định hiện tại chưa xác định số lượng worker cụ thể, do đó không đủ bằng chứng để khẳng định sự mâu thuẫn hay nhất quán.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000023:why",
+                "quote": "Worker concurrency and capacity remain undecided."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "u28",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1366,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "Quyết định hiện tại chỉ quy định định dạng tệp PDF cho tài liệu tải xuống mà không đề cập hay giải quyết vấn đề kiểu chữ (font serif hay sans-serif). Do đó, không đủ bằng chứng để xác định sự mâu thuẫn hay đồng nhất.",
+            "citations": [
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000024:outcome",
+                "quote": "Offer document downloads as PDF files."
+              },
+              {
+                "evidenceId": "55555555-5555-4555-8555-000000000024:why",
+                "quote": "The record defines file format, not typography."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

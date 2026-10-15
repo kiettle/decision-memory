@@ -1,0 +1,970 @@
+{
+  "version": "synthetic-holdout-v4",
+  "implementationSha256": "ef1f1abb1595b4958edb7f1ef96360c09dadd705ac30f1fa5a14f4be9df3b0f8",
+  "fixturesSha256": "fd64eb7cac4d650d151ac5acf2e709ba28e1adc6eba13513664cdab02197436c",
+  "model": "gemini-3.5-flash-lite",
+  "date": "2026-10-15T08:50:30.081Z",
+  "limitation": "Controlled candidate retrieval; tests live assessment, not end-to-end recall or user value. Expected labels are authored, not independent user adjudication.",
+  "total": 24,
+  "attempted": 24,
+  "completed": 23,
+  "correct": 23,
+  "results": [
+    {
+      "id": "m41",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": null,
+      "completed": false,
+      "correct": false,
+      "elapsedMs": 8011,
+      "analysis": {
+        "status": "UNAVAILABLE",
+        "assessment": null,
+        "message": "Gemini timed out. Local evidence remains available; try again.",
+        "findings": []
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal suggests reading availability and writing separately without a transaction, which is in direct opposition to the recorded choice requiring seat reservations to be performed atomically in a database transaction.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000001:outcome\",\n          \"quote\": \"Reserve seats atomically in a database transaction.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000001:why\",\n          \"quote\": \"Concurrent bookings must not sell the same seat twice.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5112
+        },
+        {
+          "stage": "verification",
+          "error": "AbortError",
+          "elapsedMs": 8011
+        }
+      ]
+    },
+    {
+      "id": "m42",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5039,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal aims to show every employee's saved filters to the entire company by default, which conflicts with the active decision that saved filters must remain private to their creator unless explicitly shared.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000002:outcome",
+                "quote": "Saved filters are private to their creator unless explicitly shared."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000002:why",
+                "quote": "Filters can contain confidential project names."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal aims to show every employee's saved filters to the entire company by default, which conflicts with the active decision that saved filters must remain private to their creator unless explicitly shared.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000002:outcome\",\n          \"quote\": \"Saved filters are private to their creator unless explicitly shared.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000002:why\",\n          \"quote\": \"Filters can contain confidential project names.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5035
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000002\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal states that every employee's saved filters should be shown to the entire company, which negates the active decision that saved filters are private to their creator unless explicitly shared.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4955
+        }
+      ]
+    },
+    {
+      "id": "m43",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 6136,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal to overwrite the original uploaded photo after every crop directly opposes the confirmed decision to preserve the original photo and save edits as separate versions.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000003:outcome",
+                "quote": "Preserve the original photo and save edits as separate versions."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal to overwrite the original uploaded photo after every crop directly opposes the confirmed decision to preserve the original photo and save edits as separate versions.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000003:outcome\",\n          \"quote\": \"Preserve the original photo and save edits as separate versions.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 6133
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000003\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal dictates overwriting the original photo after every crop, which directly negates the recorded choice to preserve the original photo and save edits as separate versions.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4992
+        }
+      ]
+    },
+    {
+      "id": "m44",
+      "language": "en",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4077,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "The proposal advocates shipping the release even when required smoke tests fail, which directly opposes the recorded choice to block release promotion under those conditions.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000004:outcome",
+                "quote": "Block release promotion when required smoke tests fail."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000004:why",
+                "quote": "A failed smoke test indicates the candidate is not ready for promotion."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal advocates shipping the release even when required smoke tests fail, which directly opposes the recorded choice to block release promotion under those conditions.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000004:outcome\",\n          \"quote\": \"Block release promotion when required smoke tests fail.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000004:why\",\n          \"quote\": \"A failed smoke test indicates the candidate is not ready for promotion.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4076
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"88888888-8888-4888-8888-000000000004\",\"relation\":\"CONFLICTS\",\"reason\":\"The proposal directly contradicts the active decision to block release promotion when required smoke tests fail.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 3839
+        }
+      ]
+    },
+    {
+      "id": "m45",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5117,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất tạo thêm một shipment cho mỗi lần nhận lại cùng event ID mâu thuẫn trực tiếp với quyết định đã được ghi nhận là bỏ qua các sự kiện trùng lặp.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000005:outcome",
+                "quote": "Ignore duplicate parcel events with an already processed event ID."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000005:why",
+                "quote": "Event delivery is at least once; duplicate events must not create duplicate shipments."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"Đề xuất tạo thêm một shipment cho mỗi lần nhận lại cùng event ID mâu thuẫn trực tiếp với quyết định đã được ghi nhận là bỏ qua các sự kiện trùng lặp.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000005:outcome\",\n          \"quote\": \"Ignore duplicate parcel events with an already processed event ID.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000005:why\",\n          \"quote\": \"Event delivery is at least once; duplicate events must not create duplicate shipments.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5117
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000005\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal requests creating a new shipment for each receipt of the same event ID, which directly contradicts the active decision to ignore duplicate parcel events.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 3934
+        }
+      ]
+    },
+    {
+      "id": "m46",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4585,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất cho phép ghi đè chỉnh sửa mới nhất mà không kiểm tra version mâu thuẫn trực tiếp với quyết định đã ghi nhận là từ chối cập nhật tài liệu có số phiên bản cũ.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000006:outcome",
+                "quote": "Reject document updates with a stale version number."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000006:why",
+                "quote": "Concurrent writers must not silently lose another person's changes."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"Đề xuất cho phép ghi đè chỉnh sửa mới nhất mà không kiểm tra version mâu thuẫn trực tiếp với quyết định đã ghi nhận là từ chối cập nhật tài liệu có số phiên bản cũ.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000006:outcome\",\n          \"quote\": \"Reject document updates with a stale version number.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000006:why\",\n          \"quote\": \"Concurrent writers must not silently lose another person's changes.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4583
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000006\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal explicitly requests overwriting the latest edits without checking the version, which directly negates the active decision to reject document updates with a stale version number.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4507
+        }
+      ]
+    },
+    {
+      "id": "m47",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5370,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất lưu báo cáo vào ổ local của app server trái ngược với quyết định hiện tại là lưu các tệp báo cáo vào kho lưu trữ đối tượng dùng chung để đảm bảo dữ liệu không bị mất khi các phiên bản ứng dụng thay thế.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000007:outcome",
+                "quote": "Store generated report artifacts in shared object storage."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000007:why",
+                "quote": "Application instances are replaceable; artifacts must survive replacement."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"Đề xuất lưu báo cáo vào ổ local của app server trái ngược với quyết định hiện tại là lưu các tệp báo cáo vào kho lưu trữ đối tượng dùng chung để đảm bảo dữ liệu không bị mất khi các phiên bản ứng dụng thay thế.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000007:outcome\",\n          \"quote\": \"Store generated report artifacts in shared object storage.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000007:why\",\n          \"quote\": \"Application instances are replaceable; artifacts must survive replacement.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5269
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"88888888-8888-4888-8888-000000000007\",\"relation\":\"CONFLICTS\",\"reason\":\"The proposal suggests storing reports on the app server's local disk, which directly contradicts the active decision requiring shared object storage.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 5369
+        }
+      ]
+    },
+    {
+      "id": "m48",
+      "language": "vi",
+      "expected": "POSSIBLE_MISMATCH",
+      "actual": "POSSIBLE_MISMATCH",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5510,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "POSSIBLE_MISMATCH",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "POSSIBLE_MISMATCH",
+            "explanation": "Đề xuất tiếp tục gửi email marketing sau khi khách đã unsubscribe trực tiếp mâu thuẫn với quyết định đã được ghi nhận là dừng ngay lập tức email marketing khi người nhận hủy đăng ký.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000008:outcome",
+                "quote": "Stop marketing emails immediately after the recipient unsubscribes."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000008:why",
+                "quote": "An unsubscribe applies to all future marketing sends."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"Đề xuất tiếp tục gửi email marketing sau khi khách đã unsubscribe trực tiếp mâu thuẫn với quyết định đã được ghi nhận là dừng ngay lập tức email marketing khi người nhận hủy đăng ký.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000008:outcome\",\n          \"quote\": \"Stop marketing emails immediately after the recipient unsubscribes.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000008:why\",\n          \"quote\": \"An unsubscribe applies to all future marketing sends.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5509
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000008\",\n      \"relation\": \"CONFLICTS\",\n      \"reason\": \"The proposal suggests continuing email marketing after unsubscribe, which directly negates the active decision to stop marketing emails immediately upon unsubscribe.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4854
+        }
+      ]
+    },
+    {
+      "id": "c41",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4918,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to persist event timestamps in UTC and convert only for display directly aligns with the active decision to store event timestamps in UTC and apply the viewer's timezone at display time.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000009:outcome",
+                "quote": "Store event timestamps in UTC; apply the viewer's timezone at display time."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"APPEARS_CONSISTENT\",\n      \"explanation\": \"The proposal to persist event timestamps in UTC and convert only for display directly aligns with the active decision to store event timestamps in UTC and apply the viewer's timezone at display time.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000009:outcome\",\n          \"quote\": \"Store event timestamps in UTC; apply the viewer's timezone at display time.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4916
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000009\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The proposal matches the recorded choice to persist timestamps in UTC and convert them only for display.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4313
+        }
+      ]
+    },
+    {
+      "id": "c42",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 6314,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to assign a unique identifier to every newly created order directly aligns with the active recorded choice that each order receives a unique identifier at creation.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000010:outcome",
+                "quote": "Each order receives a unique identifier at creation."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"APPEARS_CONSISTENT\",\n      \"explanation\": \"The proposal to assign a unique identifier to every newly created order directly aligns with the active recorded choice that each order receives a unique identifier at creation.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000010:outcome\",\n          \"quote\": \"Each order receives a unique identifier at creation.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 6009
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000010\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The proposal directly follows the recorded choice that each order receives a unique identifier at creation.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 6313
+        }
+      ]
+    },
+    {
+      "id": "c43",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5394,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to not require a mouse to open the navigation menu aligns directly with the active decision to make the navigation menu fully operable by keyboard.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000011:outcome",
+                "quote": "Make the navigation menu fully operable by keyboard."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000011:why",
+                "quote": "Keyboard users must reach the same destinations."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"APPEARS_CONSISTENT\",\n      \"explanation\": \"The proposal to not require a mouse to open the navigation menu aligns directly with the active decision to make the navigation menu fully operable by keyboard.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000011:outcome\",\n          \"quote\": \"Make the navigation menu fully operable by keyboard.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000011:why\",\n          \"quote\": \"Keyboard users must reach the same destinations.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5393
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000011\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The proposal stating not requiring a mouse to open the navigation menu aligns with making the navigation menu fully operable by keyboard.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4700
+        }
+      ]
+    },
+    {
+      "id": "c44",
+      "language": "en",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5225,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "The proposal to keep immutable document revisions aligns directly with the active recorded choice to create a new immutable revision for each document save.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000012:outcome",
+                "quote": "Create a new immutable revision for each document save."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000012:why",
+                "quote": "Earlier revisions must remain available for comparison."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"APPEARS_CONSISTENT\",\n      \"explanation\": \"The proposal to keep immutable document revisions aligns directly with the active recorded choice to create a new immutable revision for each document save.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000012:outcome\",\n          \"quote\": \"Create a new immutable revision for each document save.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000012:why\",\n          \"quote\": \"Earlier revisions must remain available for comparison.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4580
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000012\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The proposal matches the active decision to create a new immutable revision for each document save.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5224
+        }
+      ]
+    },
+    {
+      "id": "c45",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4156,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất tự động lưu bản nháp khi nội dung thay đổi hoàn toàn khớp với quyết định đã được ghi nhận về việc tự động lưu bản nháp sau khi chỉnh sửa.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000013:outcome",
+                "quote": "Autosave draft content after edits."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"APPEARS_CONSISTENT\",\n      \"explanation\": \"Đề xuất tự động lưu bản nháp khi nội dung thay đổi hoàn toàn khớp với quyết định đã được ghi nhận về việc tự động lưu bản nháp sau khi chỉnh sửa.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000013:outcome\",\n          \"quote\": \"Autosave draft content after edits.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 3836
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"88888888-8888-4888-8888-000000000013\",\"relation\":\"ALIGNS\",\"reason\":\"The proposal to automatically save drafts when content changes matches the existing active decision requiring autosave of draft content after edits.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 4154
+        }
+      ]
+    },
+    {
+      "id": "c46",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5422,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất hiển thị các trạng thái job đang chờ, đang chạy, thành công hay thất bại hoàn toàn khớp với quyết định đã được ghi nhận về việc hiển thị trạng thái queued, running, succeeded và failed cho các background job.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000014:outcome",
+                "quote": "Show queued, running, succeeded and failed states for background jobs."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000014:why",
+                "quote": "Operators need to distinguish waiting from execution and completion."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\"findings\":[{\"assessment\":\"APPEARS_CONSISTENT\",\"explanation\":\"Đề xuất hiển thị các trạng thái job đang chờ, đang chạy, thành công hay thất bại hoàn toàn khớp với quyết định đã được ghi nhận về việc hiển thị trạng thái queued, running, succeeded và failed cho các background job.\",\"citations\":[{\"evidenceId\":\"88888888-8888-4888-8888-000000000014:outcome\",\"quote\":\"Show queued, running, succeeded and failed states for background jobs.\"},{\"evidenceId\":\"88888888-8888-4888-8888-000000000014:why\",\"quote\":\"Operators need to distinguish waiting from execution and completion.\"}]}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 5421
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000014\",\n      \"relation\": \"ALIGNS\",\n      \"reason\": \"The proposal explicitly requests showing queued, running, succeeded, and failed states for background jobs, which directly matches the recorded choice.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4846
+        }
+      ]
+    },
+    {
+      "id": "c47",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 3784,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất giữ nguyên nội dung tìm kiếm khi request bị lỗi hoàn toàn khớp với quyết định đã được ghi nhận trong phạm vi đầu vào.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000015:outcome",
+                "quote": "Preserve the entered search query when a request fails."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000015:why",
+                "quote": "Retry should not require retyping the query."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\"findings\":[{\"assessment\":\"APPEARS_CONSISTENT\",\"explanation\":\"Đề xuất giữ nguyên nội dung tìm kiếm khi request bị lỗi hoàn toàn khớp với quyết định đã được ghi nhận trong phạm vi đầu vào.\",\"citations\":[{\"evidenceId\":\"88888888-8888-4888-8888-000000000015:outcome\",\"quote\":\"Preserve the entered search query when a request fails.\"},{\"evidenceId\":\"88888888-8888-4888-8888-000000000015:why\",\"quote\":\"Retry should not require retyping the query.\"}]}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 3582
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"88888888-8888-4888-8888-000000000015\",\"relation\":\"ALIGNS\",\"reason\":\"The proposal preserves the entered search query when a request fails, which matches the recorded choice.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 3782
+        }
+      ]
+    },
+    {
+      "id": "c48",
+      "language": "vi",
+      "expected": "APPEARS_CONSISTENT",
+      "actual": "APPEARS_CONSISTENT",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4775,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "APPEARS_CONSISTENT",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "APPEARS_CONSISTENT",
+            "explanation": "Đề xuất sử dụng tên file gốc khi tải file export hoàn toàn phù hợp với quyết định đã được ghi nhận.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000016:outcome",
+                "quote": "Use the original filename when downloading an export."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000016:why",
+                "quote": "The filename should remain recognizable to the person who requested it."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\"findings\":[{\"assessment\":\"APPEARS_CONSISTENT\",\"explanation\":\"Đề xuất sử dụng tên file gốc khi tải file export hoàn toàn phù hợp với quyết định đã được ghi nhận.\",\"citations\":[{\"evidenceId\":\"88888888-8888-4888-8888-000000000016:outcome\",\"quote\":\"Use the original filename when downloading an export.\"},{\"evidenceId\":\"88888888-8888-4888-8888-000000000016:why\",\"quote\":\"The filename should remain recognizable to the person who requested it.\"}]}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 4704
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"88888888-8888-4888-8888-000000000016\",\"relation\":\"ALIGNS\",\"reason\":\"The proposal matches the recorded choice to use the original filename when downloading an export.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 4775
+        }
+      ]
+    },
+    {
+      "id": "u41",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4668,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice states that the day and time for the weekly report remain undecided, so specifying Friday at 18:00 cannot be evaluated as consistent or mismatched since the detail is explicitly undecided.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000017:outcome",
+                "quote": "Generate one report each week; the day and time remain undecided."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"INSUFFICIENT_EVIDENCE\",\n      \"explanation\": \"The recorded choice states that the day and time for the weekly report remain undecided, so specifying Friday at 18:00 cannot be evaluated as consistent or mismatched since the detail is explicitly undecided.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000017:outcome\",\n          \"quote\": \"Generate one report each week; the day and time remain undecided.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4664
+        },
+        {
+          "stage": "verification",
+          "error": "AbortError",
+          "elapsedMs": 4671
+        }
+      ]
+    },
+    {
+      "id": "u42",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5065,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice specifies generating thumbnails for uploaded photos, but explicitly notes that no output format has been approved yet, making the proposal to choose WebP neither inconsistent nor fully established.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000018:outcome",
+                "quote": "Generate thumbnails for uploaded photos."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000018:why",
+                "quote": "WebP and JPEG are options; no output format has been approved."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"INSUFFICIENT_EVIDENCE\",\n      \"explanation\": \"The recorded choice specifies generating thumbnails for uploaded photos, but explicitly notes that no output format has been approved yet, making the proposal to choose WebP neither inconsistent nor fully established.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000018:outcome\",\n          \"quote\": \"Generate thumbnails for uploaded photos.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000018:why\",\n          \"quote\": \"WebP and JPEG are options; no output format has been approved.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5064
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000018\",\n      \"relation\": \"UNSETTLED\",\n      \"reason\": \"The previous decision explicitly states that no output format has been approved yet, making the choice of WebP unsettled rather than a conflict or agreement.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4605
+        }
+      ]
+    },
+    {
+      "id": "u43",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 5699,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The stored choice does not establish this proposal's relationship under the confirmed scope and circumstances. Inspect the cited evidence before deciding.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000019:outcome",
+                "quote": "For payloads below 1 MB, send the payload directly in the notification."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000019:why",
+                "quote": "Larger payloads require another design; none has been agreed."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal handles a 2 GB payload by uploading it to object storage and sending a link, but the recorded choice only specifies direct sending for payloads below 1 MB and explicitly states that larger payloads require another design which has not been agreed.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000019:outcome\",\n          \"quote\": \"For payloads below 1 MB, send the payload directly in the notification.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000019:why\",\n          \"quote\": \"Larger payloads require another design; none has been agreed.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 5698
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"88888888-8888-4888-8888-000000000019\",\"relation\":\"UNSETTLED\",\"reason\":\"The current decision applies strictly to payloads below 1 MB, whereas the proposal is for a 2 GB payload which is outside the threshold.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 5137
+        }
+      ]
+    },
+    {
+      "id": "u44",
+      "language": "en",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 1,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "No current evidence for the confirmed scope was retrieved. This is not approval of the proposal.",
+        "findings": []
+      },
+      "calls": []
+    },
+    {
+      "id": "u45",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4991,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "Recorded choice is about requiring sign-in before viewing account settings, and the rationale explicitly states that menu placement was not discussed.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000021:why",
+                "quote": "Menu placement was not discussed."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"INSUFFICIENT_EVIDENCE\",\n      \"explanation\": \"Recorded choice is about requiring sign-in before viewing account settings, and the rationale explicitly states that menu placement was not discussed.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000021:why\",\n          \"quote\": \"Menu placement was not discussed.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4990
+        },
+        {
+          "stage": "verification",
+          "output": "{\"checks\":[{\"decisionId\":\"88888888-8888-4888-8888-000000000021\",\"relation\":\"UNSETTLED\",\"reason\":\"The current decision is about requiring sign-in for account settings, whereas the proposal is about moving the mobile menu to the right side of the screen, which is an unrelated attribute.\"}]}",
+          "finishReason": "STOP",
+          "elapsedMs": 4108
+        }
+      ]
+    },
+    {
+      "id": "u46",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4621,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "The recorded choice explicitly states that the cache expiry is undecided, so setting it to 15 minutes does not contradict a settled decision.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000022:outcome",
+                "quote": "Cache the catalog response; expiry is undecided."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000022:why",
+                "quote": "The cache lifetime remains an open parameter."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"INSUFFICIENT_EVIDENCE\",\n      \"explanation\": \"The recorded choice explicitly states that the cache expiry is undecided, so setting it to 15 minutes does not contradict a settled decision.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000022:outcome\",\n          \"quote\": \"Cache the catalog response; expiry is undecided.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000022:why\",\n          \"quote\": \"The cache lifetime remains an open parameter.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4621
+        },
+        {
+          "stage": "verification",
+          "output": "{\n  \"checks\": [\n    {\n      \"decisionId\": \"88888888-8888-4888-8888-000000000022\",\n      \"relation\": \"UNSETTLED\",\n      \"reason\": \"The cache expiry was explicitly undecided in the recorded choice.\"\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4181
+        }
+      ]
+    },
+    {
+      "id": "u47",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 0,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "No current evidence for the confirmed scope was retrieved. This is not approval of the proposal.",
+        "findings": []
+      },
+      "calls": []
+    },
+    {
+      "id": "u48",
+      "language": "vi",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "actual": "INSUFFICIENT_EVIDENCE",
+      "completed": true,
+      "correct": true,
+      "elapsedMs": 4241,
+      "analysis": {
+        "status": "COMPLETE",
+        "assessment": "INSUFFICIENT_EVIDENCE",
+        "message": "AI suggestion, not a decision. Exact citations are checked; the interpretation can still be wrong.",
+        "findings": [
+          {
+            "assessment": "INSUFFICIENT_EVIDENCE",
+            "explanation": "Recorded choice states that permitted punctuation is still undecided, so the proposal cannot be established as a mismatch or consistent.",
+            "citations": [
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000024:outcome",
+                "quote": "User handles must be unique; permitted punctuation is still undecided."
+              },
+              {
+                "evidenceId": "88888888-8888-4888-8888-000000000024:why",
+                "quote": "The choice of permitted characters has not been made."
+              }
+            ]
+          }
+        ]
+      },
+      "calls": [
+        {
+          "stage": "assessment",
+          "output": "{\n  \"findings\": [\n    {\n      \"assessment\": \"INSUFFICIENT_EVIDENCE\",\n      \"explanation\": \"Recorded choice states that permitted punctuation is still undecided, so the proposal cannot be established as a mismatch or consistent.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000024:outcome\",\n          \"quote\": \"User handles must be unique; permitted punctuation is still undecided.\"\n        },\n        {\n          \"evidenceId\": \"88888888-8888-4888-8888-000000000024:why\",\n          \"quote\": \"The choice of permitted characters has not been made.\"\n        }\n      ]\n    }\n  ]\n}",
+          "finishReason": "STOP",
+          "elapsedMs": 4238
+        },
+        {
+          "stage": "verification"
+        }
+      ]
+    }
+  ]
+}

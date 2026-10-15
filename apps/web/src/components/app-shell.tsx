@@ -1,4 +1,4 @@
-import { Box, Building2, Clock3, FileText, Menu, Settings } from "lucide-react"
+import { Box, Building2, Clock3, FileText, Menu, Settings, ScanSearch } from "lucide-react"
 import { useEffect, useState } from "react"
 import { NavLink, Outlet } from "react-router-dom"
 
@@ -19,6 +19,7 @@ import type { Metadata } from "@/types"
 
 const navigation = [
   { label: "Decisions", icon: FileText, to: "/" },
+  { label: "Check a proposal", icon: ScanSearch, to: "/check-proposal" },
   { label: "Scopes", icon: Box, to: "/scopes" },
   { label: "Recent", icon: Clock3, to: "/recent" },
   { label: "Settings", icon: Settings, to: "/settings" },

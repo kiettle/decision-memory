@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-15T14:31:36.129Z",
+  "version": 1,
+  "limitation": "Offline retrieval proof only. No Gemini assessments or human sessions.",
+  "rows": [
+    {
+      "task": "A1",
+      "set": "A",
+      "normalMatches": [
+        "A1"
+      ],
+      "proposalEvidence": [
+        "A1"
+      ],
+      "pass": true
+    },
+    {
+      "task": "A2",
+      "set": "A",
+      "normalMatches": [
+        "A2-old",
+        "A2-current"
+      ],
+      "proposalEvidence": [
+        "A2-old",
+        "A2-current"
+      ],
+      "pass": true
+    },
+    {
+      "task": "A3",
+      "set": "A",
+      "normalMatches": [
+        "A3-current"
+      ],
+      "proposalEvidence": [
+        "A3-current"
+      ],
+      "pass": true
+    },
+    {
+      "task": "A4",
+      "set": "A",
+      "normalMatches": [
+        "A4-current"
+      ],
+      "proposalEvidence": [
+        "A4-current"
+      ],
+      "pass": true
+    },
+    {
+      "task": "B1",
+      "set": "B",
+      "normalMatches": [
+        "B1"
+      ],
+      "proposalEvidence": [
+        "B1"
+      ],
+      "pass": true
+    },
+    {
+      "task": "B2",
+      "set": "B",
+      "normalMatches": [
+        "B2-old",
+        "B2-current"
+      ],
+      "proposalEvidence": [
+        "B2-old",
+        "B2-current"
+      ],
+      "pass": true
+    },
+    {
+      "task": "B3",
+      "set": "B",
+      "normalMatches": [
+        "B3-current"
+      ],
+      "proposalEvidence": [
+        "B3-current"
+      ],
+      "pass": true
+    },
+    {
+      "task": "B4",
+      "set": "B",
+      "normalMatches": [
+        "B4-current"
+      ],
+      "proposalEvidence": [
+        "B4-current"
+      ],
+      "pass": true
+    }
+  ]
+}

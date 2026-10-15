@@ -20,6 +20,7 @@
     "test": "npm run test --workspace server",
     "test:integration": "node scripts/verify-integration.mjs",
     "test:ui": "node scripts/visual-qa.mjs",
+    "eval:proposal": "node scripts/evaluate-proposal-review.mjs",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:schema": "docker compose exec -T postgres psql -U decision_memory -d decision_memory -f /app/db/schema.sql",

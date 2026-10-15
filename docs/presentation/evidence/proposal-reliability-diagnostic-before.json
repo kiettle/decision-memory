@@ -1,0 +1,92 @@
+[
+  {
+    "id": "m32",
+    "expected": "POSSIBLE_MISMATCH",
+    "analysis": {
+      "status": "UNAVAILABLE",
+      "assessment": null,
+      "message": "Gemini timed out. Local evidence remains available; try again.",
+      "findings": []
+    },
+    "calls": [
+      {
+        "stage": "assessment",
+        "ms": 5425,
+        "text": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The proposal to accept any URL as an OAuth callback directly conflicts with the recorded choice to allow OAuth callbacks only to registered redirect URLs.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000002:outcome\",\n          \"quote\": \"Allow OAuth callbacks only to registered redirect URLs.\"\n        },\n        {\n          \"evidenceId\": \"66666666-6666-4666-8666-000000000002:why\",\n          \"quote\": \"An arbitrary callback can redirect authorization to an attacker.\"\n        }\n      ]\n    }\n  ]\n}",
+        "finish": "STOP"
+      },
+      {
+        "stage": "verification",
+        "ms": 2581,
+        "error": "AbortError"
+      }
+    ]
+  },
+  {
+    "id": "m35",
+    "expected": "POSSIBLE_MISMATCH",
+    "analysis": {
+      "status": "UNAVAILABLE",
+      "assessment": null,
+      "message": "Gemini timed out. Local evidence remains available; try again.",
+      "findings": []
+    },
+    "calls": [
+      {
+        "stage": "assessment",
+        "ms": 5063,
+        "text": "{\"findings\":[{\"assessment\":\"POSSIBLE_MISMATCH\",\"explanation\":\"Đề xuất cho phép link reset mật khẩu dùng lại nhiều lần mâu thuẫn trực tiếp với quyết định hiện tại yêu cầu link reset mật khẩu chỉ được sử dụng một lần duy nhất.\",\"citations\":[{\"evidenceId\":\"66666666-6666-4666-8666-000000000005:outcome\",\"quote\":\"Password-reset links are single-use.\"},{\"evidenceId\":\"66666666-6666-4666-8666-000000000005:why\",\"quote\":\"A used recovery token must not grant access again.\"}]}]}",
+        "finish": "STOP"
+      },
+      {
+        "stage": "verification",
+        "ms": 2942,
+        "error": "AbortError"
+      }
+    ]
+  },
+  {
+    "id": "c38",
+    "expected": "APPEARS_CONSISTENT",
+    "analysis": {
+      "status": "UNAVAILABLE",
+      "assessment": null,
+      "message": "Gemini timed out. Local evidence remains available; try again.",
+      "findings": []
+    },
+    "calls": [
+      {
+        "stage": "assessment",
+        "ms": 4490,
+        "text": "{\"findings\":[{\"assessment\":\"APPEARS_CONSISTENT\",\"explanation\":\"Đề xuất hiển thị tiền tệ theo locale người dùng đã chọn hoàn toàn khớp với quyết định đã được ghi nhận trong phạm viLocalization.\",\"citations\":[{\"evidenceId\":\"66666666-6666-4666-8666-000000000016:outcome\",\"quote\":\"Format currency using the user's selected locale.\"},{\"evidenceId\":\"66666666-6666-4666-8666-000000000016:why\",\"quote\":\"Number formatting differs between supported locales.\"}]}]}",
+        "finish": "STOP"
+      },
+      {
+        "stage": "verification",
+        "ms": 3512,
+        "error": "AbortError"
+      }
+    ]
+  },
+  {
+    "id": "u23",
+    "expected": "INSUFFICIENT_EVIDENCE",
+    "analysis": {
+      "status": "UNAVAILABLE",
+      "assessment": null,
+      "message": "Gemini timed out. Local evidence remains available; try again.",
+      "findings": []
+    },
+    "calls": [
+      {
+        "stage": "assessment",
+        "ms": 4899,
+        "text": "{\n  \"findings\": [\n    {\n      \"assessment\": \"POSSIBLE_MISMATCH\",\n      \"explanation\": \"The recorded choice explicitly states that the vendor has not been selected yet, as Azure and AWS are still candidates.\",\n      \"citations\": [\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000019:outcome\",\n          \"quote\": \"Use managed hosting; the vendor has not been selected.\"\n        },\n        {\n          \"evidenceId\": \"55555555-5555-4555-8555-000000000019:why\",\n          \"quote\": \"Azure and AWS are still candidates, with no approved vendor.\"\n        }\n      ]\n    }\n  ]\n}",
+        "finish": "STOP"
+      },
+      {
+        "stage": "verification"
+      }
+    ]
+  }
+]

@@ -161,6 +161,11 @@ optional-assistance view is shown; **Continue manually** bypasses this wait.
 
 ## Ask Decision Memory
 
+The separate **Check proposed decision** message shortcut opens an editable,
+private proposal review. Local checking and explicit scoped Gemini analysis are
+defined in [Proposal review](proposal-review.md); they do not change Ask or the
+automatic nudge triggers. Reapply the Slack manifest to install the shortcut.
+
 The **Ask Decision Memory** message shortcut uses the selected message as the
 question; `/why <question>` uses the typed text. Both open a private Slack
 window that shows "Searching stored Decisions…" and then up to five stored
