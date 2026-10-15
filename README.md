@@ -23,8 +23,10 @@ React application in the local browser (Forge deployment is deferred)
 
 ## Presenting Decision Memory
 
-Start with the [presenter guide](docs/presentation/README.md) for the product
-story, 90-second video script, seven-minute pitch outline and showcase copy.
+Start with the [plain-language product guide](docs/presentation/product-guide.md)
+to understand every feature, with examples and current readiness. Then use the
+[presenter guide](docs/presentation/README.md) for slide-ready talking points,
+a 90-second video script, seven-minute pitch outline and showcase copy.
 Use the [demo rehearsal](docs/presentation/demo-runbook.md) for exact setup,
 fields, repeat takes and fallback steps, and [judge Q&A](docs/presentation/judge-qa.md)
 for current evidence and implementation limits.

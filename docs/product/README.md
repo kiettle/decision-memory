@@ -1,5 +1,9 @@
 # Product Docs
 
+For a plain-language explanation of all features, read the
+[product guide](../presentation/product-guide.md). The documents below contain
+the detailed behavior contracts used during implementation.
+
 This directory contains current consumer-product behavior derived from real
 accepted intent. Harness deliberately ships no fake product domains.
 

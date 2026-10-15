@@ -1,177 +1,187 @@
-# Decision Memory — Presenter guide
+# Decision Memory — Presentation guide
 
-Updated: 2026-10-14. Start here when preparing the Buildathon submission.
-
-**Prepare:** [Demo rehearsal](demo-runbook.md) · [Judge Q&A](judge-qa.md) ·
-[Readiness evidence](readiness-validation.md)
-
-The 2026-10-15 competition extension adds **Check a proposed decision**. Its
-candidate story is “Before your team repeats a mistake, recover what it decided,
-why, and what changed.” Use the [proposal-review evaluation and user-study
-kit](proposal-review-validation.md). This becomes the main story only after
-the comparative user study demonstrates benefit; synthetic tests alone do not
-establish mistakes prevented, time saved, or a first-place outcome.
-
-The current readiness work checks local logic and prepares documentation.
-The owner will run the live rehearsal and recording later. First-time human
-usability and fresh installed Slack/Jira/Gemini integration checks remain pending.
-
-**Event format:** 60–90 second showcase video; finalists have a seven-minute
-pitch/demo and five-minute Q&A. Submission closes at 23:59 on 2026-11-01.
-The source for format, scoring and dates is
-[BUILDATHON_CONTEXT.md](../../BUILDATHON_CONTEXT.md).
+Updated: 2026-10-15. Use this page to build your slides and speaking notes.
+For an explanation of every feature, read the [product guide](product-guide.md).
 
 ## The message to remember
 
-> Find the decision your team confirmed, understand why it was made, and see
-> what replaced it—even when you cannot find the original conversation.
+> Before your team repeats a mistake, recover what it decided, why, and what changed.
 
-**Target users:** developers, tech leads, PMs and QA working on teams where
-important choices happen in Slack and get implemented through Jira.
+**Who:** developers, tech leads, PMs, QA, and new teammates.
 
-**Pain:** people remember the implementation but lose its reasoning, scope and
-history. They repeat discussions, struggle to onboard, or follow old guidance.
+**Problem:** decisions happen in Slack, but their reasons and replacements become
+hard to find. People repeat discussions or follow outdated choices.
 
-**Value:** a confirmed decision keeps its reason and evidence; a teammate can
-find it by meaning, understand where it applies, and follow its evolution.
+**Solution:** capture the agreed choice with evidence, find it later, follow its
+replacement history, and review a new proposal against current decisions.
 
-### Opening you can say aloud
+**Intended value:** easier onboarding and better-informed decisions. User testing
+still needs to establish whether people make fewer mistakes or finish faster.
 
-“Imagine joining a service six months after a major change. You can see the
-code, but you cannot find why the team chose that approach. The explanation is
-somewhere in Slack, and you may not know its words or channel. Decision Memory
-turns the team's confirmed choice into a durable record: what we decided, why,
-where it applies, and what changed later.”
+## Suggested slides for a seven-minute presentation
 
-## What to show and why it matters
+Use one main idea per slide. Put the short bullets on the slide; use the “Say”
+line as your speaking notes. The demo gets the largest share of the time.
 
-| Product behavior | User benefit | Visible proof |
-| --- | --- | --- |
-| Save as Decision in Slack | Capture during normal work | Review the form and save without opening the web app |
-| Stored discussion and evidence | Understand reasoning without reopening Slack | Read the anchor and captured messages on the detail page |
-| Keyword search + local Search by memory | Find a choice with partial wording or an imperfect memory | Search, open the original stored decision and its evidence |
-| What changed? + supersession | Understand which guidance applies now and why it evolved | Old record remains visible; both records show the replacement reason |
-| Compare before and after | Examine the reasons and scope of two choices together | Two recorded decisions and their evidence links appear side by side |
-| Scope overviews | Understand a service's current choices | Active decisions and recent replacements appear for one Applies To value |
-| Pending questions and deadline views | Make approaching decision dates visible | Capture one question, find it in Due soon, and record its choice while preserving the question |
+### Slide 1 — “Why are we discussing this again?” · 45 seconds
 
-Keep Ask in Slack, private nudges, richer similar-decision suggestions and Jira
-issue creation available for Q&A. Include them in the main recording only if
-the core story remains clear within the time limit.
-The pending/deadline flow also has a separate walkthrough in the rehearsal
-guide. Validate usability with an unfamiliar participant before claiming it
-reduces effort.
+**Put on the slide:**
 
-## The 90-second video
+- The decision is buried in Slack.
+- The reason is forgotten.
+- An old choice looks like current guidance.
 
-Use the synthetic migration-backup scenario in [the rehearsal](demo-runbook.md).
-These are editing targets; rehearse actual interaction times before recording.
+**Say:** “A new teammate proposes something reasonable. The team already tried
+it and later changed direction—but the teammate cannot find that history.”
+
+**Visual:** a simple Slack question: “Can we keep migration backups on the database host?”
+
+### Slide 2 — A decision the team can reuse · 40 seconds
+
+**Put on the slide:**
+
+- What we decided.
+- Why and where it applies.
+- Evidence and what replaced it.
+
+**Say:** “Decision Memory keeps the choice, its reason, its scope, and the
+supporting discussion together. When the choice changes, the old record remains
+and points to the replacement.”
+
+**Visual:** one decision detail page with What, Why, Applies To, and evidence.
+
+### Slide 3 — One connected workflow · 40 seconds
+
+**Put on the slide:**
+
+**Capture → Find → Understand changes → Check a proposal → Record the choice**
+
+**Say:** “Capture starts in Slack or the web app. Later, search retrieves the
+recorded choice. Comparisons explain changes. Proposal review helps a person
+consider that history before saving a new choice.”
+
+**Visual:** the five steps above. Keep Kanban, nudges, and Jira for a short
+mention or Q&A so the main story stays clear.
+
+### Slide 4 — Show the product · 3 minutes
+
+**Put on the slide:** “A plausible proposal meets the team's decision history.”
+
+**Show:** enter the backup proposal, retrieve locally, confirm scope, explicitly
+analyze, inspect the current choice and replacement reason, then revise and
+record the choice. Also show a consistent or insufficient-evidence example.
+
+**Say:** “The app brings back the evidence. AI offers an assessment. The person
+checks it and decides what to save.”
+
+Use the [Slack handoff](slack-rehearsal-handoff.md) to prepare the synthetic
+records and rehearse. Feature the new analysis flow in the main submission only
+after installed rehearsal and the user-benefit check. Until then, demonstrate
+local evidence, replacement history, and comparison using the
+[capture rehearsal](demo-runbook.md).
+
+### Slide 5 — What we have verified · 55 seconds
+
+**Put on the slide:**
+
+- 117 automated tests passed; database and desktop/mobile checks passed.
+- Latest 24-case synthetic evaluation: 23 expected outcomes, one timeout.
+- Installed rehearsal and user study: pending.
+
+**Say:** “The implementation has technical proof. The small model evaluation is
+encouraging, but it is not a general accuracy claim. We still need to observe
+whether coworkers make better decisions or complete the tasks faster.”
+
+**Visual:** separate “Verified” and “Still to measure” columns. After the study,
+replace the pending line with observed results, including failures and assistance.
+
+### Slide 6 — Practical today, focused next step · 1 minute
+
+**Put on the slide:**
+
+- One web app, one backend, one database.
+- Local memory search; optional Gemini assistance.
+- Next: validate with one team, fix observed problems, rehearse.
+
+**Say:** “The local app already connects capture, reasoning, history, and review.
+Our next step is to validate the benefit with real users. Before your team
+repeats a mistake, recover what it decided, why, and what changed.”
+
+**Visual:** Slack / web → backend → stored decisions; optional Gemini beside it.
+Shared hosting is future work. Only show Slack/Jira as verified integrations
+after a successful installed rehearsal.
+
+## The 90-second demo story
+
+Use synthetic data and one exact scope. These are timing targets for an edited
+video, not measured task times. The [handoff](slack-rehearsal-handoff.md) gives
+exact setup steps and expected evidence.
 
 | Time | Show | Say |
 | --- | --- | --- |
-| 0–8 s | A Slack question about an earlier choice | “We remember what we built, but lose the reasons. Then we ask the same questions again.” |
-| 8–28 s | Save as Decision, review and save | “Capture the agreed decision here, with its scope and evidence. A person confirms what is saved.” |
-| 28–47 s | Find the record and read its captured discussion | “A teammate can find the decision later and read the discussion preserved with it.” |
-| 47–69 s | Supersede the earlier choice, record What changed?, open comparison | “When circumstances change, keep the earlier choice and explain the replacement. See both reasons together.” |
-| 69–82 s | Open the scope overview | “Someone joining the service sees what applies today and how the decisions evolved.” |
-| 82–90 s | End on the current decision or scope | “Decision Memory keeps the team's choices, reasons and evolution available for the next person who needs them.” |
+| 0–8 s | Proposal: “Keep migration backup files on the database host.” | “This sounds reasonable. But has the team already changed this decision?” |
+| 8–20 s | Check locally; open the current object-storage choice | “The history shows that we moved backups off the database host.” |
+| 20–38 s | Confirm scope; choose Analyze with Gemini; inspect citations | “The assessment points to a possible mismatch and shows the recorded evidence.” |
+| 38–53 s | Compare the old and current choices, including What changed? | “Large backup files exhausted the host. That is why the choice changed.” |
+| 53–68 s | Revise to object storage; open Record this choice and explicitly save | “The person reviews the evidence and records the choice.” |
+| 68–80 s | Check a 45-day retention proposal where duration is undecided | “When the records do not settle a question, the answer is insufficient evidence.” |
+| 80–90 s | Current choice and closing line | “Keep the team's choices, reasons, and changes available for the next decision.” |
 
-If this exceeds 90 seconds, prepare the replacement before recording and show
-its reason and comparison directly. That is a recorded walkthrough; explain
-capture/replacement timing separately if asked. Do not present edited timing as
-a measured product speed.
+If measured user results are available, use the closing seconds for one concrete
+result with its participant/task count. Otherwise state that the pilot is
+pending. Do not invent a time-saving claim.
 
-The team must be able to demonstrate creation and replacement live during Q&A.
-
-## The seven-minute pitch and demo
-
-Six slides/screens are enough. The demo is the main proof.
-
-| Time | Slide or screen | Talking points |
-| --- | --- | --- |
-| 0:00–0:45 | Problem and user | Use the opening above. Describe a developer/PM/QA needing an old decision's rationale. Include a real user example only after permission and sanitization. |
-| 0:45–1:15 | Product promise | Explain What + Why + Applies To + Evidence. Capture happens in Slack; retrieval and understanding happen in the library. |
-| 1:15–4:15 | Live demo | Capture a synthetic thread, find the record, read evidence, show an explicit replacement reason and comparison, then open the scope overview. Use the rehearsal's known state. |
-| 4:15–5:15 | Value and difference | Explain repeated discussions, onboarding and outdated guidance. Point to human confirmation, durable evidence and decision evolution. Share measured pilot results if available. |
-| 5:15–6:10 | Feasibility | One API, relational storage and a local multilingual model. Search inference needs no paid AI API; optional Gemini drafting is separate. Show the validation/limitations slide from the Q&A notes. |
-| 6:10–7:00 | Next step and close | Describe a small team pilot and its success measures. Close with the product promise. Avoid promising a large unbuilt roadmap. |
-
-### Transition lines
-
-- Into capture: “Here is the point where an ordinary conversation becomes a
-  decision the team can reuse.”
-- Into evidence: “The stored record includes the discussion, so another person
-  can inspect why this choice was made.”
-- Into evolution: “A decision can be reasonable today and need replacement
-  later. The reason for that change also needs to survive.”
-- Into scopes: “Now imagine you are the next person joining this service. This
-  page puts its current choices and their history together.”
-
-## How this supports the judging criteria
-
-| Final criterion | Points | What our presentation should establish |
-| --- | --- | --- |
-| Problem & User Value | 30 | Specific users and an example of lost reasoning; pilot evidence when collected |
-| Product Thinking | 20 | One coherent flow from capture to later understanding and replacement |
-| Execution & Demo | 20 | A rehearsed working flow with clear evidence and a recovery path |
-| Feasibility & Technical Quality | 10 | Simple architecture, tested boundaries, and a credible next pilot |
-| Creativity | 10 | Decisions retain human confirmation, scope, evidence and reasons for change |
-| Presentation & Q&A | 10 | A concise story and accurate answers about the current implementation |
-
-Preliminary judging uses the first three criteria for 70 points, with company
-voting contributing 30. Final scores restart from zero. Show a familiar problem
-that colleagues outside engineering can also recognize.
+If Gemini is unavailable, show local evidence and the comparison. Explain the
+fallback; do not label that take a successful AI analysis. A separate capture
+take can show how the evidence was saved from Slack. Manually entered fixtures
+must not be presented as Slack-captured discussion.
 
 ## Copy for the showcase board
 
 **Project name:** Decision Memory
 
-**Problem & Target User:** Developers, PMs and QA make important choices in Slack,
-then lose the reason, scope or current version. Finding the implementation does
-not necessarily explain the decision, which slows onboarding and repeats work.
+**Problem & Target User:** Developers, PMs, QA, and new teammates need the reasons
+behind earlier choices. Those reasons are often buried in Slack, and an old
+decision may have been replaced without everyone knowing.
 
-**Solution:** Capture a human-confirmed decision from Slack with durable
-evidence. Retrieve it through keyword or local multilingual memory search.
-Preserve replacements and their reasons, compare choices, and explore a
-service's current decisions and history.
+**Solution:** Save a human-confirmed decision with its evidence. Find it by words
+or meaning, understand its scope and replacements, and check a new proposal
+against the team's recorded choices before explicitly saving it.
 
-**Demo video:** Add the final 60–90 second video link after recording.
+**Demo video:** Add the final 60–90 second recording link.
 
-**Prototype / Demo link:** Add a verified accessible link, if available. The
-current localhost URL is for the presentation computer and is not a shared
-company demo link.
+**Prototype / Demo link:** Add a verified accessible link if available. The
+current local app is not a shared demo site.
 
-**Team members:** Fill in the actual registered team.
+**Team members:** Add the registered name or names.
 
-## Evidence to collect before presenting impact
+## Keep these claims accurate
 
-Start with the four uncoached tasks in the
-[readiness record](readiness-validation.md): create a pending question, find
-one due soon, record its choice, and capture an already-made decision. Watching
-someone unfamiliar with the app exposes confusion that scripted checks cannot
-measure. Record hesitation, errors and assistance as well as elapsed time.
-Each save should require one text field; optional metadata should never block it.
-
-Ask 5–8 target users to capture a decision, find it using different wording,
-explain its rationale and identify its latest replacement. Compare retrieval
-with their usual approach on equivalent tasks.
-
-| Measure | Fill with observed results |
+| You can say | Do not claim yet |
 | --- | --- |
-| Participants and roles | Number of users, roles and test date |
-| Capture time | Median and slow cases, including source retrieval and confirmation |
-| Retrieval success | Correct decisions found / total attempts |
-| Retrieval time | Median time in Decision Memory and in the usual workflow |
-| Understanding | Users who correctly explained Why, Applies To and current replacement |
-| Feedback | One permitted quote and one important failure or frustration |
+| Local memory search works offline after setup | The entire product works offline |
+| Proposal analysis checks citations against supplied records | AI proves a proposal is correct or catches every conflict |
+| 23/24 expected outcomes on the latest synthetic set | 96% accuracy for real users or perfect reliability |
+| The workflow is intended to reduce repeated discussion | Proven hours saved, mistakes prevented, or company-wide savings |
+| The local implementation has automated and browser proof | All installed integrations or production deployment are verified |
 
-No pilot results are currently recorded here. The original <15-second capture
-and <5-second known-decision retrieval figures are UX targets, not measured
-claims. Automated tests establish behavior; they do not establish time saved.
+The evaluation used controlled retrieval; 22 cases invoked Gemini and two
+stopped at local evidence checks. One case timed out. Full results are in the
+[readiness record](readiness-validation.md).
 
-Use [Judge Q&A](judge-qa.md) for accurate technical and product answers, and
-[Demo rehearsal](demo-runbook.md) for exact fields, setup and repeat-take steps.
+## Preparation links
 
-For the deferred live session, use the [Slack rehearsal handoff](slack-rehearsal-handoff.md).
-For user acceptance, use the [facilitator guide](study/facilitator.md) and share
-only the [participant task cards](study/participant-tasks.md) with coworkers.
+| Need | Read |
+| --- | --- |
+| Understand all features | [Product guide](product-guide.md) |
+| Answer judge questions | [Short Q&A](judge-qa.md) |
+| Rehearse the new Slack shortcut | [Slack handoff](slack-rehearsal-handoff.md) |
+| Rehearse capture and replacements | [Demo runbook](demo-runbook.md) |
+| Run coworker sessions | [Facilitator guide](study/facilitator.md) and [task cards](study/participant-tasks.md) |
+| Check exact test evidence | [Readiness record](readiness-validation.md) |
+
+Per the repository's [event brief](../../BUILDATHON_CONTEXT.md), submission is
+November 1 at 23:59; the video is 60–90 seconds. Finalists get seven minutes for
+pitch/demo and five for Q&A. Value, product thinking, and execution/demo account
+for 70 judging points. Build the presentation around a clear user problem and
+one complete working story.

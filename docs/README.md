@@ -2,6 +2,10 @@
 
 Start with the smallest authoritative surface.
 
+For a simple explanation of the app, start with the
+[product and feature guide](presentation/product-guide.md). To prepare slides,
+use the [presentation guide](presentation/README.md).
+
 ## Current Product
 
 - `WORKFLOW.md`: request shape, planning, judgment, operation, validation, and

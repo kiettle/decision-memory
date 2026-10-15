@@ -83,6 +83,15 @@ Record the 24-case live evaluation separately from automated assertions.
 
 ## Result
 
+Presentation documentation follow-up, 2026-10-15: the owner requested simple,
+complete feature explanations to use when building slides. Added a plain-language
+[product guide](../../presentation/product-guide.md), rewrote the presenter guide
+with six slide outlines and a 90-second proposal story, and shortened judge Q&A.
+Descriptions follow the existing product contracts; no application behavior or
+readiness gates changed. Installed rehearsal and human measurement remain pending.
+Validation: relative file links and section anchors resolve; `git diff --check`
+passed. This documentation-only update did not rerun application tests.
+
 Later-rehearsal package: Slack bot authentication succeeded and matched the
 configured workspace; existing Funnel routing targets the Slack-only port.
 The app was stopped and the installed manifest/shortcut remain unverified.
