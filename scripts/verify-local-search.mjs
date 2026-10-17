@@ -96,7 +96,9 @@ try {
   if (regressionFailures.length) throw new AggregateError(regressionFailures, "Local recall regressions failed")
   indexer = createSearchIndexer({ repository, embedder })
   await repository.queueUnindexedDecisions(embedder.model)
-  assert.equal(await indexer.drain(), 9)
+  // The seed has nine recorded choices and three pending questions; all are
+  // indexed, while semantic candidates below still exclude the pending ones.
+  assert.equal(await indexer.drain(), 12)
   assert.equal(await indexer.drain(), 0, "Restart must reuse persisted embeddings")
   const identity = { workspaceExternalKey: config.localWorkspaceId, cloudId: config.localCloudId,
     userExternalId: config.localUserId, userDisplayName: config.localUserName }
@@ -148,6 +150,41 @@ try {
   await repository.updateDecision(identity, fixture.id, { title: "Changed local recall sentinel", ownerId: user.id,
     tags: ["local-proof"], appliesTo: ["Local proof"] })
   assert.equal(await repository.completeSearchJob(staleJob, [queryVector], embedder.model), false, "Concurrent edits invalidate earlier jobs")
+  await regression("editing during index publication", async () => {
+    const job = (await repository.pendingSearchJobs()).find((item) => item.decisionId === fixture.id)
+    const edit = await models.sequelize.transaction()
+    let publication
+    try {
+      await models.sequelize.query("SELECT id FROM decisions WHERE id = :id FOR UPDATE", {
+        replacements: { id: fixture.id }, transaction: edit,
+      })
+      publication = repository.completeSearchJob(job, [queryVector], embedder.model)
+        .then(value => ({ value }), error => ({ error }))
+      // Wait for the publisher to reach the held row, rather than relying on a
+      // timing delay. With the old lock order it holds the job while waiting.
+      let waiting = false
+      for (let attempt = 0; attempt < 100 && !waiting; attempt++) {
+        const [rows] = await models.sequelize.query(
+          "SELECT pid FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND wait_event_type = 'Lock' AND query LIKE :query",
+          { replacements: { query: `%${fixture.id}%` } },
+        )
+        waiting = rows.length > 0
+        if (!waiting) await delay(20)
+      }
+      assert.ok(waiting, "Index publication must overlap the held decision edit")
+      await models.sequelize.query("UPDATE decisions SET title = 'Changed during publication' WHERE id = :id", {
+        replacements: { id: fixture.id }, transaction: edit,
+      })
+      await edit.commit()
+      const result = await publication
+      assert.ifError(result.error)
+      assert.equal(result.value, false, "Publication must reject the revision invalidated by the successful edit")
+    } finally {
+      if (!edit.finished) await edit.rollback()
+      if (publication) await publication
+    }
+  })
+  if (regressionFailures.length) throw new AggregateError(regressionFailures, "Local search publication regression failed")
   let pending = await repository.vectorSearch(identity, { vector: queryVector, model: embedder.model, filters: { tag: "local-proof" } })
   assert.equal(pending.totalCandidateCount, 1)
   assert.equal(pending.candidateCount, 0)

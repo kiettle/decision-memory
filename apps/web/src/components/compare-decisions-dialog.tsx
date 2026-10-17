@@ -14,14 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { SearchableSelect } from "@/components/searchable-select"
 import { api } from "@/lib/api"
 import { comparisonHref } from "@/lib/decision-links"
 import type { Decision } from "@/types"
@@ -90,36 +83,18 @@ export function CompareDecisionsDialog({ decision }: { decision?: Decision }) {
               return (
                 <Field key={label}>
                   <FieldLabel>{label}</FieldLabel>
-                  <Select
+                  <SearchableSelect
+                    label={label}
                     value={selected}
                     disabled={loading || (index === 0 && Boolean(decision))}
-                    onValueChange={(value) =>
-                      index === 0 ? setLeft(value ?? "") : setRight(value ?? "")
-                    }
-                  >
-                    <SelectTrigger aria-label={label} className="w-full">
-                      <SelectValue>
-                        {(selectedRow ? headline(selectedRow) : null) ??
-                          (index === 0 ? (decision ? headline(decision) : null) : null) ??
-                          (loading
-                            ? "Loading Decisions…"
-                            : "Choose a Decision")}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {rows
-                          .filter(
-                            (item) => item.id !== (index === 0 ? right : left)
-                          )
-                          .map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.decisionKey} · {headline(item)}
-                            </SelectItem>
-                          ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                    className="w-full justify-between"
+                    onChange={(value) => index === 0 ? setLeft(value) : setRight(value)}
+                    options={[
+                      { value: "", label: loading ? "Loading Decisions…" : "Choose a Decision" },
+                      ...(decision && !selectedRow && index === 0 ? [{ value: decision.id, label: `${decision.decisionKey} · ${headline(decision)}` }] : []),
+                      ...rows.filter(item => item.id !== (index === 0 ? right : left)).map(item => ({ value: item.id, label: `${item.decisionKey} · ${headline(item)}` })),
+                    ]}
+                  />
                 </Field>
               )
             }

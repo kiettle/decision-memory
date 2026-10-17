@@ -42,7 +42,7 @@ export function AppShell() {
       .then(setMetadata)
       .catch(() => setMetadata(null))
   }, [])
-  const userName = metadata?.currentUser.displayName ?? ""
+  const userName = metadata?.currentUser?.displayName ?? ""
 
   return (
     <div className="min-h-svh bg-background text-foreground">

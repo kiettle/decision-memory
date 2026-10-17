@@ -7,15 +7,25 @@ vector retrieval, zero paid-service dependencies, and easy CLI setup. This
 supersedes the earlier Gemini ranking and newest-200 limits for local memory search.
 
 On 2026-10-13 the owner approved restoring optional Gemini AI ranking alongside
-local vectors. The web library provides **Search by memory** (local vectors) and
-**Search with Gemini**. Both use the current channel, tag, linked/recorded owner,
-status, Applies To and date filters. Neither runs automatically as the user types.
+local vectors. The web library provides primary **Find by meaning** (local vectors) and
+secondary **Search with Gemini** inside **Search options**. Both use the current channel, tag, linked/recorded owner,
+status, Applies To and date filters. Gemini never runs automatically. Local search
+runs automatically only in the two cases in
+[automatic local discovery](#automatic-local-discovery--2026-10-17).
 Slack recall, similar-decision suggestions and nudges continue to use local search.
+
+Owner-approved discovery extension (2026-10-17): ordinary keyword search also
+matches the displayed decision key, case insensitively (for example `dm-104`).
+Key searches retain the current workspace and all selected filters; they never
+trigger semantic search or bypass a filter. **Owner: Unassigned** selects records
+with neither a linked owner ID nor a recorded owner name. This predicate applies
+to keyword results, local vector candidates/counts and Gemini candidates before
+the cap. Pending questions remain excluded from semantic search as before.
 
 ## Optional Gemini AI search
 
 Set `GEMINI_API_KEY` and restart the server to enable the Gemini action. Its
-adjacent copy discloses that the query and compact stored decision/evidence
+Search options disclosure, visible before invocation, discloses that the query and compact stored decision/evidence
 excerpts are sent to Google. Local search requires no key and remains offline.
 An explicit Gemini request uses the existing configured Gemini model, without
 automatically falling back to another provider.
@@ -113,7 +123,9 @@ An indexed decision with a pending job is excluded until refreshed. Search
 returns indexed and total filtered counts; web/Slack describe pending coverage.
 Keyword search remains immediately usable. A revision check under a row lock
 rejects embeddings made before a concurrent edit. Publication replaces passages
-and removes the matching job in one transaction.
+and removes the matching job in one transaction. Publication locks the decision
+before its job, matching save-time invalidation so concurrent edits cannot
+deadlock with embedding insertion.
 
 Setup drains the existing backlog before launching the app. `npm run search:index`
 can finish a backlog manually. Interrupted inference leaves jobs for the next
@@ -146,3 +158,107 @@ Existing integration and browser checks remain applicable. No cloud deployment,
 production SLA, relevance guarantee or million-record throughput is claimed.
 Keyword search still uses the MVP implementation; its indexing and pagination
 remain separate scaling work.
+
+## Empty-result recovery and saved views — 2026-10-16
+
+The owner-approved library convenience extension adds explicit local
+**Find by meaning** recovery after empty keyword results, when the query and
+filters are eligible and local search is configured. Empty memory results offer
+**Back to keyword results** and applicable filter recovery actions. Saving or
+applying a library view never repeats memory search or persists its results.
+See [saved views and capture recovery](decision-deadlines.md).
+
+## Search controls and creation lookup — 2026-10-16
+
+The owner approved one primary local **Find by meaning** action beside automatic
+keyword search. **Search options** opens a compact disclosure containing the
+optional **Search with Gemini** action and its query/excerpts/newest-200 Google
+sharing notice. Opening it invokes nothing; selecting the Gemini action invokes
+the existing provider without a second confirmation. Disabled actions explain
+query length, availability and pending/deadline restrictions in visible text.
+Result method, coverage, counts, errors and **Back to keyword results** remain
+visible. There is no automatic retry or provider fallback.
+
+New web forms offer optional **Find related decisions**, using the current
+Pending question or Already decided final choice. It calls LOCAL only, with the
+same three-character minimum and availability flag. Exactly one selected scope
+uses that exact Applies To filter; zero scopes search all scopes. With multiple
+scopes, **Search within** defaults to All scopes and permits choosing one exact
+selected draft scope. It does not combine scopes or alter the draft.
+No pending state filter is sent; existing retrieval excludes pending evidence
+and includes current/superseded recorded decisions under its existing rules.
+
+Up to five matches show stored key, choice, exact scopes, lifecycle status and
+bounded stored Why, plus **Open decision**. Coverage describes pending indexing.
+Similarity is discovery, never equivalence, duplicate/conflict judgment or approval.
+Empty/error/unavailable results preserve the form and manual saving. Searches,
+retries and saves are separate explicit actions; saving does not await retrieval.
+Changing primary text, mode or scopes, starting a save, and leaving the form
+invalidate pending publication. Related results are neither saved nor drafted;
+returning offers existing raw draft recovery without repeating lookup.
+
+Proof: `scripts/verify-convenience-ui.mjs` and the existing library/deadline/UI
+checks, with semantic providers intercepted; integration and offline local-search
+proof retain server retrieval, pending exclusions and lifecycle coverage.
+
+## Related decision preview — 2026-10-16
+
+Owner-approved: new-form related results offer **Preview**, opening a Sheet
+without navigating or remounting the form. Opening loads the selected record
+through the existing authenticated detail endpoint. It shows the current stored
+choice, lifecycle status, full Why, exact scopes and source/reference links.
+Missing evidence and incomplete/shortened capture remain explicit. The original
+**Open decision** link stays available; **Open full decision** inside the sheet
+opens the detail page, where saved discussions and replacement history can be read.
+
+Close, Escape and **Back to draft** return focus to the trigger and preserve raw
+form input and related results without draft restoration or repeated search.
+Preview reads never invoke AI or mutate records. Loading failures offer an explicit
+retry; closing/unmounting invalidates late responses. Each opening reloads detail;
+there is no new cache or persistence. Full-page navigation continues using the
+existing draft-recovery contract. Proof extends verify-convenience-ui.mjs.
+
+## Scoped draft lookup and fuller previews — 2026-10-17
+
+Owner-approved: the multi-scope draft **Search within** selector contains All
+scopes and each exact selected scope. Selection changes invalidate results,
+errors and pending publication without making a request. **Find related
+decisions** remains the explicit LOCAL action. All scopes omits appliesTo; a
+specific scope uses the existing exact filter. Draft scope changes reset lookup
+to all scopes for zero/multiple values or the sole scope for one value. Primary
+text/mode/scope invalidation, pending evidence exclusions and availability rules
+remain. Preview open/close preserves selected lookup scope and raw draft inputs.
+
+The shared library/draft Preview loads owner, deadline and replacement content
+from the full record only when opened. Owner uses linked display name, recorded
+name or Unassigned. Deadlines reuse the viewer-local pending urgency and decided
+historical-date display; absent dates are omitted. Superseded previews link every
+`lifecycle.current` replacement, preserving the originating navigation context.
+Immediate historical intermediates are not labeled current; missing current
+information is explained without inventing a successor. Full-detail/evidence,
+loading/retry, return wording, Escape/focus restoration and no-AI/no-write behavior
+remain the same.
+
+## Automatic local discovery — 2026-10-17
+
+Owner-approved convenience change. It replaces the explicit-only rule above for
+local retrieval in two places. Gemini requests remain explicit everywhere.
+
+**Library fallback.** When keyword search for an eligible query (at least three
+non-whitespace characters, no Pending status or deadline filter, local search
+configured) returns zero decisions, the library runs one LOCAL **Find by meaning**
+request with the same filters after a short pause. It runs once per query/filter
+combination; **Back to keyword results**, errors and empty meaning results do not
+retry it. Matches show the existing result banner, labelled as an automatic
+fallback. Zero meaning matches keep the keyword empty state and say that meaning
+search also found nothing. The manual **Find by meaning** action is unchanged.
+
+**Related decisions in new forms.** New Pending and Already decided forms run the
+existing LOCAL related lookup about 0.7 seconds after the question/final choice or
+lookup scope stops changing. Edits, mode/scope changes, saving and leaving still
+invalidate pending results. **Find related decisions** remains available to
+retry. Saving never waits for the lookup, and results are never saved or drafted.
+
+Both reuse `POST /api/decisions/memory-search` with `method: LOCAL`; nothing is
+sent outside the computer. Proof: the library, convenience and discovery UI
+checks in `scripts/visual-qa.mjs`.

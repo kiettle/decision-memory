@@ -90,11 +90,11 @@ Required copy and controls:
 - Result count.
 - Sort: `Newest first`.
 
-Use an open list/table hybrid on desktop. Preserve columns for Status, Decision,
-Applies to, Why, Team, Owner, Evidence, and Date. Rows are clickable and use
-separators rather than floating cards. On mobile each row becomes one open stack
-with status, date, ID, title, Applies To, Why, team, tags, evidence, and lifecycle
-links.
+Use a compact open list at desktop and mobile widths, with separators rather
+than floating cards. Show status, choice, ID, tags and optional rationale first;
+wrap scope, owner, created date and available channel/evidence metadata together.
+Title links open full detail independently from pending-record action buttons.
+Omit empty channel/source/rationale placeholders from this scanning view.
 
 ## Decision Detail
 
@@ -184,7 +184,7 @@ will be stored. Both end with Cancel and Save.
 
 - Search updates the result set without losing active filters.
 - Filters can be combined and cleared.
-- Selecting a row opens Decision detail.
+- Selecting a record title opens Decision detail; pending actions remain independent.
 - New Decision opens the creation route.
 - Save validates Decision, persists, shows success feedback, and navigates to
   detail.
@@ -210,7 +210,7 @@ will be stored. Both end with Cancel and Save.
 
 Approved in the owner's feature request. Extend the existing restrained design:
 
-- Library actions expose Explore scopes and Compare decisions on desktop/mobile.
+- Library actions expose Compare decisions; scopes open from navigation (the library Explore scopes button was removed on 2026-10-17).
 - Replacement confirmation previews the earlier and replacing choice and adds
   an optional What changed field. The recorded reason appears with lifecycle.
 - Comparison uses two editorial columns on desktop and stacks the complete
@@ -223,8 +223,8 @@ Approved in the owner's feature request. Extend the existing restrained design:
 
 ## Dual memory search extension — 2026-10-13
 
-Owner-approved: show separate local **Search by memory** and **Search with Gemini**
-actions next to the same query/filters. Disclose Gemini's query/candidate transfer
+Owner-approved (updated 2026-10-16): show primary local **Find by meaning** and
+secondary **Search with Gemini** inside a compact **Search options** disclosure. Disclose Gemini's query/candidate transfer
 and approximate ranking beside its action. Identify the chosen provider in
 results; explain Gemini's newest-200 filtered cap separately from local indexing
 coverage. Keep disabled configuration, loading, retry/fallback, cached navigation
@@ -234,8 +234,8 @@ and stale-response behavior clear on desktop and mobile.
 
 Owner-approved: retain Flat by default and add Kanban using the same records,
 search and filters. This explicitly permits compact board cards alongside the
-existing open flat rows. Use one visible All/Pending/Decided/Superseded Status
-filter. Pending question, direct recorded choice and completion each require
+existing open flat rows. Keep All/Pending/Decided/Superseded Status
+available in More filters. Pending question, direct recorded choice and completion each require
 one text field. Optional creation details collapse under More details. Dates and
 owners remain optional. Preserve the original question when recording an outcome.
 
@@ -246,3 +246,93 @@ Decided initially shows ten and reveals ten more per Show more. Keep mobile
 horizontal scrolling inside the board. Flat/Kanban switches preserve URL filters,
 sort and cached memory results. Use accessible date/completion dialogs and retain
 drafts on failed saves. No dragging or scheduled reminders.
+
+## Library workflow convenience extension — 2026-10-16
+
+Owner-approved: reuse the existing searchable picker, buttons and named dialog
+for browser-local saved views; disclose browser storage beside the controls.
+Provide actionable empty states for both Flat and fully empty Kanban results.
+Use the existing Empty component and explicit actions, retaining provider choice.
+Keep the current header, open list and responsive filter vocabulary.
+
+Saved view editing (2026-10-17) retains the selected view during filter edits.
+Use an explicit Update view button and visible Unsaved changes text, Save as new,
+and compact labeled rename/delete icon buttons. Reuse the named dialog for
+renaming, with browser-local storage errors visible. Detail actions include Copy
+summary; let the action bar wrap on narrow screens. Clipboard failure uses a
+read-only textarea in an existing dialog, selected on focus for manual copying.
+
+Library discovery (2026-10-17) reuses the capture preview sheet from Flat rows
+and Kanban cards, with Back to results and Copy summary for the loaded full
+record. Keep title links and row/card actions independently focusable. Reuse
+the searchable picker in Compare and Supersede. Add Unassigned inside the Owner
+filter rather than another toolbar shortcut. Scope-filtered creation carries
+the scope into the existing editable field. Review this choice is a secondary
+new-form action; proposal review explains that the original draft is retained,
+offers Back to draft and returns to that draft rather than opening a second
+capture. Retain existing explicit local/Gemini actions and disclosure.
+
+Show browser draft Restore/Discard controls above new/edit forms with clear
+storage feedback. Block restoration over a newer server revision and retain a
+copyable draft. Put optional rationale immediately beside an already-decided
+choice; keep remaining supporting fields progressively disclosed.
+
+## Everyday convenience — 2026-10-16
+
+Keep quick filters, Assigned to me and Applies To visible. Reuse the filter sheet
+for the six detailed controls; count only those active fields and keep all chips
+outside. Flat pending rows use independent title links and secondary existing
+outcome/deadline buttons, without nested interactive controls. New forms offer
+optional explicit local related lookup with stored content, scope and coverage
+explanations. Keep the existing visual system and draft-recovery controls.
+
+### Compact library and related previews (2026-10-16)
+
+The approved follow-up uses compact Flat records at all widths instead of the
+wide nine-column table/laptop metadata stack. Status, choice, rationale and
+pending actions lead; scope, owner, created date and available channel/evidence
+metadata wrap together. Library-only spacing is reduced without shrinking form
+or detail layouts. Related creation results use the existing Sheet for a fresh,
+read-only detail preview, preserving the form underneath. Its body scrolls while
+Back to draft/Open full decision remain available. No generated summary is added.
+
+## Practical discovery and completion — 2026-10-17
+
+Make existing Flat metadata individually actionable with short accessible Filter
+names and wrapping controls, using the same exact URL filters/chips. Kanban only
+adds an Owner filter affordance where Owner is already displayed. Selecting the
+same value does nothing. Keep title, preview and mutation controls independent.
+
+Extend the same lazy preview in library and drafts with loaded Owner, optional
+existing deadline rendering, and all current lifecycle replacement links. Keep
+immediate/current history distinct and retain source content and close wording.
+For multi-scope drafts, reuse the searchable single-select for Search within;
+its value is lookup-only and changing it never starts retrieval.
+
+Pending completion dialogs reuse Review this choice and existing proposal review,
+with raw input in identity-bound navigation state. Restore at the page level so
+filter membership changes cannot lose the dialog or bypass conflict handling.
+Use the existing dialogs, fields, sheets and narrow completion endpoint. No new
+visual system, provider, recommendation framework or automatic write is added.
+
+## Demo polish — 2026-10-17
+
+Owner-approved after a hands-on review; it updates earlier sections where they
+conflict:
+
+- Library controls are four rows: header (Compare decisions, New Decision),
+  search (Find by meaning, Search options), one filter toolbar (quick filters,
+  Assigned to me, Applies To, More filters; Flat/Kanban at the right), then the
+  count with sort and saved views. Active filter chips appear only when needed.
+  The duplicate sort label and the library **Explore scopes** button are removed;
+  **Scopes** stays in the sidebar and mobile menu.
+- **Search options** opens as an overlay anchored under its button, so the search
+  row keeps its height. Outside clicks and Escape close it; its Gemini disclosure
+  is unchanged.
+- Detail pages show no deadline action for decided records (historical deadlines
+  still display) and no separate Decision section, because the title is the
+  choice. Original question appears only when it differs.
+- Kanban columns share the available width (minimum 12rem each), so all five fit
+  a laptop screen; narrower screens keep horizontal scrolling inside the board.
+- Helper text keeps required disclosures (local vs Google, coverage, excerpt
+  limits) and drops repeated reassurance.

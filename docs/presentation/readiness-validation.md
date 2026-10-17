@@ -1,5 +1,49 @@
 # Local demo readiness evidence
 
+## Web convenience update — 2026-10-16
+
+Implemented the approved web-only scope/filter/navigation improvement. Users can
+search and select multiple exact scopes, explicitly add a new name, and see scope
+outside More details. Library quick filters preserve the query and other filters;
+removable chips remain visible on mobile. Scope overview actions prefill an
+editable scope in creation or proposal review and preserve return navigation.
+
+| Check | Observed result |
+| --- | --- |
+| Native unit/HTTP suite | 117/117 passed, no failures/skips |
+| Lint and typecheck | Passed |
+| Production build | Passed; advisory for the 545.06 kB main chunk (175.46 kB gzip) |
+| Native database integration | Passed on owned temporary database |
+| Complete browser regression | Passed: existing capture/search/deadline/comparison/proposal flows and the new convenience scenarios |
+| UI identity, meaningful content, framework overlay | Correct Decision Memory title/routes; rendered controls; no overlay |
+| Console/page errors | No unexpected errors; intentional 503 fixtures exercise retry |
+| Desktop/mobile interaction and screenshots | Passed and visually inspected at 1440×1000 and 390×844; existing suite also checks laptop widths |
+| Cleanup | Owned database `decision_memory_current_qa_27289` removed; owned app processes stopped |
+
+New proof in `scripts/verify-convenience-ui.mjs` is invoked by the native UI suite.
+It checks explicit scope creation/removal, comma preservation on edit/save, exact
+duplicates, 200-character/30-scope limits, keyboard selection, focus, mobile long
+names and nested menus. It also verifies all quick-filter mappings, legacy ACTIVE
+URLs, query/view/sort preservation, chip removal, Clear filters, Recent, metadata
+failure/retry, stale responses, scoped Back/Cancel/save, and no automatic AI calls.
+
+The browser run exposed missing React 18 ref forwarding in the new chip container
+and the input wrappers used by the popup. These were fixed before the passing run.
+Test assertions wait for closing menu/sheet transitions before measuring layout;
+the proposal test waits for in-flight mocked handlers before disposing its context.
+
+Environment: local API/frontend with external credentials blank, isolated synthetic
+data, Playwright/Google Chrome. Browser plugin not available. This run adds no
+live Slack/Jira/Gemini rehearsal or human-benefit evidence. The main-bundle size
+advisory is retained; no warning threshold was raised.
+
+Temporary logs: `/private/tmp/scope-ux-unit.log`, `scope-ux-types.log`,
+`scope-ux-lint.log`, `scope-ux-build.log`, and `scope-ux-runtime.log`.
+Screenshots: `/private/tmp/decision-memory-scopes-form-desktop.png`,
+`decision-memory-filters-desktop.png`, `decision-memory-filters-mobile.png`, and
+`decision-memory-filters-mobile-long-scope.png`. Native scripts retain the proof
+if these temporary artifacts expire.
+
 ## Proposal review increment — 2026-10-15
 
 ### Later rehearsal handoff
@@ -270,3 +314,110 @@ demo or an unfamiliar user's experience.
 Overall readiness remains pending until the human tasks, installed integration
 flows and actual recording are observed. Shared deployment/Forge identity,
 access policies and additional features remain outside this local preparation.
+
+## Everyday convenience validation — 2026-10-16
+
+The owner requested simplified search/filter controls, Assigned to me, pending
+Flat actions, and optional new-form related lookup. This extends the existing
+convenience work; it changes no server retrieval policy or proposal assessment.
+The [completed execution record](../plans/completed/everyday-decision-convenience.md)
+owns implementation and acceptance evidence.
+
+### Isolated local workflow
+
+Use an owned temporary database, never reset the normal `decision_memory` DB.
+Check ports 3011, 3012 and 5173 before starting; stop only this run's processes.
+Use an unused database name for each run. The commands below used
+`decision_everyday_20261016_01` in the existing local pgvector container:
+
+```bash
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U decision_memory -d postgres -c 'CREATE DATABASE decision_everyday_20261016_01'
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U decision_memory -d decision_everyday_20261016_01 -f /app/db/schema.sql -f /app/db/seed.sql
+```
+
+In the validation terminals, set `DATABASE_URL` to
+`postgresql://decision_memory:decision_memory@localhost:5434/decision_everyday_20261016_01`
+and explicitly blank `GEMINI_API_KEY`, `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`,
+`JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` so `.env` cannot enable live
+outbound integrations. Start `node apps/server/src/index.js` and, in another
+terminal, `npm run dev --workspace web -- --host 127.0.0.1 --port 5173 --strictPort`.
+Verify API/frontend readiness from their logs and through the browser.
+Run `npm run test:integration` and `npm run test:ui` with the same isolated
+`DATABASE_URL` and blank credentials. `npm run test:local-search` independently
+creates/removes its own temporary database and blocks outbound inference fetch.
+Run lint, typecheck, unit/HTTP tests and build as usual.
+
+`test:ui` extends existing Playwright scripts, including
+`verifyEverydayConvenienceUi` in `scripts/verify-convenience-ui.mjs`. Semantic
+requests are intercepted; Gemini receives no workspace content. Scenarios cover:
+
+- Keyword → explicit LOCAL meaning search → keyword; keyboard Search options
+  and prior disclosure; explicit GEMINI path, errors, cached returns and stale
+  local/Gemini responses through the existing provider/navigation tests.
+- Detailed sheet access and count, visible chips, Assigned to me with query,
+  scopes/Pending/Overdue/Due soon, Owner synchronization, saved views, URL Back,
+  clearing, missing identity and metadata failure/retry.
+- Independent Flat title/action keyboard focus, no nested controls, cancel,
+  failed deadline/outcome input retention, successful edit/clear/completion,
+  disabled repeated submission and refresh membership under Pending/Overdue.
+  Existing Kanban/detail scenarios remain in the same suite.
+- Optional related lookup in both creation modes, exact single-scope and
+  all-scope zero/multiple selection, stored rationale/lifecycle/coverage,
+  empty/error/unavailable recovery, input/mode/scope stale-response rejection,
+  open-result/Back/raw-draft restoration and ordinary save during lookup.
+- Desktop/mobile screenshots, overflow, viewport-fitting sheets, page identity,
+  meaningful content, framework overlay and unexpected console/page errors.
+
+On completion, stop the API/frontend started above with Ctrl+C; then remove only
+the owned database, after verifying its exact name:
+
+```bash
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U decision_memory -d postgres -c 'DROP DATABASE decision_everyday_20261016_01'
+```
+
+Automated browser results do not establish first-time usability. Human observation,
+other browsers and live external integrations remain separate checks.
+
+
+### Result of this run
+
+Passed: lint, typecheck, 117/117 unit/HTTP tests, build, isolated integration,
+real offline local-search proof, and the complete `npm run test:ui` on final code.
+The final UI run used fresh `decision_everyday_20261016_02`; both owned `_01` and
+`_02` databases and app processes were removed afterward. Normal demo data and
+container were preserved. Logs/screenshots are listed in the completed execution
+record. Chrome desktop/mobile identity, content, console, focus, overlay, viewport
+fit and interaction checks passed. Build retains the existing size advisory.
+Earlier fieldset rendering, moved selectors and interrupted fixture failures were
+resolved before the passing full run. No required check remains blocked.
+Human usability, other browsers and live external integrations were unattempted.
+
+## Practical decision usability — 2026-10-17
+
+Implemented direct metadata filters, shared preview owner/deadline/all-current-
+replacement information, independent multi-scope draft lookup selection and
+pending-completion proposal-review return. Product authority, detailed scenarios,
+commands, temporary transport setup, evidence and cleanup are recorded in the
+[completed execution record](../plans/completed/practical-decision-usability.md).
+
+Passed lint, typecheck, 117/117 unit/HTTP tests, build, isolated integration,
+real offline local-search and the complete existing UI suite on final code.
+`verifyPracticalUi` extends the existing discovery browser owner and runs from
+`npm run test:ui`. It checks exact filter mappings/no-ops/context, lazy full-record
+previews and branching replacements, independent lookup scope/stale replies,
+all completion surfaces, Back/reload/error/detour recovery, identity isolation,
+concurrent conflicts and no implicit writes. Existing convenience regressions
+also passed. Desktop/mobile visual, overflow, keyboard, focus, page identity,
+overlay and unexpected console-error checks passed using Playwright/Chrome;
+Browser plugin was unavailable.
+
+An initial port collision caused three synthetic records to reach the normal
+database. Those exact records and two new unused tags were removed; no reset
+occurred. Subsequent runs used verified owned API 3013 and database
+`decision_practical_20261017`, with fixed-port test requests routed by a temporary
+guarded preload. Owned app processes/database were removed afterward; normal
+app processes/database remain. See the execution record for the incident and
+identity/cleanup proof. Gemini was mocked; no workspace content was sent to it.
+
+No required validation remains blocked. Existing build size advisory remains.
+Human usability, other browsers and live external integrations were unattempted.

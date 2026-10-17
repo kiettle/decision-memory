@@ -22,7 +22,7 @@ Open [the library](http://localhost:5173). Initial setup needs internet for
 dependencies, the database image and cached model files. Prepare before the
 presentation; runtime local search uses the cached model.
 
-- Confirm the library loads and the local Search by memory feature is available.
+- Confirm the library loads and the local Find by meaning feature is available.
 - If presenting Search with Gemini, verify the key/network beforehand, choose
   the synthetic take's scope/channel/tag/owner filters, and rehearse the query.
   Show searched/total coverage; older decisions beyond the newest 200 filtered
@@ -44,8 +44,9 @@ existing decisions and seeds only an empty database.
 ## 2. Create known state for this take
 
 Open **New Decision**, select **Already decided**, and create the earlier
-recorded choice before recording. Open **More details** for Why, Context,
-Applies To, Tags and Options Considered. Only the final choice is required;
+recorded choice before recording. Enter **Why? (optional)** below the choice
+and select **Applies To** beside it. Open **More details** for Context, Tags
+and Options Considered. Only the final choice is required;
 the other fields below make this synthetic story understandable.
 
 | Field | Value |
@@ -132,7 +133,7 @@ discussion must not be presented as a full captured thread.
 
 1. Return to the library. Apply the current take's **Applies To** filter.
 2. Search `migration backups`, or use a paraphrase verified during rehearsal
-   and select **Search by memory**. Semantic matches are approximate; keep the
+   and select **Find by meaning**. Semantic matches are approximate; keep the
    rehearsed query as part of the recording notes.
 3. Open the newly saved decision. Show Decision, Why, Context and Applies To.
 4. Show Relevant Discussion and **View captured discussion** when available.
@@ -171,8 +172,8 @@ the decisions as contradictory or determine which approach is correct.
 
 ## 6. Finish with the scope overview
 
-Open **Scopes**, find the current take's scope, and open it. On mobile, use
-**Explore scopes** from the library or select a scope link on a decision.
+Open **Scopes**, find the current take's scope, and open it. On mobile, open
+the menu and choose **Scopes**, or select a scope link on a decision.
 
 Point to:
 
@@ -193,9 +194,10 @@ Use this as a separate short walkthrough or during Q&A; retain the core
    `Which storage should we use for migration backups?` in **What needs to be
    decided?**. Set the optional **Decide by** to three days after the viewer's
    current local date. Leave Owner unassigned; other metadata is optional.
-2. Save, return to the library, and switch to **Kanban**. Find the question in
-   **Due soon** and show both the exact date and relative deadline label.
-   **Flat** shows the same filtered record.
+2. Save and return to the library. Use **Assigned to me** if you assigned yourself,
+   and **Due soon** to find the question. In **Flat**, show its exact date and
+   **Record decision / Edit deadline** actions. **Kanban** shows the same filtered
+   record grouped by deadline.
 3. Click **Record decision**. Enter
    `Use object storage for migration backups.` in **What did you decide?**.
    Why is optional. Save and confirm the card moves to **Decided** only after
@@ -204,7 +206,9 @@ Use this as a separate short walkthrough or during Q&A; retain the core
    historical deadline. Completed choices have no overdue warning.
 5. Open **New Decision**, select **Already decided**, enter
    `Use exponential backoff for failed backup uploads.`, and save with the
-   original question and all other metadata blank.
+   original question and all other metadata blank. Before saving, pause so the
+   related decisions appear under the choice (searched locally). Show the
+   scope explanation and indexing coverage; results are discovery, not approval.
 
 Only one text field is required for each save. Normal search includes pending
 questions and recorded choices. Memory search finds recorded choices; it is

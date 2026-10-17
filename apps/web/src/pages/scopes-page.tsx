@@ -2,6 +2,8 @@ import { ArrowLeft, ArrowRight, Box, Search } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 
+import type { DecisionNavigationState } from "@/lib/decision-navigation"
+
 import { headline } from "../../../../shared/decision-deadlines.js"
 import { StatusBadge } from "@/components/status-badge"
 import { Badge } from "@/components/ui/badge"
@@ -190,13 +192,52 @@ function ScopeDetail({ scope }: { scope: string }) {
             What applies today, why it was chosen, and what changed.
           </p>
         </div>
-        <Button
-          variant="outline"
-          render={<Link to={libraryUrl} />}
-          nativeButton={false}
-        >
-          Browse all decisions <ArrowRight data-icon="inline-end" />
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {overview ? (
+            <>
+              <Button
+                render={
+                  <Link
+                    to="/check-proposal"
+                    state={
+                      {
+                        proposalDraft: { proposal: "", appliesTo: scope },
+                        proposalOrigin: scopeHref(scope),
+                      } satisfies DecisionNavigationState
+                    }
+                  />
+                }
+                nativeButton={false}
+              >
+                Check a proposal in this scope
+              </Button>
+              <Button
+                variant="outline"
+                render={
+                  <Link
+                    to="/decisions/new"
+                    state={
+                      {
+                        scopePrefill: scope,
+                        libraryUrl: scopeHref(scope),
+                      } satisfies DecisionNavigationState
+                    }
+                  />
+                }
+                nativeButton={false}
+              >
+                New decision in this scope
+              </Button>
+            </>
+          ) : null}
+          <Button
+            variant="outline"
+            render={<Link to={libraryUrl} />}
+            nativeButton={false}
+          >
+            Browse all decisions <ArrowRight data-icon="inline-end" />
+          </Button>
+        </div>
       </div>
       {loading ? (
         <Skeleton className="h-80 w-full" />
@@ -234,7 +275,10 @@ function ScopeDetail({ scope }: { scope: string }) {
                 {overview.activeDecisions.map((decision) => (
                   <article key={decision.id} className="grid gap-3 py-6">
                     <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge status={decision.status} decisionState={decision.decisionState} />
+                      <StatusBadge
+                        status={decision.status}
+                        decisionState={decision.decisionState}
+                      />
                       <span className="decision-key">
                         {decision.decisionKey}
                       </span>

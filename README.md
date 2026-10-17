@@ -5,8 +5,8 @@
 Decision Memory is a competition-focused local web application that turns a
 Slack discussion into a durable, structured Decision. Later, a teammate can
 retrieve that Decision through fast keyword/metadata search or an explicit
-local semantic **Search by memory** action.
-The optional **Search with Gemini** action lets users choose AI ranking instead,
+local semantic **Find by meaning** action.
+The optional **Search with Gemini** action inside **Search options** lets users choose AI ranking,
 using their current filters and up to the newest 200 matching decisions.
 
 The MVP intentionally uses a small architecture:
@@ -70,7 +70,7 @@ available when analysis fails. The same review is available through Slack's
 See [Proposal review](docs/product/proposal-review.md) and the
 [evaluation/user-study kit](docs/presentation/proposal-review-validation.md).
 
-- **Explore scopes** opens a service/feature overview with its current decisions,
+- **Scopes** (sidebar) opens a service/feature overview with its current decisions,
   reasons, owners, saved evidence links, and recent replacement history.
 - **Compare decisions** shows the stored rationale, scope, alternatives, and
   evidence side by side. Open it from the library, a detail page, or a replacement.
@@ -147,15 +147,20 @@ The basic demo requires no external credentials:
 5. Create or edit a Decision and attach multiple Jira or generic links.
 6. Find `DM-102 · Superseded by DM-104` in the library, or open it through
    the lifecycle section.
-7. Select **Explore scopes**, then **Atlas migration**, to see current choices
+7. Select **Scopes** in the sidebar, then **Atlas migration**, to see current choices
    and replacement history together.
-8. Use **Compare decisions** to compare DM-102 and DM-104. Seeded relationships
-   may have no replacement reason; follow the presentation rehearsal to record
-   a fresh replacement and its **What changed?** explanation.
+8. Use **Compare decisions** to compare DM-102 and DM-104. A fresh seed records
+   why DM-104 replaced DM-102; databases seeded before 2026-10-17 may show no
+   replacement reason.
+9. Select **Pending**, **Overdue** or **Due soon**, or switch to **Kanban**, to see
+   the three seeded open questions (DM-111 to DM-113). Their deadlines are relative
+   to the day the database was seeded.
 
-**Search by memory** is available without `GEMINI_API_KEY` after local setup.
+**Find by meaning** is available without `GEMINI_API_KEY` after local setup.
+When keyword search finds nothing, the library runs it automatically on this
+computer; Gemini search always waits for an explicit click.
 
-## Local Search by memory
+## Local Find by meaning
 
 Run `npm run dev`, then try:
 
@@ -183,7 +188,8 @@ Hồi trước mình xử lý file migration lớn hay timeout như thế nào?
 - Model files download during setup only. Missing files or database failures
   produce a local setup instruction without disabling normal keyword search.
 
-An optional `GEMINI_API_KEY` also enables **Search with Gemini** in the library.
+An optional `GEMINI_API_KEY` also enables **Search with Gemini** in the library's
+**Search options** disclosure. Opening the options never invokes a provider.
 The action sends your query and compact excerpts from up to the newest 200
 decisions matching channel, tag, owner, status, Applies To and date filters to
 Google. The UI discloses excluded older decisions and approximate AI ranking;
@@ -307,6 +313,17 @@ This is not a cross-system exactly-once guarantee; an unknown outcome requires
 manual reconciliation. Clearing browser storage or starting a separate attempt
 must not be used to retry an unresolved operation.
 
+Library controls keep Applies To and quick filters visible; **More filters**
+contains Channel, Owner, Tag, Status, Deadline and Created date. Its count includes
+only active fields inside that sheet. **Assigned to me** sets Owner to the current
+user; turning it off clears Owner. Active chips remain outside the sheet.
+Pending Flat rows offer the existing Record decision and deadline dialogs beside
+an independent title link. New forms optionally **Find related decisions** locally
+using their question/final choice. One exact scope narrows retrieval; zero or
+several search all scopes with an explanation. This never runs automatically or
+blocks saving, and results are transient. Browser Back and Restore draft recover
+unfinished input after opening a related record.
+
 Library queries and filters are encoded in the URL. Opening a Decision and
 returning restores them; memory results also survive this navigation without
 another provider call. Lifecycle details distinguish the immediate replacement
@@ -356,7 +373,8 @@ owner scope, cross-workspace API rejection, transaction rollback, and concurrent
 supersession. Signed HTTP fixtures exercise capture through database-backed
 search/detail while mocking only the outbound Slack service.
 
-With PostgreSQL, the API, and the frontend running:
+With PostgreSQL, an isolated API/frontend instance, and synthetic data running
+(see the [isolated validation workflow](docs/presentation/readiness-validation.md#isolated-local-workflow)):
 
 ```bash
 npm run test:ui
@@ -366,8 +384,8 @@ The browser test independently checks keyword and mocked memory search,
 collapsed/expanded evidence, create/edit behavior with key-by-key typing,
 lifecycle controls, desktop and mobile layouts, browser console errors, failed detail/edit loads, form reset, and stale AI
 responses. It
-removes its workspace-scoped form fixture before and after the run, so the demo dataset stays
-at nine Decisions. It currently expects Google Chrome at the standard macOS
+removes its owned fixtures before/after the run. Use a separate seeded database;
+do not point validation at the normal demo data. It currently expects Google Chrome at the standard macOS
 application path.
 
 ## Project structure

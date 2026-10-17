@@ -7,9 +7,26 @@ Date: 2026-10-15
 Active. Owner approved the competitive improvement plan and explicitly deferred
 the two pre-implementation coworker interviews; use synthetic examples now.
 Gemini reliability follow-up is implemented and evaluated. The owner selected
-“Prepare the rehearsal handoff for later” on 2026-10-15. Current work is a
-concrete installed-Slack handoff and coworker study package; no external
-messages or installed app changes are authorized as part of that handoff.
+“Prepare the rehearsal handoff for later” on 2026-10-15. The installed-Slack handoff and coworker study package are prepared. The subsequent
+owner-approved web convenience increment is implemented and validated. External
+Slack rehearsal and human observations remain pending.
+
+## Web convenience increment — 2026-10-16
+
+Owner approved searchable scope selection, filter improvements, and scope-prefilled
+navigation. Web only; quick filters preserve other restrictions; scope is visible
+outside More details. Existing exact scope strings and API contracts remain.
+
+- [x] Add reusable searchable pickers and array-based scope editing.
+- [x] Add URL-backed quick filters, removable chips, and clear-filter behavior.
+- [x] Add scope-prefilled actions and preserve return/draft navigation.
+- [x] Extend native browser proof and run unit, lint, types, build, database/UI checks.
+- [x] Update behavior contracts, product guide, and readiness evidence.
+
+Authority: the owner's approved implementation plan in this chat. No new AI calls,
+Slack changes, migration, or shared deployment. Use the existing isolated QA
+runner and clean up only owned test resources. Browser plugin not available;
+use native Playwright/Chrome verification.
 
 ## Outcome
 
@@ -82,6 +99,23 @@ Record the 24-case live evaluation separately from automated assertions.
   No user benefit, first-place result or installed-integration success is assumed.
 
 ## Result
+
+Web convenience increment completed 2026-10-16: reusable searchable Base UI
+pickers, exact array-based scopes outside More details, quick filters and removable
+chips, and scope-prefilled creation/review with preserved origins. No backend,
+Slack, schema or automatic AI changes. Browser testing caught React 18 ref
+compatibility in the new chip container and shared input wrappers; both are fixed.
+Extended browser proof covers real saves, commas, 200-character/30-scope limits,
+keyboard input, URL/filter preservation, mobile nested menus, metadata retry and
+stale responses. Existing tests were updated for explicit scope selection and
+route cleanup waits for in-flight handlers before closing the browser context.
+
+Validation: 117/117 unit/HTTP tests; lint, typecheck, build, native database
+integration and complete desktop/mobile browser suite passed. Build has an
+advisory for a 545.06 kB main chunk (175.46 kB gzip). Screenshots were inspected;
+no clipping, page errors or framework overlay remained. The owned temporary
+database and app processes were cleaned up. See the dated readiness evidence.
+
 
 Presentation documentation follow-up, 2026-10-15: the owner requested simple,
 complete feature explanations to use when building slides. Added a plain-language

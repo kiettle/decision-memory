@@ -152,6 +152,8 @@ export type ProposalReview = {
 
 export type MemorySearchResponse = {
   method?: MemorySearchMethod
+  // Set by the library when it ran local search after empty keyword results.
+  automatic?: boolean
   candidateCount: number
   totalCandidateCount?: number
   truncated?: boolean

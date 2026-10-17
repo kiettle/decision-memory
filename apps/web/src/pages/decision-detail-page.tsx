@@ -17,7 +17,9 @@ import { toast } from "sonner"
 
 import { headline } from "../../../../shared/decision-deadlines.js"
 import { useLocalDate } from "@/hooks/use-local-date"
+import { CompletionReturn } from "@/components/completion-return"
 import { DecisionActions } from "@/components/decision-actions"
+import { CopyDecisionSummary } from "@/components/copy-decision-summary"
 import { DecisionDeadline } from "@/components/decision-deadline"
 import { CompareDecisionsDialog } from "@/components/compare-decisions-dialog"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -37,14 +39,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectGroup,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { SearchableSelect } from "@/components/searchable-select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 import { slackChannels } from "@/lib/slack"
@@ -161,7 +156,8 @@ function DecisionDetail({ id }: { id: string }) {
       .slice(0, 2) || "—"
   return (
     <div className="page-frame max-w-[1240px]">
-      <div className="detail-topbar">
+      <CompletionReturn onSaved={setDecision} />
+      <div className="detail-topbar flex-wrap">
         <Button
           variant="ghost"
           size="sm"
@@ -172,7 +168,11 @@ function DecisionDetail({ id }: { id: string }) {
           <ArrowLeft /> Back to decisions
         </Button>
         <div className="flex flex-wrap justify-end gap-2">
-          <DecisionActions decision={decision} onSaved={setDecision} />
+          <CopyDecisionSummary decision={decision} />
+          {/* Decided records keep any historical deadline but no deadline action. */}
+          {decision.decisionState === "PENDING" ? (
+            <DecisionActions decision={decision} onSaved={setDecision} />
+          ) : null}
           <CompareDecisionsDialog decision={decision} />
           <CreateJiraIssueDialog
             decision={decision}
@@ -280,10 +280,8 @@ function DecisionDetail({ id }: { id: string }) {
               )}
             </div>
           </EditorialSection>
-          {decision.decisionState === "PENDING" ? <EditorialSection title="Question"><p>{decision.title}</p></EditorialSection> : <>
-            <EditorialSection title="Decision"><p>{headline(decision)}</p></EditorialSection>
-            {decision.title !== headline(decision) ? <EditorialSection title="Original question"><p>{decision.title}</p></EditorialSection> : null}
-          </>}
+          {/* The page title is already the choice (or the pending question). */}
+          {decision.decisionState === "DECIDED" && decision.title !== headline(decision) ? <EditorialSection title="Original question"><p>{decision.title}</p></EditorialSection> : null}
           <EditorialSection title="Why">
             <p>{decision.why || "No rationale was recorded."}</p>
           </EditorialSection>
@@ -611,10 +609,11 @@ function SupersedeDialog({
         <DialogHeader><DialogTitle>Supersede an earlier Decision</DialogTitle><DialogDescription>Review the earlier choice, then record what changed. It will remain searchable and link to this Decision.</DialogDescription></DialogHeader>
         {error ? <p role="alert">{error}</p> : null}
         <FieldGroup>
-          <Field><FieldLabel>Earlier Decision</FieldLabel><Select value={targetId} disabled={loading} onValueChange={(value) => setTargetId(value ?? "")}>
-            <SelectTrigger aria-label="Earlier Decision" className="w-full"><SelectValue>{earlier?.title ?? "Select an active Decision"}</SelectValue></SelectTrigger>
-            <SelectContent><SelectGroup>{candidates.map((item) => <SelectItem key={item.id} value={item.id}>{item.decisionKey} · {headline(item)}</SelectItem>)}</SelectGroup></SelectContent>
-          </Select></Field>
+          <Field><FieldLabel>Earlier Decision</FieldLabel>
+            <SearchableSelect label="Earlier Decision" value={targetId} disabled={loading}
+              onChange={setTargetId} className="w-full justify-between"
+              options={[{ value: "", label: "Select an active Decision" }, ...candidates.map(item => ({ value: item.id, label: `${item.decisionKey} · ${headline(item)}` }))]} />
+          </Field>
           {earlier ? <div className="grid gap-4 border-y py-4 sm:grid-cols-2">{[earlier, decision].map((item, index) => <section key={item.id} aria-label={index === 0 ? "Earlier choice" : "Replacing choice"} className="grid min-w-0 content-start gap-2">
             <p className="text-xs font-semibold text-muted-foreground">{index === 0 ? "Earlier choice" : "Replacing choice"} · {item.decisionKey}</p><h3 className="break-words text-sm font-semibold">{headline(item)}</h3><p className="break-words text-xs text-muted-foreground">Applies to: {item.appliesTo.join(", ") || "No scope recorded"}</p><p className="whitespace-pre-wrap break-words text-sm leading-6">{item.why || "No rationale recorded."}</p>
           </section>)}</div> : null}

@@ -165,6 +165,70 @@ VALUES
   )
 ON CONFLICT (workspace_id, decision_key) DO NOTHING;
 
+-- Open questions keep Pending, Overdue, Due soon and Kanban populated on any
+-- seed date: deadlines are relative to the day the seed runs.
+INSERT INTO decisions (
+  id, workspace_id, decision_key, title, why, context, applies_to,
+  options_considered, team, owner_id, owner_name, status, decision_state,
+  due_date, created_by_id, created_at
+)
+VALUES
+  (
+    '33333333-3333-4333-8333-333333333310',
+    '11111111-1111-4111-8111-111111111111',
+    'DM-111',
+    'How long should we keep Atlas migration backups after cutover?',
+    '',
+    'Rollback needs the backups for a while after cutover, but nobody has agreed on the retention window yet.',
+    '["Atlas migration", "Backup pipeline"]'::jsonb,
+    '["14 days", "45 days", "90 days"]'::jsonb,
+    'Platform',
+    '22222222-2222-4222-8222-222222222221',
+    NULL,
+    'ACTIVE',
+    'PENDING',
+    CURRENT_DATE + 3,
+    '22222222-2222-4222-8222-222222222221',
+    now() - interval '2 days'
+  ),
+  (
+    '33333333-3333-4333-8333-333333333311',
+    '11111111-1111-4111-8111-111111111111',
+    'DM-112',
+    'Should reporting export links expire after 24 hours or 7 days?',
+    '',
+    'Customers asked for longer-lived links to scheduled reports; security prefers short-lived links.',
+    '["Reporting", "Export API"]'::jsonb,
+    '["24 hours", "7 days"]'::jsonb,
+    'Data',
+    '22222222-2222-4222-8222-222222222222',
+    NULL,
+    'ACTIVE',
+    'PENDING',
+    CURRENT_DATE - 2,
+    '22222222-2222-4222-8222-222222222221',
+    now() - interval '6 days'
+  ),
+  (
+    '33333333-3333-4333-8333-333333333312',
+    '11111111-1111-4111-8111-111111111111',
+    'DM-113',
+    'Which team owns alerts for failed payment webhook retries?',
+    '',
+    'Retries are automatic now, but exhausted retries still page whoever is on call for checkout.',
+    '["Billing service"]'::jsonb,
+    '["Payments", "Checkout on-call"]'::jsonb,
+    'Payments',
+    '22222222-2222-4222-8222-222222222223',
+    NULL,
+    'ACTIVE',
+    'PENDING',
+    CURRENT_DATE + 14,
+    '22222222-2222-4222-8222-222222222221',
+    now() - interval '1 day'
+  )
+ON CONFLICT (workspace_id, decision_key) DO NOTHING;
+
 INSERT INTO tags (id, workspace_id, name)
 VALUES
   ('44444444-4444-4444-8444-444444444401', '11111111-1111-4111-8111-111111111111', 'migration'),
@@ -234,13 +298,15 @@ VALUES
 ON CONFLICT (id) DO UPDATE SET kind = EXCLUDED.kind;
 
 INSERT INTO decision_relations (
-  id, workspace_id, from_decision_id, to_decision_id, relation_type
+  id, workspace_id, from_decision_id, to_decision_id, relation_type,
+  replacement_reason
 )
 VALUES (
   '77777777-7777-4777-8777-777777777701',
   '11111111-1111-4111-8111-111111111111',
   '33333333-3333-4333-8333-333333333301',
   '33333333-3333-4333-8333-333333333303',
-  'SUPERSEDES'
+  'SUPERSEDES',
+  'The rehearsal export outgrew the database host''s free disk, and keeping exports beside PostgreSQL slowed backup and restore. Rollback must not depend on the database host.'
 )
 ON CONFLICT DO NOTHING;

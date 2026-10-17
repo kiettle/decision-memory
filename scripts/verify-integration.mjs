@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { verifyLibraryDiscovery } from "./verify-library-discovery.mjs"
 import crypto from "node:crypto"
 import { once } from "node:events"
 import { setTimeout as delay } from "node:timers/promises"
@@ -504,6 +505,7 @@ try {
   const channelFilters = { channel: "integration-channel", tag: "integration-memory", ownerId: user.id, status: "SUPERSEDED", appliesTo: "Integration API", dateRange: "7" }
   assert.equal((await gemini.search(identity, { query: "durable rollback", filters: channelFilters })).matches[0].decisionId, first.id)
   assert.equal((await gemini.search(otherIdentity, { query: "migration memory", filters: boundedFilters })).candidateCount, 0)
+  await verifyLibraryDiscovery({ repository, models, identity, otherIdentity })
   await verifyDecisionDeadlines({ repository, models, config, identity, otherIdentity, source: capturedSource })
   await verifyProposalReview({ repository, identity, otherIdentity })
   console.log("Gemini candidate proof passed: newest 200, filter-first channel/tag/owner/name/status/scope/date, counts and workspace isolation; provider mocked")

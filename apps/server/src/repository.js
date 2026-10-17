@@ -133,7 +133,10 @@ export function createRepository(models) {
       if (filters.deadline === "UNSCHEDULED") where.dueDate = null
     }
     if (filters.ownerId && filters.ownerId !== "ALL") {
-      if (filters.ownerId.startsWith("name:")) {
+      if (filters.ownerId === "UNASSIGNED") {
+        where.ownerId = null
+        where.ownerName = null
+      } else if (filters.ownerId.startsWith("name:")) {
         where.ownerId = null
         where.ownerName = filters.ownerId.slice(5)
       } else {
@@ -182,7 +185,7 @@ export function createRepository(models) {
              ON owner.workspace_id = d.workspace_id AND owner.id = d.owner_id
            WHERE d.workspace_id = :workspaceId
              AND concat_ws(' ',
-               d.title, d.outcome, d.why, d.context, d.owner_name, owner.display_name,
+               d.decision_key, d.title, d.outcome, d.why, d.context, d.owner_name, owner.display_name,
                d.applies_to::text, d.options_considered::text,
                (SELECT string_agg(t.name, ' ')
                 FROM decision_tags dt JOIN tags t ON t.id = dt.tag_id
@@ -290,6 +293,15 @@ export function createRepository(models) {
     const literals = vectors.map(vectorLiteral)
     if (!literals.length) throw new Error("Cannot publish an empty search index.")
     return sequelize.transaction(async (transaction) => {
+      // Edits lock the decision before their invalidation trigger locks the job.
+      // Use that order too: embedding inserts otherwise acquire the decision's
+      // FK lock after the job lock and can deadlock with a concurrent save.
+      const [decision] = await sequelize.query(
+        `SELECT id FROM decisions
+         WHERE id = :decisionId AND workspace_id = :workspaceId FOR UPDATE`,
+        { replacements: job, type: QueryTypes.SELECT, transaction },
+      )
+      if (!decision) return false
       const [current] = await sequelize.query(
         `SELECT revision FROM decision_search_jobs
          WHERE decision_id = :decisionId AND workspace_id = :workspaceId FOR UPDATE`,
@@ -322,7 +334,9 @@ export function createRepository(models) {
     for (const [key, column] of [["status", "status"], ["ownerId", "owner_id"]]) {
       const value = filters[key]
       if (!value || value === "ALL") continue
-      if (key === "ownerId" && value.startsWith("name:")) {
+      if (key === "ownerId" && value === "UNASSIGNED") {
+        clauses.push("d.owner_id IS NULL AND d.owner_name IS NULL")
+      } else if (key === "ownerId" && value.startsWith("name:")) {
         clauses.push("d.owner_id IS NULL AND d.owner_name = :ownerName")
         replacements.ownerName = value.slice(5)
       } else {

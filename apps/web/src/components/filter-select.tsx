@@ -1,3 +1,4 @@
+import { SearchableSelect } from "@/components/searchable-select"
 import {
   Select,
   SelectContent,
@@ -15,29 +16,50 @@ export function FilterSelect({
   options,
   onChange,
   includeAll = true,
+  searchable = false,
 }: {
   label: string
   value: string
   options: FilterOption[]
   onChange: (value: string) => void
   includeAll?: boolean
+  searchable?: boolean
 }) {
+  if (searchable)
+    return (
+      <SearchableSelect
+        label={label}
+        value={value}
+        options={[
+          ...(includeAll
+            ? [{ label: `All ${label.toLowerCase()}`, value: "ALL" }]
+            : []),
+          ...options.filter((option) => option.value !== "ALL"),
+        ]}
+        onChange={onChange}
+      />
+    )
   const selected = options.find((option) => option.value === value)?.label
   return (
     <Select value={value} onValueChange={(next) => onChange(next ?? "ALL")}>
-      <SelectTrigger aria-label={label} className="h-10 min-w-29 rounded-lg px-3">
+      <SelectTrigger
+        aria-label={label}
+        className="h-10 min-w-29 rounded-lg px-3"
+      >
         <SelectValue>{value === "ALL" ? label : selected}</SelectValue>
       </SelectTrigger>
       <SelectContent align="start">
         <SelectGroup>
-        {includeAll ? <SelectItem value="ALL">All {label.toLowerCase()}</SelectItem> : null}
-        {options
-          .filter((option) => option.value !== "ALL")
-          .map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
+          {includeAll ? (
+            <SelectItem value="ALL">All {label.toLowerCase()}</SelectItem>
+          ) : null}
+          {options
+            .filter((option) => option.value !== "ALL")
+            .map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
         </SelectGroup>
       </SelectContent>
     </Select>

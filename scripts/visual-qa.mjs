@@ -4,6 +4,10 @@ import { chromium } from "playwright-core"
 import { config } from "../apps/server/src/config.js"
 import { createDatabase } from "../apps/server/src/models.js"
 import { verifyDeadlineUi } from "./verify-deadline-ui.mjs"
+import { verifyConvenienceUi, verifyEverydayConvenienceUi } from "./verify-convenience-ui.mjs"
+import { verifyDiscoveryUi, verifyPracticalUi } from "./verify-discovery-ui.mjs"
+import { verifySharingViewsUi } from "./verify-sharing-views-ui.mjs"
+import { verifyLibraryWorkflowUi } from "./verify-library-workflow-ui.mjs"
 import { verifyProposalUi } from "./verify-proposal-ui.mjs"
 
 const browser = await chromium.launch({
@@ -84,16 +88,27 @@ try {
   assert.match(await page.locator("body").innerText(), /Use object storage for migration backup files/)
   await page.screenshot({ path: "/private/tmp/decision-memory-library-desktop.png", fullPage: true })
 
-  // The full table must fit before switching away from stacked list rows.
+  // Compact records must fit laptop and desktop widths without tall metadata stacks.
   for (const width of [1280, 1366, 1440, 1536]) {
     await page.setViewportSize({ width, height: 1024 })
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Library must fit ${width}px`)
     assert.equal(await page.locator(".decision-row").first().evaluate((row) =>
       Array.from(row.children).every((cell) => cell.getBoundingClientRect().right <= innerWidth)
     ), true, `Every library column/action must remain visible at ${width}px`)
-    assert.equal(await page.locator(".decision-list-header").isVisible(), width === 1536)
+    const firstRow = await page.locator(".decision-row").first().boundingBox()
+    assert.ok(firstRow.height < 250, `A short seeded record should remain compact at ${width}px`)
+    assert.ok(firstRow.y + firstRow.height < 1024, `First record should fit the initial ${width}px viewport`)
     if (width === 1280) await page.screenshot({ path: "/private/tmp/decision-memory-library-laptop-fixed.png" })
   }
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  const firstTitle = await page.locator(".decision-title").first().boundingBox()
+  assert.ok(firstTitle.y + firstTitle.height <= 844, "First decision title must appear in the initial mobile viewport")
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+  await page.screenshot({ path: "/private/tmp/decision-compact-mobile.png", animations: "disabled" })
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.screenshot({ path: "/private/tmp/decision-compact-desktop.png", animations: "disabled" })
+  await page.setViewportSize({ width: 1536, height: 1024 })
 
   const search = page.getByRole("textbox", { name: "Search decisions" })
   await search.fill("Maya Chen")
@@ -103,8 +118,9 @@ try {
   await search.fill("Hồi trước mình xử lý file migration lớn hay timeout như thế nào?")
   await page.waitForTimeout(350)
   assert.equal(await page.locator(".decision-row").count(), 0)
-  await page.getByRole("button", { name: "Search by memory" }).click()
+  // Empty keyword results fall back to local meaning search without a click.
   await page.getByText("Local semantic match", { exact: true }).first().waitFor()
+  assert.match(await page.locator("body").innerText(), /No exact keyword matches, so we searched by meaning/)
   assert.match(
     await page.locator("body").innerText(),
     /moved large migration rollback files away from the database host/,
@@ -180,10 +196,15 @@ try {
   await page.getByLabel("Context").fill("The team is optimizing for a reliable live demonstration before deployment work.")
   await page.screenshot({ path: "/private/tmp/decision-memory-new-desktop.png", fullPage: true })
   // Type key by key: list fields must keep spaces, commas, and new lines.
-  await page.getByLabel("Applies To").pressSequentially("Migration Service, Billing")
+  for (const scope of ["Migration Service", "Billing"]) {
+    await page.getByLabel("Applies To", { exact: true }).fill("")
+    await page.getByLabel("Applies To", { exact: true }).pressSequentially(scope)
+    await page.getByRole("option", { name: `Add “${scope}”`, exact: true }).click()
+  }
+  await page.keyboard.press("Escape")
   await page.getByLabel("Tags").pressSequentially("architecture, demo prep")
   await page.getByLabel("Options Considered").pressSequentially("Microservices\nSingle service")
-  assert.equal(await page.getByLabel("Applies To").inputValue(), "Migration Service, Billing")
+  assert.deepEqual(await page.locator("[data-slot=combobox-chip]").allTextContents(), ["Migration Service", "Billing"])
   assert.equal(await page.getByLabel("Options Considered").inputValue(), "Microservices\nSingle service")
   await page.getByRole("button", { name: "Add link" }).click()
   await page.getByRole("textbox", { name: "Related link 1 label" }).fill("Demo architecture notes")
@@ -198,7 +219,7 @@ try {
 
   await page.getByText("Edit", { exact: true }).click()
   await page.getByRole("heading", { name: "Edit Decision" }).waitFor()
-  assert.equal(await page.getByLabel("Applies To").inputValue(), "Migration Service, Billing")
+  assert.deepEqual(await page.locator("[data-slot=combobox-chip]").allTextContents(), ["Migration Service", "Billing"])
   await page.getByRole("textbox", { name: "Related link 1 label" }).fill("Updated demo architecture notes")
   await page.getByRole("textbox", { name: "Related link 1 URL" }).fill("https://example.com/demo-architecture-updated")
   await page.getByRole("button", { name: "Save Decision" }).click()
@@ -310,7 +331,7 @@ try {
   await failurePage.goto("http://localhost:5173/")
   const memorySearch = failurePage.getByRole("textbox", { name: "Search decisions" })
   await memorySearch.fill("migration")
-  await failurePage.getByRole("button", { name: "Search by memory" }).click()
+  await failurePage.getByRole("button", { name: "Find by meaning", exact: true }).click()
   await memoryRequestStarted
   await memorySearch.fill("billing")
   const completed = failurePage.waitForResponse("**/api/decisions/memory-search")
@@ -323,7 +344,9 @@ try {
   // debounced search to narrow the rows before reading them.
   await failurePage.waitForFunction(() => document.querySelectorAll(".decision-row").length === 1)
   await failurePage.getByText(formFixtureTitle, { exact: true }).waitFor()
-  assert.match(await failurePage.locator(".decision-row").innerText(), /Migration Service · Billing/)
+  for (const scope of ["Migration Service", "Billing"]) {
+    assert.equal(await failurePage.locator(".decision-row").getByRole("button", { name: `Filter Applies To to ${scope}`, exact: true }).count(), 1)
+  }
   await failurePage.screenshot({ path: "/private/tmp/decision-memory-p1-library-scopes.png" })
   await failurePage.close()
 
@@ -367,7 +390,7 @@ try {
   })
   await navigationRacePage.goto("http://localhost:5173/")
   await navigationRacePage.getByRole("textbox", { name: "Search decisions" }).fill("migration")
-  await navigationRacePage.getByRole("button", { name: "Search by memory", exact: true }).click()
+  await navigationRacePage.getByRole("button", { name: "Find by meaning", exact: true }).click()
   await memoryStartedForNavigation
   await navigationRacePage.getByRole("link", { name: "Recent", exact: true }).click()
   await navigationRacePage.getByRole("heading", { name: "Recent Decisions", exact: true }).waitFor()
@@ -412,6 +435,7 @@ try {
   const geminiFilters = { channel: "platform-decisions", ownerId: "22222222-2222-4222-8222-222222222222", tag: "storage", status: "ACTIVE", appliesTo: "Atlas migration", dateRange: "90" }
   await geminiPage.goto(`http://localhost:5173/#/?${new URLSearchParams({ q: "migration", ...geminiFilters })}`)
   assert.equal(geminiCalls.length, 0, "Typing/loading never sends content to Gemini")
+  if (!await geminiPage.getByRole("button", { name: "Search with Gemini", exact: true }).isVisible()) await geminiPage.locator("summary").filter({ hasText: "Search options" }).click()
   await geminiPage.getByRole("button", { name: "Search with Gemini", exact: true }).click()
   await geminiPage.getByText("Gemini AI match", { exact: true }).first().waitFor()
   assert.deepEqual(geminiCalls[0], { query: "migration", method: "GEMINI", filters: { ...geminiFilters, decisionState: "DECIDED", asOf: geminiCalls[0].filters.asOf, sort: "NEWEST" } })
@@ -424,11 +448,13 @@ try {
   await geminiPage.getByText("Back to decisions", { exact: true }).click()
   await geminiPage.getByText("Gemini AI match", { exact: true }).first().waitFor()
   assert.equal(geminiCalls.length, 1, "Returning to Gemini results reuses the cached response")
+  await geminiPage.locator("summary").filter({ hasText: "Search options" }).click()
   await geminiPage.waitForFunction(() => Array.from(document.querySelectorAll("button")).some(button => button.textContent.includes("Search with Gemini") && !button.disabled))
   await geminiPage.setViewportSize({ width: 390, height: 844 })
   assert.equal(await geminiPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
   await geminiPage.screenshot({ path: "/private/tmp/decision-memory-gemini-mobile.png" })
   geminiFailure = true
+  if (!await geminiPage.getByRole("button", { name: "Search with Gemini", exact: true }).isVisible()) await geminiPage.locator("summary").filter({ hasText: "Search options" }).click()
   await geminiPage.getByRole("button", { name: "Search with Gemini", exact: true }).click()
   await geminiPage.getByText("Gemini is rate limited. Local search is still available.", { exact: true }).waitFor()
   await geminiPage.getByText(memoryDecision.title, { exact: true }).click()
@@ -436,27 +462,34 @@ try {
   await geminiPage.getByText("Back to decisions", { exact: true }).click()
   await geminiPage.getByRole("heading", { name: "Decision Library", exact: true }).waitFor()
   assert.equal(await geminiPage.getByText("Gemini AI match", { exact: true }).count(), 0, "Failed re-search cannot restore an older cached AI result")
-  await geminiPage.getByRole("button", { name: "Search by memory", exact: true }).click()
+  await geminiPage.getByRole("button", { name: "Find by meaning", exact: true }).click()
   await geminiPage.getByText("Local semantic match", { exact: true }).first().waitFor()
   assert.equal(geminiCalls.at(-1).method, "LOCAL")
   assert.deepEqual(geminiCalls.at(-1).filters, { ...geminiFilters, decisionState: "DECIDED", asOf: geminiCalls[0].filters.asOf, sort: "NEWEST" })
-  await geminiPage.getByRole("button", { name: "Back to normal results", exact: true }).click()
+  await geminiPage.getByRole("button", { name: "Back to keyword results", exact: true }).click()
   let finishGemini
   const heldGemini = new Promise((resolve) => { finishGemini = resolve })
   let geminiStarted
   const startedGemini = new Promise((resolve) => { geminiStarted = resolve })
   await geminiPage.route("**/api/decisions/memory-search", async (route) => {
+    // "billing" has no keyword match under these filters, so the library's
+    // automatic local fallback runs; it must not be confused with the stale reply.
+    if (route.request().postDataJSON().method !== "GEMINI") {
+      await route.fulfill({ json: { method: "LOCAL", candidateCount: 9, totalCandidateCount: 9, matches: [] } })
+      return
+    }
     geminiStarted()
     await heldGemini
     await route.fulfill({ json: { method: "GEMINI", candidateCount: 1, matches: [{ decisionId: memoryDecision.id, score: 90, explanation: "STALE GEMINI RESULT", matchedConcepts: [], decision: memoryDecision }] } })
   })
+  if (!await geminiPage.getByRole("button", { name: "Search with Gemini", exact: true }).isVisible()) await geminiPage.locator("summary").filter({ hasText: "Search options" }).click()
   await geminiPage.getByRole("button", { name: "Search with Gemini", exact: true }).click()
   await startedGemini
   await geminiPage.getByRole("textbox", { name: "Search decisions" }).fill("billing")
-  const completedGemini = geminiPage.waitForResponse("**/api/decisions/memory-search")
+  const completedGemini = geminiPage.waitForResponse(response => response.url().endsWith("/api/decisions/memory-search") && response.request().postDataJSON().method === "GEMINI")
   finishGemini()
   await completedGemini
-  await geminiPage.waitForLoadState("networkidle")
+  await geminiPage.getByText("Find by meaning also found nothing similar.", { exact: false }).waitFor()
   assert.equal(await geminiPage.getByText("STALE GEMINI RESULT", { exact: true }).count(), 0)
   assert.deepEqual(geminiPageErrors, [])
   assert.deepEqual(geminiConsoleErrors, [])
@@ -484,7 +517,7 @@ try {
   })
   await reviewPage.route("**/api/decisions/memory-search", (route) => route.fulfill({ json: { candidateCount: 200, totalCandidateCount: 245, truncated: true, matches: [] } }))
   await reviewPage.reload()
-  await reviewPage.getByRole("button", { name: "Search by memory" }).click()
+  await reviewPage.getByRole("button", { name: "Find by meaning", exact: true }).click()
   await reviewPage.getByText(/Searched 200 of 245/).waitFor()
   assert.match(await reviewPage.locator("body").innerText(), /waiting for local indexing/)
   await reviewPage.screenshot({ path: "/private/tmp/decision-memory-review-coverage.png" })
@@ -626,6 +659,12 @@ try {
 
   await verifyDeadlineUi({ browser, models, workspace })
   await verifyProposalUi({ browser, models, workspace })
+  await verifyConvenienceUi({ browser, models, workspace })
+  await verifyEverydayConvenienceUi({ browser, models, workspace })
+  await verifyLibraryWorkflowUi({ browser, models, workspace })
+  await verifySharingViewsUi({ browser })
+  await verifyDiscoveryUi({ browser, models, workspace })
+  await verifyPracticalUi({ browser, models, workspace })
   assert.deepEqual(pageErrors, [], `Page errors: ${pageErrors.join(" | ")}`)
   assert.deepEqual(consoleErrors, [], `Console errors: ${consoleErrors.join(" | ")}`)
   console.log("UI QA passed with Playwright/Chrome fallback: independent keyword and memory search, collapsed/expanded evidence, create/edit, desktop and mobile screenshots")

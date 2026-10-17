@@ -120,8 +120,8 @@ exact setup steps and expected evidence.
 | Time | Show | Say |
 | --- | --- | --- |
 | 0–8 s | Proposal: “Keep migration backup files on the database host.” | “This sounds reasonable. But has the team already changed this decision?” |
-| 8–20 s | Check locally; open the current object-storage choice | “The history shows that we moved backups off the database host.” |
-| 20–38 s | Confirm scope; choose Analyze with Gemini; inspect citations | “The assessment points to a possible mismatch and shows the recorded evidence.” |
+| 8–20 s | Check locally; the headline reads “A similar choice was replaced” (DM-102 → DM-104) | “The team already moved backups off the database host.” |
+| 20–38 s | Click **Analyze with Gemini in Atlas migration** (suggested scope); inspect citations | “The assessment points to a possible mismatch and shows the recorded evidence.” |
 | 38–53 s | Compare the old and current choices, including What changed? | “Large backup files exhausted the host. That is why the choice changed.” |
 | 53–68 s | Revise to object storage; open Record this choice and explicitly save | “The person reviews the evidence and records the choice.” |
 | 68–80 s | Check a 45-day retention proposal where duration is undecided | “When the records do not settle a question, the answer is insufficient evidence.” |
