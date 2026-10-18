@@ -336,3 +336,42 @@ conflict:
   a laptop screen; narrower screens keep horizontal scrolling inside the board.
 - Helper text keeps required disclosures (local vs Google, coverage, excerpt
   limits) and drops repeated reassurance.
+
+## Stable discovery, sharing links and pending scopes — 2026-10-17
+
+Keep Search within and expansion with the current form visit. Text edits clear
+transient results while retaining lookup selection; scope edits retain valid
+values and mode changes reset lookup defaults. Keep the local debounce and
+manual retry without duplicate scheduled requests. Show two compact matches,
+then an accessible Show all N / Show fewer control; use the lazy preview for
+long rationale and evidence.
+
+Reuse the clipboard control for compact Copy link beside Copy summary on detail
+and inside the shared preview. Summary includes the decision URL and all known
+current successor URLs. Preserve real base paths/HashRouter and exclude transient
+query/draft state. Clipboard failure retains a selected read-only manual copy.
+
+Scope overviews link Pending questions (N) to exact-scope Pending library filters
+rather than rendering another pending list. Show active/superseded counts for
+recorded choices separately. Omit zero pending links; pending-only scopes say No
+recorded choices yet and omit Latest recorded dates. Preserve alphabetical
+ordering, error/retry states and superseded-only history explanations.
+
+## Small library and deadline shortcuts — 2026-10-18
+
+Show Reset to saved view beside Update view only for a modified selected view;
+reuse existing application without persisting. Let this action wrap with the
+existing saved-view controls on mobile.
+
+Scope directory has one With pending questions toggle beside name search. Use
+separate scope-name and positive-pending-count links inside a noninteractive row;
+keep counts distinct and independently clear empty-state controls. Do not add
+sorting or another pending list.
+
+Identifier-only empty keyword results use No matching decision under these
+filters, with Clear filters and keep this key when applicable. Keep manual
+provider controls unchanged; only automatic local fallback is suppressed.
+
+Pending deadline fields reuse compact Today/Tomorrow/In 7 days buttons in a
+wrapping group, preserving arbitrary date input and explicit Save. Use the shared
+calendar helper at click time. Hide shortcuts for decided historical deadlines.

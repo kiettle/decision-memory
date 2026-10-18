@@ -169,6 +169,7 @@ export function LibraryPage() {
   const [autoMeaningEmptyFor, setAutoMeaningEmptyFor] = useState("")
   const meaningTriedFor = useRef("")
   const autoMeaning = useRef<(key: string) => void>(() => {})
+  const identifierOnly = /^DM-\d+$/i.test(filters.q.trim())
 
   const applySavedView = (search: string) => {
     latestRequest.current++
@@ -310,6 +311,7 @@ export function LibraryPage() {
   })
   const autoMeaningEligible =
     keywordEmptyFor === filterKey &&
+    !identifierOnly &&
     !memoryResult &&
     !memorySearching &&
     !memoryError &&
@@ -348,6 +350,8 @@ export function LibraryPage() {
       ? "Enter at least 3 characters to find recorded choices by meaning."
       : !metadata?.features.memorySearch
         ? "Local meaning search is unavailable. Keyword search is still available."
+        : identifierOnly
+          ? "Decision keys use keyword results. Choose Find by meaning to search for similar choices."
         : "It runs on this computer, and by itself when keywords find nothing."
 
   const options = useMemo(
@@ -900,6 +904,8 @@ export function LibraryPage() {
             <EmptyTitle role="heading" aria-level={2}>
               {memoryResult
                 ? "No memory matches in the searched decisions"
+                : identifierOnly
+                  ? "No matching decision under these filters."
                 : activeFilterCount || filters.q.trim()
                   ? "No decisions match these filters"
                   : "No decisions yet"}
@@ -907,6 +913,8 @@ export function LibraryPage() {
             <EmptyDescription>
               {memoryResult
                 ? "No matches were found in the searched records. Try keyword search or broaden your filters."
+                : identifierOnly && !memorySearching
+                  ? "Check the key or adjust your filters. You can still search by meaning explicitly."
                 : memorySearching === "LOCAL"
                   ? "No exact keyword matches. Searching by meaning on this computer…"
                   : autoMeaningEmpty
@@ -958,7 +966,7 @@ export function LibraryPage() {
             ) : null}
             {activeFilterCount > 0 ? (
               <Button variant="outline" onClick={resetFilters}>
-                Clear non-search filters
+                {identifierOnly && !memoryResult ? "Clear filters and keep this key" : "Clear non-search filters"}
               </Button>
             ) : null}
             {filters.q ? (

@@ -81,7 +81,7 @@ export type Decision = {
   evidenceCount: number
   sources?: SourceSnapshot[]
   references?: ExternalReference[]
-  supersededBy?: Array<Pick<RelatedDecision, "id" | "decisionKey">>
+  supersededBy?: Array<Pick<RelatedDecision, "id" | "decisionKey"> & Partial<RelatedDecision>>
   lifecycle?: {
     current?: RelatedDecision[]
     supersedes: RelatedDecision[]
@@ -194,13 +194,16 @@ export type ScopeSummary = {
   scope: string
   decisionCount: number
   activeCount: number
-  latestDecisionAt: string
+  openCount: number
+  latestDecisionAt: string | null
 }
 
 export type ScopeOverview = {
   scope: string
   decisionCount: number
+  openCount: number
   activeDecisions: Decision[]
+  openQuestions: Decision[]
   changes: Array<{
     previous: RelatedDecision
     replacement: RelatedDecision

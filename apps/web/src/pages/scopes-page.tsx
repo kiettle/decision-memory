@@ -33,6 +33,7 @@ export function ScopesPage() {
 function ScopeDirectory() {
   const [rows, setRows] = useState<ScopeSummary[]>([])
   const [query, setQuery] = useState("")
+  const [withPending, setWithPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [retry, setRetry] = useState(0)
@@ -57,7 +58,8 @@ function ScopeDirectory() {
     }
   }, [retry])
   const filtered = rows.filter((row) =>
-    row.scope.toLowerCase().includes(query.toLowerCase().trim())
+    row.scope.toLowerCase().includes(query.toLowerCase().trim()) &&
+    (!withPending || row.openCount > 0)
   )
   return (
     <div className="page-frame">
@@ -65,7 +67,7 @@ function ScopeDirectory() {
         <p className="eyebrow">Understand a service before your next change</p>
         <h1>Scope overviews</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Explore the current choices, their reasons, and how they evolved for
+          Explore current choices, pending questions, and how decisions evolved for
           each service, feature, or component.
         </p>
       </div>
@@ -80,6 +82,15 @@ function ScopeDirectory() {
           <Search />
         </InputGroupAddon>
       </InputGroup>
+      <Button
+        type="button"
+        variant={withPending ? "secondary" : "outline"}
+        className="w-fit"
+        aria-pressed={withPending}
+        onClick={() => setWithPending((value) => !value)}
+      >
+        With pending questions
+      </Button>
       {loading ? (
         <Skeleton className="h-60 w-full" />
       ) : error ? (
@@ -102,37 +113,66 @@ function ScopeDirectory() {
       ) : filtered.length ? (
         <div className="divide-y border-y">
           {filtered.map((row) => (
-            <Link
+            <div
               key={row.scope}
-              to={scopeHref(row.scope)}
-              className="flex items-center gap-4 py-6 hover:bg-muted/50"
+              className="flex items-start gap-4 py-6"
             >
               <Box className="size-5 shrink-0 text-primary" />
               <div className="grid min-w-0 flex-1 gap-2">
-                <h2 className="font-semibold break-words">{row.scope}</h2>
+                <h2 className="font-semibold break-words">
+                  <Link to={scopeHref(row.scope)} className="rounded-sm hover:text-primary focus-visible:outline-2 focus-visible:outline-ring">
+                    {row.scope}
+                  </Link>
+                </h2>
                 <p className="text-sm text-muted-foreground">
                   {row.activeCount} active ·{" "}
-                  {row.decisionCount - row.activeCount} superseded · Latest
-                  recorded {recordedDate(row.latestDecisionAt)}
+                  {row.decisionCount - row.activeCount} superseded
+                  {row.latestDecisionAt
+                    ? ` · Latest recorded ${recordedDate(row.latestDecisionAt)}`
+                    : ""}
                 </p>
+                {row.openCount > 0 ? (
+                  <Link
+                    to={scopeHref(row.scope, "PENDING")}
+                    aria-label={`Pending questions (${row.openCount}) in ${row.scope}`}
+                    className="w-fit rounded-sm text-sm text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                  >
+                    Pending questions ({row.openCount})
+                  </Link>
+                ) : null}
               </div>
-              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-            </Link>
+              <ArrowRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+            </div>
           ))}
         </div>
       ) : (
         <Empty className="border-y">
           <EmptyHeader>
             <EmptyTitle>
-              {rows.length
-                ? "No scopes match your search"
-                : "No scopes recorded yet"}
+              {!rows.length
+                ? "No scopes recorded yet"
+                : withPending
+                  ? "No scopes with pending questions match these controls"
+                  : "No scopes match your search"}
             </EmptyTitle>
             <EmptyDescription>
-              Use Applies To when recording a Decision to make it part of a
-              service or feature overview.
+              {!rows.length
+                ? "Use Applies To when recording a Decision to make it part of a service or feature overview."
+                : withPending
+                  ? "Try another scope name or include scopes without pending questions."
+                  : "Try a different scope name."}
             </EmptyDescription>
           </EmptyHeader>
+          {rows.length && withPending ? (
+            <Button type="button" variant="outline" onClick={() => setWithPending(false)}>
+              Show scopes without pending questions
+            </Button>
+          ) : null}
+          {rows.length && query ? (
+            <Button type="button" variant="outline" onClick={() => setQuery("")}>
+              Clear scope name search
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             render={<Link to="/decisions/new" />}
@@ -266,6 +306,9 @@ function ScopeDetail({ scope }: { scope: string }) {
               <Badge variant="secondary">
                 {overview.activeDecisions.length} active
               </Badge>
+              <Badge variant="secondary">
+                {overview.decisionCount - overview.activeDecisions.length} superseded
+              </Badge>
               <span className="text-sm text-muted-foreground">
                 {overview.decisionCount} recorded in this scope
               </span>
@@ -329,11 +372,20 @@ function ScopeDetail({ scope }: { scope: string }) {
               </div>
             ) : (
               <p className="border-y py-6 text-sm text-muted-foreground">
-                Every recorded Decision in this scope has been superseded. Open
-                the history to follow the replacement into its current scope.
+                {overview.decisionCount
+                  ? "Every recorded Decision in this scope has been superseded. Open the history to follow the replacement into its current scope."
+                  : "No recorded choices yet"}
               </p>
             )}
           </section>
+          {overview.openCount > 0 ? (
+            <Link
+              to={scopeHref(scope, "PENDING")}
+              className="w-fit rounded-sm text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              Pending questions ({overview.openCount})
+            </Link>
+          ) : null}
           <section aria-label="Recent replacements" className="grid gap-5">
             <div>
               <h2 className="text-lg font-semibold">How this scope evolved</h2>

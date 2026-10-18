@@ -89,7 +89,7 @@ const draftLanguage = (messages) =>
     ? "Write every text field in Vietnamese, keeping product and technology names as written."
     : "Write every text field in the same language as the messages."
 
-function promptFor(messages) {
+function promptFor(messages, knownScopes = []) {
   return `You turn a Slack thread into a draft engineering Decision record. A person reviews and edits the draft before anything is saved, so accuracy matters more than completeness: leave a field empty rather than guess.
 
 How to read the thread:
@@ -103,7 +103,7 @@ How to write each field:
 - decision: one short sentence that starts with a verb and names the choice and what it applies to, such as "Use PostgreSQL for the Migration Service database". Never write "will be used", "the team decided", or "we should".
 - why: every reason the participants wrote for the chosen option or against the alternatives, in one to three short sentences. Paraphrase faithfully. Do not add reasons, adjectives, comparisons, or benefits that nobody wrote.
 - context: the problem or question that started the discussion, and which option each participant proposed. One to three short sentences.
-- appliesTo: the part of the product or system the Decision governs, such as a service, feature, or component. Never the technologies or options being chosen. Empty if no scope is stated.
+- appliesTo: the part of the product or system the Decision governs, such as a service, feature, or component. Never the technologies or options being chosen. Empty if no scope is stated.${knownScopes.length ? ` When one of these existing scope names fits, copy it exactly: ${JSON.stringify(knownScopes)}.` : ""}
 - optionsConsidered: every option that was proposed, including the chosen one, as short phrases.
 - proposalMessageId: the id of the message that first proposed the option that was agreed. A message that only agrees ("ok", "agree", "it is") is never the proposal. Empty if there is no Decision.
 - followUpMessageId: the id of a message where someone commits to act on the Decision (for example "I'll update the ticket"). Empty if nobody does.
@@ -170,11 +170,13 @@ export function createCaptureDrafter({ config, generateContent, timeoutMs = 8_00
     : null
   const generate = generateContent ?? ((request) => client.models.generateContent(request))
 
-  async function draft(messages) {
+  // knownScopes are the workspace's existing Applies To names, so the draft
+  // reuses them instead of inventing a near-duplicate spelling.
+  async function draft(messages, { knownScopes = [] } = {}) {
     if (!enabled || !messages?.length) return null
     const started = performance.now()
     const prompted = promptMessages(messages)
-    const contents = promptFor(prompted)
+    const contents = promptFor(prompted, knownScopes.slice(0, 100).map((scope) => scope.slice(0, 80)))
     let parsed
     for (let attempt = 1; attempt <= 2; attempt++) {
       const remaining = totalTimeoutMs - (performance.now() - started)

@@ -11,6 +11,8 @@ const blankToNull = (value) => {
   return trimmed || null
 }
 
+const scopeKey = (value) => String(value).trim().replace(/\s+/g, " ").toLowerCase()
+
 const listFrom = (value) =>
   Array.isArray(value)
     ? value.map((item) => String(item).trim()).filter(Boolean)
@@ -210,7 +212,8 @@ export function createRepository(models) {
 
   async function supersededByLookup(workspaceId) {
     const rows = await sequelize.query(
-      `SELECT r.to_decision_id AS "targetId", d.id, d.decision_key AS "decisionKey"
+      `SELECT r.to_decision_id AS "targetId", d.id, d.decision_key AS "decisionKey",
+              d.title, d.outcome, d.decision_state AS "decisionState", d.status
        FROM decision_relations r
        JOIN decisions d ON d.id = r.from_decision_id
        WHERE r.workspace_id = :workspaceId AND r.relation_type = 'SUPERSEDES'`,
@@ -251,7 +254,11 @@ export function createRepository(models) {
       order: [["createdAt", "DESC"], ["id", "DESC"]],
       ...(limit === undefined ? {} : { limit }),
     })
-    return decisions.map(serializeDecision)
+    const supersededBy = decisions.length ? await supersededByLookup(workspace.id) : new Map()
+    return decisions.map((decision) => ({
+      ...serializeDecision(decision),
+      supersededBy: supersededBy.get(decision.id) ?? [],
+    }))
   }
 
   async function memorySearchCandidateCount(identity, filters = {}) {
@@ -405,7 +412,12 @@ export function createRepository(models) {
         where: { workspaceId: workspace.id, id: { [Op.in]: nearest.map((row) => row.id) } },
         include: decisionIncludes, transaction,
       }) : []
-      const byId = new Map(decisions.map((decision) => [decision.id, serializeDecision(decision)]))
+      // Like keyword results, a superseded match names what replaced it.
+      const supersededBy = decisions.length ? await supersededByLookup(workspace.id) : new Map()
+      const byId = new Map(decisions.map((decision) => [decision.id, {
+        ...serializeDecision(decision),
+        supersededBy: supersededBy.get(decision.id) ?? [],
+      }]))
       return {
         ...counts,
         truncated: counts.candidateCount < counts.totalCandidateCount,
@@ -602,6 +614,27 @@ export function createRepository(models) {
     )
   }
 
+  // "atlas migration" or "Atlas  Migration" reuses an existing "Atlas migration",
+  // so filters and scope overviews (exact matches) stay complete. The decision
+  // being edited is excluded, so a record that alone holds a scope can rename it.
+  async function existingScopeNames(workspaceId, values, excludeId, transaction) {
+    const scopes = listFrom(values)
+    if (!scopes.length) return scopes
+    const rows = await sequelize.query(
+      `SELECT DISTINCT jsonb_array_elements_text(applies_to) AS value
+       FROM decisions WHERE workspace_id = :workspaceId ${excludeId ? "AND id <> :excludeId" : ""}`,
+      { replacements: { workspaceId, excludeId }, type: QueryTypes.SELECT, transaction },
+    )
+    const known = new Map(rows.map(({ value }) => [scopeKey(value), value]))
+    const result = new Map()
+    for (const scope of scopes) {
+      const key = scopeKey(scope)
+      // The first new spelling in this save wins for its later duplicates.
+      if (!result.has(key)) result.set(key, known.get(key) ?? scope.replace(/\s+/g, " "))
+    }
+    return [...result.values()]
+  }
+
   async function createDecision(identity, input, extras = {}) {
     return sequelize.transaction(async (transaction) => {
       const { workspace, user } = await resolveContext(identity, transaction)
@@ -626,7 +659,7 @@ export function createRepository(models) {
           title: requireDecisionTitle(input.title),
           why: blankToNull(input.why),
           context: blankToNull(input.context),
-          appliesTo: listFrom(input.appliesTo),
+          appliesTo: await existingScopeNames(workspace.id, input.appliesTo, null, transaction),
           optionsConsidered: listFrom(input.optionsConsidered),
           ownerId: await scopedOwnerId(workspace.id, input.ownerId, transaction),
           ownerName: blankToNull(input.ownerName),
@@ -677,7 +710,7 @@ export function createRepository(models) {
           title: requireDecisionTitle(input.title),
           why: blankToNull(input.why),
           context: blankToNull(input.context),
-          appliesTo: listFrom(input.appliesTo),
+          appliesTo: await existingScopeNames(workspace.id, input.appliesTo, decision.id, transaction),
           optionsConsidered: listFrom(input.optionsConsidered),
           ownerId: await scopedOwnerId(workspace.id, input.ownerId, transaction),
           ownerName: blankToNull(input.ownerName),
@@ -803,11 +836,12 @@ export function createRepository(models) {
   async function listScopes(identity) {
     const { workspace } = await resolveContext(identity)
     const rows = await sequelize.query(
-      `SELECT scope, COUNT(*)::int AS "decisionCount",
-              COUNT(*) FILTER (WHERE status = 'ACTIVE')::int AS "activeCount",
-              MAX(created_at) AS "latestDecisionAt"
+      `SELECT scope, COUNT(*) FILTER (WHERE decision_state = 'DECIDED')::int AS "decisionCount",
+              COUNT(*) FILTER (WHERE decision_state = 'DECIDED' AND status = 'ACTIVE')::int AS "activeCount",
+              COUNT(*) FILTER (WHERE decision_state = 'PENDING')::int AS "openCount",
+              MAX(created_at) FILTER (WHERE decision_state = 'DECIDED') AS "latestDecisionAt"
        FROM decisions d CROSS JOIN LATERAL (SELECT DISTINCT jsonb_array_elements_text(d.applies_to) AS scope) s
-       WHERE d.workspace_id = :workspaceId AND d.decision_state = 'DECIDED' AND btrim(scope) <> ''
+       WHERE d.workspace_id = :workspaceId AND btrim(scope) <> ''
        GROUP BY scope ORDER BY scope`,
       { replacements: { workspaceId: workspace.id }, type: QueryTypes.SELECT },
     )
@@ -817,9 +851,10 @@ export function createRepository(models) {
   async function scopeOverview(identity, scope) {
     const { workspace } = await resolveContext(identity)
     const where = { workspaceId: workspace.id, decisionState: "DECIDED", appliesTo: { [Op.contains]: [scope] } }
-    const [decisionCount, active, changes] = await Promise.all([
+    const [decisionCount, active, open, changes] = await Promise.all([
       Decision.count({ where }),
       Decision.findAll({ where: { ...where, status: "ACTIVE" }, include: decisionIncludes, order: [["createdAt", "DESC"]] }),
+      Decision.findAll({ where: { ...where, decisionState: "PENDING" }, include: decisionIncludes }),
       sequelize.query(
         `SELECT r.replacement_reason AS "replacementReason", r.created_at AS "replacedAt",
            json_build_object('id', old.id, 'decisionKey', old.decision_key, 'title', old.title, 'outcome', old.outcome, 'decisionState', old.decision_state, 'status', old.status) AS previous,
@@ -828,13 +863,18 @@ export function createRepository(models) {
          JOIN decisions old ON old.id = r.to_decision_id AND old.workspace_id = :workspaceId
          JOIN decisions newer ON newer.id = r.from_decision_id AND newer.workspace_id = :workspaceId
          WHERE r.workspace_id = :workspaceId AND r.relation_type = 'SUPERSEDES'
+           AND old.decision_state = 'DECIDED' AND newer.decision_state = 'DECIDED'
            AND (old.applies_to @> CAST(:scope AS jsonb) OR newer.applies_to @> CAST(:scope AS jsonb))
          ORDER BY r.created_at DESC, r.id DESC LIMIT 10`,
         { replacements: { workspaceId: workspace.id, scope: JSON.stringify([scope]) }, type: QueryTypes.SELECT },
       ),
     ])
-    if (!decisionCount) return null
-    return { scope, decisionCount, activeDecisions: active.map(serializeDecision), changes }
+    if (!decisionCount && !open.length) return null
+    // Open questions sort by deadline (undated last), then newest.
+    const openQuestions = open.map(serializeDecision).sort((left, right) =>
+      (left.dueDate ?? "9999-12-31").localeCompare(right.dueDate ?? "9999-12-31")
+      || String(right.createdAt).localeCompare(String(left.createdAt)))
+    return { scope, decisionCount, openCount: open.length, activeDecisions: active.map(serializeDecision), openQuestions, changes }
   }
 
   async function metadata(identity) {

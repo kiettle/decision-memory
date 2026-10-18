@@ -131,11 +131,10 @@ function PreviewContent({
         <p>Loading decision…</p>
       ) : (
         <>
-          {context === "library" ? (
-            <div className="flex">
-              <CopyDecisionSummary decision={decision} />
-            </div>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {context === "library" ? <CopyDecisionSummary decision={decision} /> : null}
+            <CopyDecisionSummary decision={decision} linkOnly />
+          </div>
           <div className="flex flex-col gap-2">
             <StatusBadge
               status={decision.status}

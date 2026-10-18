@@ -113,8 +113,22 @@ export async function verifySharingViewsUi({ browser }) {
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     const copied = await page.evaluate(() => navigator.clipboard.readText())
-    assert.equal(copied, "DM-COPY · Decided — current\nDecision: Use object storage\nWhy: Durable storage.\nKeep the existing retention policy.\nApplies To: Atlas; Exports\n\nSources:\n- archive: https://example.com/source\n\nRelated links:\n- Design note: https://example.com/design")
-    assert.ok(!copied.includes("localhost"), "No app URL is synthesized")
+    const beforeLinkUrl = page.url()
+    await page.getByRole("button", { name: "Copy link", exact: true }).click()
+    await page.getByText("Decision link copied.", { exact: true }).waitFor()
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `${base}/decisions/${id}`)
+    assert.equal(page.url(), beforeLinkUrl)
+    const urls = await page.evaluate(async () => {
+      const { decisionUrl } = await import("/src/lib/decision-links.ts")
+      return [
+        decisionUrl("record", "https://memory.example/team/app/?filter=secret#/decisions/new?raw=draft"),
+        decisionUrl("record", "https://memory.example/team/app/index.html?filter=secret#/check-proposal"),
+        decisionUrl("a/b", "https://memory.example/team/app/#/"),
+      ]
+    })
+    assert.deepEqual(urls, ["https://memory.example/team/app/#/decisions/record", "https://memory.example/team/app/index.html#/decisions/record", "https://memory.example/team/app/#/decisions/a%2Fb"])
+    assert.equal(copied, "DM-COPY · Decided — current\nDecision: Use object storage\nWhy: Durable storage.\nKeep the existing retention policy.\nApplies To: Atlas; Exports\nDecision URL: http://localhost:5173/#/decisions/33333333-3333-4333-8333-333333333301\n\nSources:\n- archive: https://example.com/source\n\nRelated links:\n- Design note: https://example.com/design")
+    assert.equal(copied.split("\n").find(line => line.startsWith("Decision URL:")), `Decision URL: ${base}/decisions/${id}`)
     await page.screenshot({ path: "/private/tmp/decision-summary-mobile.png", fullPage: true, animations: "disabled" })
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
 
@@ -122,15 +136,18 @@ export async function verifySharingViewsUi({ browser }) {
     await page.reload()
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
-    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "DM-COPY · Pending — not yet decided\nQuestion: Which archive?\nWhy: No rationale recorded.\nApplies To: No scope recorded.")
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "DM-COPY · Pending — not yet decided\nQuestion: Which archive?\nWhy: No rationale recorded.\nApplies To: No scope recorded.\nDecision URL: http://localhost:5173/#/decisions/33333333-3333-4333-8333-333333333301")
 
-    decision = { ...decision, decisionState: "DECIDED", outcome: "Use local storage", status: "SUPERSEDED", lifecycle: { supersedes: [], supersededBy: [], current: [{ id: "current", decisionKey: "DM-NEW", title: "Use object storage", status: "ACTIVE" }] } }
+    decision = { ...decision, decisionState: "DECIDED", outcome: "Use local storage", status: "SUPERSEDED", lifecycle: { supersedes: [], supersededBy: [], current: [{ id: "current", decisionKey: "DM-NEW", title: "Use object storage", status: "ACTIVE" }, { id: "second-current", decisionKey: "DM-SECOND", title: "Second current choice", status: "ACTIVE" }] } }
     await page.reload()
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     const historical = await page.evaluate(() => navigator.clipboard.readText())
     assert.match(historical, /^DM-COPY · Superseded — historical choice\nDecision: Use local storage/)
-    assert.match(historical, /Current decisions: DM-NEW/)
+    assert.match(historical, /Current decisions:\n- DM-NEW: http:\/\/localhost:5173\/#\/decisions\/current/)
+
+    assert.match(historical, /- DM-SECOND: http:\/\/localhost:5173\/#\/decisions\/second-current/)
+    assert.ok(!historical.includes("undefined"))
 
     // Clipboard rejection and missing API both offer the exact text for manual copy.
     for (const unavailable of [false, true]) {
@@ -149,7 +166,29 @@ export async function verifySharingViewsUi({ browser }) {
       await text.focus()
       assert.equal(await text.evaluate(el => el.selectionEnd - el.selectionStart), historical.length)
       await fallback.getByRole("button", { name: "Done", exact: true }).click()
+      await page.getByRole("button", { name: "Copy link", exact: true }).click()
+      const linkFallback = page.getByRole("dialog", { name: "Copy decision link", exact: true })
+      const linkText = linkFallback.getByRole("textbox", { name: "Decision link", exact: true })
+      assert.equal(await linkText.inputValue(), `${base}/decisions/${id}`)
+      await linkText.focus()
+      assert.equal(await linkText.evaluate(el => el.selectionEnd - el.selectionStart), `${base}/decisions/${id}`.length)
+      assert.equal(await page.getByText("Decision link copied.", { exact: true }).count(), 0)
+      if (!unavailable) await page.screenshot({ path: "/private/tmp/decision-refined-copy-link-mobile.png", animations: "disabled" })
+      await linkFallback.getByRole("button", { name: "Done", exact: true }).click()
     }
+    decision = { ...decision, lifecycle: { current: [], supersedes: [], supersededBy: [{ id: "intermediate", decisionKey: "DM-INTERMEDIATE", status: "SUPERSEDED" }] } }
+    await page.reload()
+    await page.getByRole("button", { name: "Copy summary", exact: true }).click()
+    await page.getByText("Decision summary copied.", { exact: true }).waitFor()
+    const intermediate = await page.evaluate(() => navigator.clipboard.readText())
+    assert.match(intermediate, /Replaced by: DM-INTERMEDIATE/)
+    assert.ok(!intermediate.includes("Current decisions:"), "Immediate history is never labeled current")
+    decision = { ...decision, lifecycle: undefined, supersededBy: [] }
+    await page.reload()
+    await page.getByRole("button", { name: "Copy summary", exact: true }).click()
+    await page.getByText("Decision summary copied.", { exact: true }).waitFor()
+    const missing = await page.evaluate(() => navigator.clipboard.readText())
+    assert.ok(!missing.includes("Current decisions:") && !missing.includes("Replaced by:"))
     assert.deepEqual(writes, [], "Copying and managing views trigger neither server writes nor AI")
     assert.deepEqual(errors, [])
     console.log("Sharing and saved-view QA passed: real clipboard, pending/history/manual fallback, rename/update/save-new, duplicate/storage failure, reload and mobile")

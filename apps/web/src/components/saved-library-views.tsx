@@ -162,9 +162,19 @@ export function SavedLibraryViews({
           {selected ? "Save as new" : "Save view"}
         </Button>
         {modified ? (
-          <Button variant="outline" onClick={updateView}>
-            Update view
-          </Button>
+          <>
+            <Button type="button" variant="outline" onClick={() => {
+              if (selected) {
+                setError("")
+                onApply(selected.search)
+              }
+            }}>
+              Reset to saved view
+            </Button>
+            <Button variant="outline" onClick={updateView}>
+              Update view
+            </Button>
+          </>
         ) : null}
         <Dialog
           open={open}

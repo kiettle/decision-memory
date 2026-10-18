@@ -529,7 +529,7 @@ export async function verifyEverydayConvenienceUi({ browser, models, workspace }
     await setScope("Lookup scope, exact")
     await page.getByRole("button", { name: "Already decided", exact: true }).click()
     await primary().fill("Everyday unfinished final choice")
-    await related().getByText("Stored reason only", { exact: false }).waitFor()
+    await related().getByText(responseBody.outcome || responseBody.title, { exact: true }).waitFor()
     assert.deepEqual(calls.at(-1), { query: "Everyday unfinished final choice", method: "LOCAL", filters: { appliesTo: "Lookup scope, exact" } })
     await related().getByText(/Remaining records are waiting for local indexing/).waitFor()
     await related().getByText("Current choice", { exact: true }).waitFor()
@@ -608,22 +608,22 @@ export async function verifyEverydayConvenienceUi({ browser, models, workspace }
     assert.equal(await page.getByLabel("Tags", { exact: true }).inputValue(), "unsaved, raw tag ")
     assert.equal(await page.getByLabel("Options Considered", { exact: true }).inputValue(), "First unsaved\nSecond unsaved ")
     // Results are never persisted; the restored draft gets one fresh local lookup.
-    await related().getByText("Stored reason only", { exact: false }).waitFor()
+    await related().getByText(responseBody.outcome || responseBody.title, { exact: true }).waitFor()
     assert.equal(calls.length, afterLookup + 1, "Restoring runs exactly one new local lookup")
     const draft = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), draftKey)
     assert.deepEqual(Object.keys(draft).sort(), ["baseUpdatedAt", "form", "listText"])
     await page.getByRole("button", { name: "Pending decision", exact: true }).click()
     await findRelated().click()
-    await related().getByText("Stored reason only", { exact: false }).waitFor()
+    await related().getByText(responseBody.outcome || responseBody.title, { exact: true }).waitFor()
     assert.equal(calls.at(-1).query, "Everyday unfinished question")
     assert.equal(calls.at(-1).filters.decisionState, undefined)
     await setScope("Second lookup scope")
     assert.equal(await related().getByRole("link").count(), 0)
-    await related().getByText(/all scopes. Choose one selected draft scope to narrow this lookup/).waitFor()
+    await related().getByText("Search scope: Lookup scope, exact (exact scope).", { exact: true }).waitFor()
     responseBody = { ...responseBody, status: "SUPERSEDED" }
     await findRelated().click()
     await related().getByText("Superseded", { exact: true }).waitFor()
-    assert.deepEqual(calls.at(-1).filters, {})
+    assert.deepEqual(calls.at(-1).filters, { appliesTo: "Lookup scope, exact" })
     await page.getByRole("button", { name: "Remove scope Lookup scope, exact", exact: true }).click()
     await page.getByRole("button", { name: "Remove scope Second lookup scope", exact: true }).click()
     await related().getByText("Search scope: all scopes (none selected).", { exact: true }).waitFor()
@@ -730,6 +730,222 @@ export async function verifyEverydayConvenienceUi({ browser, models, workspace }
   } finally {
     await page.unrouteAll({ behavior: "ignoreErrors" })
     await context.close()
+    for (const id of created) await models.Decision.destroy({ where: { id, workspaceId: workspace.id } })
+  }
+}
+
+export async function verifyShortcutUi({ browser, models, workspace }) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: "America/New_York" })
+  const page = await context.newPage(), created = [], errors = [], calls = [], mutations = []
+  let expectedFailure = false, holdMeaning = null, scopeMode = "real", scopeReads = 0
+  page.on("pageerror", error => errors.push(error.message))
+  page.on("console", message => { if (message.type() === "error" && !expectedFailure) errors.push(message.text()) })
+  page.on("request", request => { if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && !request.url().endsWith("memory-search")) mutations.push(request.url()) })
+  const api = "http://localhost:3011/api", base = "http://localhost:5173/#"
+  const metadata = await (await page.request.get(`${api}/metadata`)).json()
+  const seed = await (await page.request.get(`${api}/decisions/33333333-3333-4333-8333-333333333301`)).json()
+  const create = async input => {
+    const response = await page.request.post(`${api}/decisions`, { data: { tags: ["shortcuts-ui"], ...input } })
+    assert.equal(response.status(), 201); const record = await response.json(); created.push(record.id); return record
+  }
+  const query = () => new URLSearchParams(page.url().split("?")[1] ?? "")
+  const goQuery = async search => { await page.goto(`${base}/?${search}`); await page.getByRole("textbox", { name: "Search decisions", exact: true }).waitFor() }
+  const savedRegion = () => page.getByRole("region", { name: "Saved library views", exact: true })
+  const reset = () => savedRegion().getByRole("button", { name: "Reset to saved view", exact: true })
+  const row = record => page.locator(".decision-row").filter({ has: page.getByRole("link", { name: record.title, exact: true }) })
+  try {
+    await page.route("**/api/metadata", async route => { const response = await route.fetch(); const data = await response.json(); await route.fulfill({ response, json: { ...data, features: { ...data.features, memorySearch: true, geminiMemorySearch: true } } }) })
+    await page.route("**/api/decisions/memory-search", async route => {
+      calls.push(route.request().postDataJSON()); const held = holdMeaning
+      if (held) { held.started(); await held.promise }
+      await route.fulfill({ json: { method: calls.at(-1).method, candidateCount: 1, totalCandidateCount: 1, matches: [{ decisionId: seed.id, decision: seed, score: 90, explanation: "Shortcut semantic fixture", matchedConcepts: [] }] } })
+    })
+    const savedSearch = new URLSearchParams({ q: "DM-9999", channel: "platform-decisions", ownerId: metadata.currentUser.id, tag: "migration", status: "PENDING", appliesTo: "Atlas migration", dateRange: "30", deadline: "OVERDUE", view: "kanban", sort: "DEADLINE" }).toString()
+    const views = [{ id: "shortcuts-saved", name: "Saved pending work", search: savedSearch }, { id: "shortcuts-other", name: "Other view", search: "q=DM-104" }]
+    const storageKey = `decision-memory:v1:${encodeURIComponent(metadata.workspace.id)}:${encodeURIComponent(metadata.currentUser.id)}:library-views`
+    await page.addInitScript(({storageKey,views}) => localStorage.setItem(storageKey, JSON.stringify(views)), { storageKey, views })
+    await goQuery(savedSearch)
+    await savedRegion().getByRole("combobox", { name: "Saved views", exact: true }).filter({ hasText: views[0].name }).waitFor()
+    assert.equal(await reset().count(), 0)
+    await goQuery("q=DM-8888")
+    await reset().waitFor()
+    let release, start
+    const started = new Promise(resolve => { start = resolve })
+    holdMeaning = { promise: new Promise(resolve => { release = resolve }), started: start }
+    await page.getByRole("button", { name: "Find by meaning", exact: true }).click(); await started
+    await page.evaluate(() => { window.shortcutSetItem = Storage.prototype.setItem; window.shortcutStorageWrites = 0; Storage.prototype.setItem = () => { window.shortcutStorageWrites++; throw new DOMException("Denied", "SecurityError") } })
+    await reset().focus(); await page.keyboard.press("Enter")
+    await page.waitForURL(url => url.hash.split("?")[1] === savedSearch)
+    assert.deepEqual(query().toString(), savedSearch)
+    await reset().waitFor({ state: "hidden" })
+    assert.equal(await reset().count(), 0)
+    assert.equal(await savedRegion().getByText("Unsaved changes", { exact: false }).count(), 0)
+    release(); holdMeaning = null; await page.waitForTimeout(250)
+    assert.equal(await page.getByText("Shortcut semantic fixture", { exact: true }).count(), 0)
+    assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey), views)
+    assert.equal(await page.evaluate(() => window.shortcutStorageWrites), 0)
+    await page.evaluate(() => { Storage.prototype.setItem = window.shortcutSetItem })
+    await goQuery("q=DM-8887")
+    await page.getByRole("button", { name: "Find by meaning", exact: true }).click()
+    await page.getByText("Local semantic match", { exact: true }).waitFor()
+    await page.setViewportSize({ width: 390, height: 844 })
+    await savedRegion().scrollIntoViewIfNeeded()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    await page.screenshot({ path: "/private/tmp/decision-shortcuts-reset-mobile.png", animations: "disabled" })
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    await reset().click()
+    await page.getByRole("heading", { name: "No matching decision under these filters.", exact: true }).waitFor()
+    assert.equal(await page.getByText("Local semantic match", { exact: true }).count(), 0)
+    assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey), views)
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await goQuery("q=DM-104")
+    await page.getByRole("link", { name: seed.outcome || seed.title, exact: true }).waitFor()
+    for (const key of ["DM-9999", "dm-9999", "  dM-9999  "]) {
+      const before = calls.length
+      await goQuery(new URLSearchParams({ q: key }).toString())
+      await page.getByRole("heading", { name: "No matching decision under these filters.", exact: true }).waitFor()
+      await page.waitForTimeout(850)
+      assert.equal(calls.length, before, "Identifier-only empty keyword results never auto-search")
+      assert.equal(await page.getByRole("button", { name: "Clear filters and keep this key", exact: true }).count(), 0)
+    }
+    const beforeMixed = calls.length
+    await goQuery("q=DM-9999+storage")
+    await page.getByText("Local semantic match", { exact: true }).waitFor()
+    assert.equal(calls.length, beforeMixed + 1); assert.equal(calls.at(-1).method, "LOCAL")
+    await page.getByRole("button", { name: "Back to keyword results", exact: true }).click()
+    await page.waitForTimeout(850); assert.equal(calls.length, beforeMixed + 1)
+    await goQuery("q=DM-9999")
+    await page.getByRole("heading", { name: "No matching decision under these filters.", exact: true }).waitFor()
+    await page.getByRole("button", { name: "Find by meaning", exact: true }).click()
+    await page.getByText("Local semantic match", { exact: true }).waitFor()
+    await page.getByRole("button", { name: "Back to keyword results", exact: true }).click()
+    await page.locator("summary").filter({ hasText: "Search options" }).click()
+    const beforeOptions = calls.length
+    await page.getByText(/Google/).first().waitFor(); assert.equal(calls.length, beforeOptions)
+    await page.getByRole("button", { name: "Search with Gemini", exact: true }).click()
+    await page.getByText("Shortcut semantic fixture", { exact: true }).waitFor()
+    assert.equal(calls.at(-1).method, "GEMINI")
+    await goQuery("q=DM-104&tag=missing-shortcuts-tag&view=kanban&sort=DEADLINE")
+    await page.getByRole("heading", { name: "No matching decision under these filters.", exact: true }).waitFor()
+    await page.getByRole("button", { name: "Clear filters and keep this key", exact: true }).click()
+    await page.getByRole("link", { name: seed.outcome || seed.title, exact: true }).waitFor()
+    assert.deepEqual(Object.fromEntries(query()), { q: "DM-104", view: "kanban", sort: "DEADLINE" })
+    let releaseLate, beginLate
+    const lateStarted = new Promise(resolve => { beginLate = resolve })
+    holdMeaning = { promise: new Promise(resolve => { releaseLate = resolve }), started: beginLate }
+    await goQuery("q=ordinary+missing+shortcut+question"); await lateStarted
+    await goQuery("q=DM-9999")
+    await page.getByRole("heading", { name: "No matching decision under these filters.", exact: true }).waitFor()
+    releaseLate(); holdMeaning = null; await page.waitForTimeout(250)
+    assert.equal(await page.getByText("Local semantic match", { exact: true }).count(), 0)
+    console.log("Shortcut saved reset/key search passed: full configuration, blocked storage, stale/cache invalidation, identifier/natural/mixed/manual local/Gemini and recovery")
+
+    const scopeA = "Shortcut scope A, exact & pending", scopeB = "Shortcut scope B only", scopeC = "Shortcut scope C recorded"
+    const pending = await create({ title: "Shortcut pending question", decisionState: "PENDING", appliesTo: [scopeA] })
+    await create({ title: "Shortcut pending-only question", decisionState: "PENDING", appliesTo: [scopeB] })
+    const decided = await create({ title: "Shortcut recorded choice", appliesTo: [scopeA, scopeC], dueDate: "2026-12-20" })
+    await page.route("**/api/scopes", async route => { scopeReads++; await (scopeMode === "empty" ? route.fulfill({ json: [] }) : scopeMode === "fail" ? route.fulfill({ status: 503, json: { error: "Shortcut scope failure" } }) : route.continue()) })
+    await page.goto(`${base}/scopes`)
+    const names = page.getByRole("textbox", { name: "Find a scope", exact: true })
+    await page.getByRole("link", { name: scopeA, exact: true }).waitFor()
+    const readCount = scopeReads
+    await names.fill("SHORTCUT SCOPE")
+    const toggle = page.getByRole("button", { name: "With pending questions", exact: true })
+    await toggle.focus(); await page.keyboard.press("Enter")
+    assert.equal(await toggle.getAttribute("aria-pressed"), "true")
+    assert.equal(await page.getByRole("link", { name: scopeC, exact: true }).count(), 0)
+    await page.getByRole("link", { name: scopeB, exact: true }).waitFor()
+    const direct = page.getByRole("link", { name: `Pending questions (1) in ${scopeA}`, exact: true })
+    assert.equal(await direct.getAttribute("href"), `#/?${new URLSearchParams({ appliesTo: scopeA, status: "PENDING" })}`)
+    assert.equal(await page.locator("a a, a button").count(), 0)
+    await names.fill("SHORTCUT SCOPE C")
+    await page.getByText("No scopes with pending questions match these controls", { exact: true }).waitFor()
+    await page.getByRole("button", { name: "Show scopes without pending questions", exact: true }).click()
+    assert.equal(await names.inputValue(), "SHORTCUT SCOPE C")
+    await page.getByRole("link", { name: scopeC, exact: true }).waitFor()
+    await toggle.click()
+    await page.getByRole("button", { name: "Clear scope name search", exact: true }).click()
+    assert.equal(await toggle.getAttribute("aria-pressed"), "true")
+    await names.fill("Shortcut scope")
+    assert.equal(scopeReads, readCount, "Directory filtering uses the already-loaded counts")
+    await page.screenshot({ path: "/private/tmp/decision-shortcuts-scopes-desktop.png", animations: "disabled" })
+    await direct.focus(); await page.keyboard.press("Enter")
+    await row(pending).waitFor(); assert.deepEqual(Object.fromEntries(query()), { appliesTo: scopeA, status: "PENDING" })
+    await page.goto(`${base}/scopes`); await page.getByRole("link", { name: scopeA, exact: true }).click()
+    await page.getByRole("heading", { name: scopeA, exact: true, level: 1 }).waitFor()
+    scopeMode = "empty"; await page.goto(`${base}/scopes`)
+    await page.getByText("No scopes recorded yet", { exact: true }).waitFor()
+    scopeMode = "fail"; expectedFailure = true; await page.reload()
+    await page.getByText("Could not load scopes", { exact: true }).waitFor()
+    scopeMode = "real"; await page.getByRole("button", { name: "Try again", exact: true }).click()
+    await page.getByRole("link", { name: scopeA, exact: true }).waitFor(); expectedFailure = false
+    await names.fill("not-present-shortcut-scope")
+    await page.getByText("No scopes match your search", { exact: true }).waitFor()
+    await page.getByRole("button", { name: "Clear scope name search", exact: true }).click()
+    await page.setViewportSize({ width: 390, height: 844 }); await names.fill("Shortcut scope"); await toggle.click()
+    await page.waitForLoadState("networkidle")
+    await page.screenshot({ path: "/private/tmp/decision-shortcuts-scopes-mobile.png", animations: "disabled" })
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    console.log("Shortcut scopes passed: pending/name combination, separate exact links, ordering, no extra requests and recoverable empty/failure states")
+
+    await page.clock.install({ time: new Date("2026-12-31T23:58:00-05:00") })
+    await page.goto(`${base}/decisions/new`)
+    await page.locator("#decision").fill("Hi")
+    await page.getByText("More details", { exact: true }).click()
+    await page.getByLabel("Context", { exact: true }).fill("Shortcut context stays")
+    await page.getByLabel("Tags", { exact: true }).fill("raw, tags ")
+    const date = page.locator("#due-date"), choices = page.getByRole("group", { name: "Quick deadline choices", exact: true })
+    const beforeChoices = mutations.length
+    for (const [label, expected] of [["Today", "2026-12-31"], ["Tomorrow", "2027-01-01"], ["In 7 days", "2027-01-07"]]) {
+      const button = choices.getByRole("button", { name: label, exact: true })
+      assert.equal(await button.getAttribute("type"), "button")
+      await button.focus(); await page.keyboard.press("Enter")
+      assert.equal(await date.inputValue(), expected)
+      assert.equal(await page.locator("#decision").inputValue(), "Hi")
+      assert.equal(await page.getByLabel("Context", { exact: true }).inputValue(), "Shortcut context stays")
+      assert.equal(await page.getByLabel("Tags", { exact: true }).inputValue(), "raw, tags ")
+    }
+    await page.clock.setSystemTime(new Date("2027-01-01T00:01:00-05:00"))
+    await choices.getByRole("button", { name: "Today", exact: true }).click(); assert.equal(await date.inputValue(), "2027-01-01")
+    await date.fill("2020-01-01"); assert.equal(await date.inputValue(), "2020-01-01")
+    assert.equal(mutations.length, beforeChoices)
+    await choices.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: "/private/tmp/decision-shortcuts-capture-mobile.png", animations: "disabled" })
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    await page.getByRole("button", { name: "Discard draft", exact: true }).click()
+    await page.goto(`${base}/?tag=shortcuts-ui&status=PENDING`)
+    await row(pending).getByRole("button", { name: "Set deadline", exact: true }).click()
+    const dialog = page.getByRole("dialog", { name: "Edit deadline", exact: true }), dialogDate = dialog.getByLabel("Decide by", { exact: true })
+    await dialog.getByRole("button", { name: "Tomorrow", exact: true }).click(); assert.equal(await dialogDate.inputValue(), "2027-01-02")
+    await dialog.getByRole("button", { name: "Clear date", exact: true }).click(); assert.equal(await dialogDate.inputValue(), "")
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click(); assert.equal(mutations.length, beforeChoices)
+    assert.equal((await (await page.request.get(`${api}/decisions/${pending.id}`)).json()).dueDate, null)
+    await row(pending).getByRole("button", { name: "Set deadline", exact: true }).click()
+    await dialog.getByRole("button", { name: "In 7 days", exact: true }).click()
+    let finishSave, startSave
+    const saveStarted = new Promise(resolve => { startSave = resolve }), saveHeld = new Promise(resolve => { finishSave = resolve })
+    expectedFailure = true
+    await page.route(`**/api/decisions/${pending.id}/deadline`, async route => { startSave(); await saveHeld; await route.fulfill({ status: 503, json: { error: "Shortcut deadline failure" } }) })
+    await dialog.getByRole("button", { name: "Save deadline", exact: true }).click(); await saveStarted
+    for (const label of ["Today", "Tomorrow", "In 7 days"]) assert.equal(await dialog.getByRole("button", { name: label, exact: true }).isDisabled(), true)
+    finishSave(); await dialog.getByRole("alert").waitFor(); assert.equal(await dialogDate.inputValue(), "2027-01-08")
+    await page.unroute(`**/api/decisions/${pending.id}/deadline`); expectedFailure = false
+    const [saved] = await Promise.all([page.waitForResponse(r => r.url().endsWith(`/${pending.id}/deadline`) && r.request().method() === "PUT"), dialog.getByRole("button", { name: "Save deadline", exact: true }).click()])
+    const updated = await saved.json(); assert.equal(updated.dueDate, "2027-01-08"); assert.equal(updated.title, pending.title); assert.deepEqual(updated.appliesTo, pending.appliesTo)
+    await dialog.waitFor({ state: "hidden" })
+    await row(pending).getByRole("button", { name: "Edit deadline", exact: true }).click()
+    await page.screenshot({ path: "/private/tmp/decision-shortcuts-deadline-mobile.png", animations: "disabled" })
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
+    await page.goto(`${base}/decisions/${decided.id}/edit`)
+    await page.getByLabel("Original deadline (optional)", { exact: true }).waitFor()
+    assert.equal(await page.getByRole("group", { name: "Quick deadline choices", exact: true }).count(), 0)
+    assert.equal(await page.locator("vite-error-overlay").count(), 0); assert.deepEqual(errors, [])
+    console.log("Shortcut deadlines passed: calendar rollover/midnight, keyboard, no implicit writes, cancel/clear/failure/disabled/save and historical-edit exclusion")
+  } catch (error) {
+    console.error("Shortcut UI failure", page.url(), await page.locator("body").innerText())
+    await page.screenshot({ path: "/private/tmp/decision-shortcuts-failure.png", animations: "disabled" }); throw error
+  } finally {
+    await page.unrouteAll({ behavior: "ignoreErrors" }); await context.close()
     for (const id of created) await models.Decision.destroy({ where: { id, workspaceId: workspace.id } })
   }
 }

@@ -107,7 +107,11 @@ question), full recorded Why, exact scopes, and available source/reference URLs.
 Missing rationale/scope is explicit; no interpretation or AI request is involved.
 Pending questions say **not yet decided**; superseded records say **historical
 choice** and include current/replacement keys when supplied by the record.
-The copy action does not invent an application URL, including localhost links.
+The copy action includes a labeled direct decision URL from the actual app
+location and HashRouter route. It preserves the application document/base path
+and omits query filters, drafts and navigation snapshots. Each known current
+replacement key has its own URL; immediate historical replacements remain labeled
+Replaced by rather than Current decisions. Missing lifecycle data invents nothing.
 
 Success appears only after the browser clipboard write succeeds. Denied or
 missing clipboard access opens a read-only, selectable summary for manual
@@ -139,3 +143,58 @@ previews show all current replacement links from lifecycle.current, not just an
 immediate historical successor. Missing current information is stated explicitly.
 Links retain the same origin state as Open full decision. Closing preserves the
 underlying library/draft and returns focus without AI calls or writes.
+
+## Consistent scopes, open questions and replacement suggestions — 2026-10-17
+
+Owner-approved convenience changes:
+
+- **One spelling per scope.** Saving from the web, Slack or the API maps each
+  Applies To value to an existing scope with the same name ignoring case and
+  repeated spaces ("atlas  migration" → "Atlas migration"). New names keep the
+  person's spelling with spaces collapsed. When editing, the record's own values
+  are not used for matching, so a record that alone holds a scope can still
+  change its spelling. This is save-time normalization, not an alias.
+- **Open questions per scope.** This replaces the decided-only rule above for
+  the directory and overview. `GET /api/scopes` adds `openCount`; a scope with
+  only pending questions is listed (0 active). The overview adds
+  `openCount` alongside the existing `openQuestions` response. The web overview
+  uses **Pending questions (N)** to open the exact scope/PENDING library filter;
+  it does not render a separate pending list. Current choices, recorded counts,
+  latest recorded date and replacement history use decided records only.
+- **Suggested earlier decision.** Opening Supersede runs one LOCAL memory search
+  with the current choice. Up to three similar active decided records are listed
+  first, labelled "Similar", with the full active list below. Nothing is selected
+  automatically; failure or unavailable search leaves the normal list.
+
+## Sharing links and pending scope counts — 2026-10-17
+
+Owner-approved: **Copy link** on detail and shared library/draft previews copies
+only the authenticated record's app URL, using the existing clipboard success
+handling and selectable manual fallback. It never navigates, writes or calls AI.
+Preview summary content continues to come from its loaded full record. These
+links grant no new access and introduce no public sharing service.
+
+Scope directory and overview keep separate decided-active, decided-superseded
+and pending counts. Directory order stays alphabetical; each record counts once
+per exact scope even if old stored arrays repeat it, within its own workspace.
+Pending-only scopes open with **No recorded choices yet** and no Latest recorded
+date. Positive pending counts link to the existing exact-scope Pending library;
+zero pending counts are omitted consistently and are not actionable. Completing
+a question moves it into the decided counts on refresh. Superseded-only scopes
+retain their history explanation. `openCount` is additive on overview responses;
+existing `openQuestions` remains compatible. Search and proposal evidence still
+exclude pending records using their existing retrieval rules.
+
+## Pending-work scope discovery — 2026-10-18
+
+Owner-approved: **With pending questions** in the scope directory filters the
+already-loaded `openCount > 0` rows and combines with case-insensitive name
+search. Ordering stays alphabetical. Scope names open their overview; positive
+**Pending questions (N)** counts independently open exact-scope/PENDING library
+filters. Links are never nested, and zero pending counts are not actionable.
+No new API/database query is made for filtering.
+
+Empty states distinguish an empty directory, a name mismatch, and no pending
+scopes under the current controls. Recovery can clear the pending toggle or name
+search independently. Loading/error/retry, decided/superseded meanings and
+pending-only scope support remain. Use the existing library to manage questions.

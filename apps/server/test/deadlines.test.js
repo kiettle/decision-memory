@@ -63,3 +63,14 @@ it("allows recorded supersession and rejects pending participants with the accep
     assert.throws(() => validateSupersession({ ...pair, workspaceId: "w" }), (error) => error.code === "PENDING_SUPERSESSION" && /Record both final choices/.test(error.message))
   }
 })
+
+it("deadline shortcuts add viewer-local calendar days across boundaries and DST", () => {
+  const moduleUrl = new URL("../../../shared/decision-deadlines.js", import.meta.url).href
+  const check = (tz, instant) => JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", `import {localCalendarDateAfter} from ${JSON.stringify(moduleUrl)}; const now=new Date(${JSON.stringify(instant)}); process.stdout.write(JSON.stringify([0,1,7].map(days=>localCalendarDateAfter(days,now))))`], { env: { ...process.env, TZ: tz }, encoding: "utf8" }))
+  assert.deepEqual(check("UTC", "2024-02-28T23:30:00Z"), ["2024-02-28", "2024-02-29", "2024-03-06"])
+  assert.deepEqual(check("UTC", "2026-12-31T23:59:00Z"), ["2026-12-31", "2027-01-01", "2027-01-07"])
+  assert.deepEqual(check("America/New_York", "2026-03-07T17:00:00Z"), ["2026-03-07", "2026-03-08", "2026-03-14"])
+  assert.deepEqual(check("America/New_York", "2026-10-31T16:00:00Z"), ["2026-10-31", "2026-11-01", "2026-11-07"])
+  assert.deepEqual(check("America/Los_Angeles", "2026-10-18T00:30:00Z"), ["2026-10-17", "2026-10-18", "2026-10-24"])
+  assert.deepEqual(check("Asia/Ho_Chi_Minh", "2026-10-18T00:30:00Z"), ["2026-10-18", "2026-10-19", "2026-10-25"])
+})

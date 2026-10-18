@@ -56,6 +56,13 @@ describe("AI capture draft", () => {
     assert.match(requests[0].contents, /same language as the messages/)
     assert.match(requests[0].contents, /not necessarily the last message or the first proposal/)
     assert.match(requests[0].contents, /Never combine separate decisions/)
+    assert.doesNotMatch(requests[0].contents, /existing scope names/)
+  })
+
+  it("asks the draft to reuse existing scope names", async () => {
+    const { drafter, requests } = drafterReturning(reply())
+    await drafter.draft(thread, { knownScopes: ["Migration Service", "Billing service"] })
+    assert.match(requests[0].contents, /existing scope names fits, copy it exactly: \["Migration Service","Billing service"\]/)
   })
 
   it("never invents a Decision when the thread has no clear agreement", async () => {

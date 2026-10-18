@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { RelatedDecisionSearch } from "@/components/related-decision-search"
+import { DeadlineShortcuts } from "@/components/deadline-shortcuts"
 import { ScopePicker } from "@/components/scope-picker"
 import type { DecisionNavigationState } from "@/lib/decision-navigation"
 import {
@@ -545,13 +546,10 @@ function DecisionForm({ id }: { id?: string }) {
               </Field>
             ) : null}
             {/* Beside the question so automatic matches are visible while typing. */}
-            {!editing && !saving && !recoverable ? (
+            {!editing && !recoverable ? (
               <RelatedDecisionSearch
-                key={JSON.stringify([
-                  form.decisionState,
-                  primaryValue,
-                  form.appliesTo,
-                ])}
+                mode={form.decisionState}
+                saving={saving}
                 query={primaryValue}
                 scopes={form.appliesTo}
                 available={Boolean(metadata?.features.memorySearch)}
@@ -583,6 +581,9 @@ function DecisionForm({ id }: { id?: string }) {
                     set("dueDate", event.target.value || null)
                   }
                 />
+                {pending ? (
+                  <DeadlineShortcuts onChange={(date) => set("dueDate", date)} disabled={saving || Boolean(recoverable)} />
+                ) : null}
               </Field>
             ) : null}
             <Field>

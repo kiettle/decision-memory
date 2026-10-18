@@ -49,6 +49,12 @@ const escapeMrkdwn = (value = "") =>
 const decisionLink = (appBaseUrl, decision) =>
   `<${appBaseUrl}/#/decisions/${decision.id}|${escapeMrkdwn(`${decision.decisionKey} · ${headline(decision)}`.slice(0, 150))}>`
 
+// A superseded match names what replaced it, so nobody follows an outdated choice.
+const replacedByLine = (appBaseUrl, decision) =>
+  decision.status === "SUPERSEDED" && decision.supersededBy?.length
+    ? `*Replaced by:* ${decision.supersededBy.map((item) => decisionLink(appBaseUrl, item)).join(", ")}`
+    : null
+
 const MAX_SIMILAR = 3
 // Search by memory scores 0–100; weaker matches are noise in a Slack window.
 const MIN_MATCH_SCORE = 60
@@ -440,6 +446,7 @@ function answerModal(appBaseUrl, question, matches) {
           text: [
             `*${decisionLink(appBaseUrl, decision)}*`,
             escapeMrkdwn(details),
+            replacedByLine(appBaseUrl, decision),
             decision.why ? `*Why:* ${escapeMrkdwn(decision.why.slice(0, 400))}` : null,
             `_${escapeMrkdwn(explanation)}_`,
           ].filter(Boolean).join("\n").slice(0, 3_000),
@@ -535,7 +542,10 @@ async function openCapture(config, repository, services, payload, { title } = {}
       const updated = await slackApi(config, "views.update", { view_id: opened.view.id, view: waiting })
       hash = updated.view?.hash
     }
-    const aiDraft = await captureDrafter.draft(source?.messages)
+    const knownScopes = captureDrafter.enabled
+      ? await Promise.resolve().then(() => repository.metadata(identity)).then((value) => value?.appliesTo ?? []).catch(() => [])
+      : []
+    const aiDraft = await captureDrafter.draft(source?.messages, { knownScopes })
     const similar = await similarDecisions(memorySearch, identity, aiDraft?.decision || source?.anchorText)
     if (aiDraft) await repository.setSlackCaptureDraftAi(identity, draft.id, {
       outcome: aiDraft.outcome, confidence: aiDraft.confidence, relevantMessageIds: aiDraft.relevantMessageIds,
@@ -592,6 +602,7 @@ function decisionSummary(appBaseUrl, decision) {
   return [
     `*${decisionLink(appBaseUrl, decision)}*`,
     escapeMrkdwn(details),
+    replacedByLine(appBaseUrl, decision),
     decision.why ? `*Why:* ${escapeMrkdwn(decision.why.slice(0, 300))}` : null,
   ].filter(Boolean).join("\n")
 }

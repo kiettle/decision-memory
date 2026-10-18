@@ -231,7 +231,7 @@ try {
 
   const listed = await repository.listDecisions(identity, { status: "SUPERSEDED" })
   assert.deepEqual(listed.find((decision) => decision.id === first.id).supersededBy, [
-    { id: concurrentFirst.id, decisionKey: concurrentFirst.decisionKey },
+    { id: concurrentFirst.id, decisionKey: concurrentFirst.decisionKey, title: concurrentFirst.title, outcome: concurrentFirst.outcome, decisionState: "DECIDED", status: "ACTIVE" },
   ])
 
   await assert.rejects(
@@ -440,6 +440,23 @@ try {
   assert.equal(oldScope.activeDecisions.length, 0)
   assert.ok(oldScope.changes.some((change) => change.replacement.id === scopeMoved.id), "Moving scopes preserves the old scope's replacement history")
   await assert.rejects(repository.supersedeDecision(identity, scopeMoved.id, chainA.id, "x".repeat(2001)), (error) => error.issues?.[0]?.path?.length === 0)
+
+  // Saved scope names reuse an existing spelling, ignoring case and extra spaces.
+  const respelled = await repository.createDecision(identity, { title: "Scope spelling review", appliesTo: ["  evolution   REVIEW ", "Brand  new scope", "brand new scope"] })
+  assert.deepEqual(respelled.appliesTo, ["Evolution review", "Brand new scope"])
+  const soleScope = await repository.updateDecision(identity, scopeMoved.id, { title: scopeMoved.title, appliesTo: ["NEW SCOPE REVIEW"] })
+  assert.deepEqual(soleScope.appliesTo, ["NEW SCOPE REVIEW"], "A record that alone holds a scope can change its spelling")
+  assert.deepEqual((await repository.createDecision(otherIdentity, { title: "Other tenant spelling", appliesTo: ["evolution review"] })).appliesTo, ["evolution review"], "Matching stays inside the workspace")
+  // Meaning-search payloads name the replacement just like keyword results.
+  const candidates = await repository.memorySearchCandidates(identity, { appliesTo: "Evolution review" })
+  assert.deepEqual(candidates.find((decision) => decision.id === chainA.id).supersededBy.map((item) => [item.decisionKey, item.title]), [[chainB.decisionKey, "Chain review B"]])
+  // Open questions belong to their scope overview without becoming current choices.
+  const openInScope = await repository.createDecision(identity, { title: "Evolution review open question", decisionState: "PENDING", appliesTo: ["Evolution review"], dueDate: "2026-11-01" })
+  const withOpen = await repository.scopeOverview(identity, "Evolution review")
+  assert.deepEqual(withOpen.openQuestions.map((decision) => decision.id), [openInScope.id])
+  assert.ok(!withOpen.activeDecisions.some((decision) => decision.id === openInScope.id))
+  assert.equal((await repository.listScopes(identity)).find((scope) => scope.scope === "Evolution review").openCount, 1)
+  console.log("Scope spelling, replacement links and open questions passed")
 
 
   // A real PostgreSQL receipt survives failure and service recreation. Only

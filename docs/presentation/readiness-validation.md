@@ -421,3 +421,71 @@ identity/cleanup proof. Gemini was mocked; no workspace content was sent to it.
 
 No required validation remains blocked. Existing build size advisory remains.
 Human usability, other browsers and live external integrations were unattempted.
+
+## Stable discovery, sharing links and pending scope counts — 2026-10-17
+
+Completed all four refinements. The [execution and validation record](../plans/completed/discovery-sharing-scope-usability.md)
+contains authority, implementation, exact environment, earlier failures and
+recovery, scenario evidence and cleanup.
+
+Passed final lint/typecheck/build, 118/118 unit/HTTP tests (19 suites, zero skips),
+real PostgreSQL integration including additive overview counts and scope isolation,
+real offline local search, focused discovery/sharing checks and the complete
+`npm run test:ui` after integration against fresh owned
+`decision_discovery_20261017_02`. Existing assertions were preserved; changed
+expectations now assert compact stored headlines, retained lookup selection,
+sharing URLs and Pending library navigation. New proof is in the existing
+`verify-discovery-ui.mjs`, `verify-sharing-views-ui.mjs`,
+`verify-library-discovery.mjs` and deadline/integration owners.
+
+Observable coverage includes scope retention/defaults and stale replies;
+700 ms debounce/manual dedup; two-to-five expansion without retrieval and
+same-visit/failed-save preference recovery; actual HashRouter/base-path URLs,
+current-versus-immediate lifecycle links and selectable clipboard fallback;
+pending-only/mixed/completed counts, duplicate arrays, recorded-only dates and
+workspace isolation. Existing capture, saved views, completion review, local/Gemini
+controls and preview behavior also passed.
+
+Chrome/Playwright verified desktop/mobile identity, content, keyboard/focus,
+interaction, viewport containment and unexpected console/overlay health. Browser
+plugin was unavailable. A fresh settled mobile context additionally confirmed
+readable compact cards, pending links and no duplicate header after transient
+resize screenshot artifacts. Screenshots/logs are outside the repo, listed in
+the execution record. Human usability, other browsers and live external
+integrations were not tested; the existing bundle-size advisory remains.
+
+Runtime ownership and API/database routing were verified before fixtures. Earlier
+interrupted-run fixtures affected exact counts only in the owned `_01` database;
+no assertion was weakened, and final UI used fresh `_02`. Both task databases
+and owned app processes were removed afterward. Normal app/database resources,
+the Git index and unrelated pre-existing changes remain intact. No commit was made.
+
+## Saved reset, pending-scope discovery, key lookup and date shortcuts — 2026-10-18
+
+Implemented the four owner-authorized conveniences with existing application,
+filter-reset, scope-count and calendar/save paths. See the [completed execution
+and validation record](../plans/completed/library-pending-deadline-shortcuts.md)
+for commands, ownership, earlier test-setup fixes, detailed scenarios and cleanup.
+
+Passed lint/typecheck/build, 119/119 unit/HTTP tests (19 suites, zero skips),
+isolated PostgreSQL integration, real offline local search, focused shortcut UI
+and the full `npm run test:ui` after integration on final code. New behavior proof
+extends `verify-convenience-ui.mjs` and shared-calendar tests; existing discovery
+scope assertions now address separate overview/pending links without relaxing
+count or navigation assertions.
+
+Coverage includes full saved-view reset with blocked writes and stale/cache
+invalidation; pending toggle/name search with no new request, independent exact
+links and empty/failure recovery; identifier variants/matching/filtered/manual
+and mixed/natural fallback; input-only dates, midnight, leap/year/DST boundaries,
+raw-field preservation, clear/cancel/failure/disabled and explicit save. Existing
+saved-view maintenance, provider disclosures, draft/preview/completion/sharing
+and local-search behavior passed the complete suite.
+
+Desktop/mobile screenshots, keyboard/focus, content/identity, containment,
+dialog fit, overlay and unexpected console checks passed using Playwright/Chrome.
+Browser plugin was unavailable. Runtime/database routing was verified before
+fixtures. Owned app processes and `decision_shortcuts_20261018_01` were removed;
+normal app/database resources and pre-existing changes remain. No commit made.
+No required check remains blocked. Other browsers, live integrations and human
+usability observation were unattempted; existing build size advisory remains.

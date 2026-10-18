@@ -14,6 +14,12 @@ export function localCalendarDate(date = new Date()) {
   return `${String(date.getFullYear()).padStart(4, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
 }
 
+// Add calendar days, not elapsed local hours (which vary across DST changes).
+export function localCalendarDateAfter(days, date = new Date()) {
+  return new Date((calendarDay(localCalendarDate(date)) + days) * 86_400_000)
+    .toISOString().slice(0, 10)
+}
+
 export function headline(decision) {
   return decision.decisionState === "PENDING" ? decision.title : decision.outcome || decision.title
 }

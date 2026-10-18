@@ -188,8 +188,11 @@ selected draft scope. It does not combine scopes or alter the draft.
 No pending state filter is sent; existing retrieval excludes pending evidence
 and includes current/superseded recorded decisions under its existing rules.
 
-Up to five matches show stored key, choice, exact scopes, lifecycle status and
-bounded stored Why, plus **Open decision**. Coverage describes pending indexing.
+Up to five matches retain retrieval order. Initially two compact cards show
+stored key, choice, exact scopes and lifecycle status, plus Preview and **Open
+decision**. **Show all N related decisions** / **Show fewer** toggles existing
+matches without another request. Full rationale and evidence remain in Preview.
+Coverage describes pending indexing.
 Similarity is discovery, never equivalence, duplicate/conflict judgment or approval.
 Empty/error/unavailable results preserve the form and manual saving. Searches,
 retries and saves are separate explicit actions; saving does not await retrieval.
@@ -222,12 +225,15 @@ existing draft-recovery contract. Proof extends verify-convenience-ui.mjs.
 
 Owner-approved: the multi-scope draft **Search within** selector contains All
 scopes and each exact selected scope. Selection changes invalidate results,
-errors and pending publication without making a request. **Find related
-decisions** remains the explicit LOCAL action. All scopes omits appliesTo; a
-specific scope uses the existing exact filter. Draft scope changes reset lookup
-to all scopes for zero/multiple values or the sole scope for one value. Primary
-text/mode/scope invalidation, pending evidence exclusions and availability rules
-remain. Preview open/close preserves selected lookup scope and raw draft inputs.
+errors and pending publication without an immediate request; the automatic
+local debounce still applies. **Find related decisions** remains the explicit
+LOCAL retry action. All scopes omits appliesTo; a
+specific scope uses the existing exact filter. Primary text edits and adding
+scopes retain a still-valid lookup selection, including explicit All scopes while
+several draft scopes remain. Removing the selected scope resets to All scopes for
+zero/multiple scopes or the sole scope for one; creation mode changes also reset
+the default. Primary text/mode/scope invalidation, pending evidence exclusions
+and availability rules remain. Preview open/close preserves selected lookup scope and raw draft inputs.
 
 The shared library/draft Preview loads owner, deadline and replacement content
 from the full record only when opened. Owner uses linked display name, recorded
@@ -262,3 +268,46 @@ retry. Saving never waits for the lookup, and results are never saved or drafted
 Both reuse `POST /api/decisions/memory-search` with `method: LOCAL`; nothing is
 sent outside the computer. Proof: the library, convenience and discovery UI
 checks in `scripts/visual-qa.mjs`.
+
+## Replacement links in meaning results — 2026-10-17
+
+Owner-approved: local and Gemini meaning results carry the same `supersededBy`
+entries as keyword results (id, key, title/outcome, state, status), so a
+superseded match shows "Superseded by DM-…" in the library. Slack answers use
+the same data (see [Slack capture](slack-capture.md#replacement-and-scope-hints--2026-10-17)).
+
+## Stable, compact automatic suggestions — 2026-10-17
+
+Owner-approved refinement of automatic local discovery. Lookup selection is
+independent of question/final-choice text and the draft's Applies To values.
+Refining text preserves the selected exact scope. Adding scopes preserves a valid
+selection; explicit All stays All while multiple scopes remain. Removing that
+scope or changing creation mode uses the existing zero/one/multiple defaults.
+Every text, draft-scope or lookup-scope change immediately clears results/errors
+and prevents late responses from publishing. The existing 700 ms local debounce
+restarts; manual lookup consumes the scheduled lookup for the same inputs.
+
+Show the first two matches in existing retrieval order. More than two offers
+**Show all N related decisions**, then **Show fewer**, with accessible expanded
+state. No new retrieval/ranking occurs. Expansion preference lasts through text,
+scope, mode and result changes during the form visit; a fresh visit is collapsed.
+A failed save also keeps lookup/expansion preferences; transient lookup is paused
+while saving and cannot delay or interfere with that save.
+Cards retain stored key/headline, scope, current/historical status, Preview and
+Open decision. Longer Why/evidence live in the lazy preview. Empty, error, retry,
+indexing coverage and manual saving remain available. Saving never waits for
+retrieval. No related output or expansion preference is persisted in the draft.
+
+## Exact-key automatic fallback exception — 2026-10-18
+
+Owner-approved: a query consisting entirely of `DM-<digits>` after trimming,
+case-insensitively, remains keyword-only until the person explicitly chooses a
+semantic action. Empty results say **No matching decision under these filters.**
+They do not claim that a record does not exist. With non-query filters, **Clear
+filters and keep this key** reuses the ordinary reset, retaining query/layout/sort.
+No recovery appears when there are no such filters. Mixed key/text and ordinary
+queries retain automatic LOCAL fallback. Manual Find by meaning and Search with
+Gemini keep existing availability, disclosure, eligibility and result behavior.
+Stale-response invalidation and Back to keyword do not restart automatic search.
+This is frontend fallback eligibility only; keyword matching, ranking, API and
+backend retrieval rules remain unchanged.

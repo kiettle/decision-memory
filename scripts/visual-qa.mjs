@@ -4,8 +4,8 @@ import { chromium } from "playwright-core"
 import { config } from "../apps/server/src/config.js"
 import { createDatabase } from "../apps/server/src/models.js"
 import { verifyDeadlineUi } from "./verify-deadline-ui.mjs"
-import { verifyConvenienceUi, verifyEverydayConvenienceUi } from "./verify-convenience-ui.mjs"
-import { verifyDiscoveryUi, verifyPracticalUi } from "./verify-discovery-ui.mjs"
+import { verifyConvenienceUi, verifyEverydayConvenienceUi, verifyShortcutUi } from "./verify-convenience-ui.mjs"
+import { verifyDiscoveryUi, verifyPracticalUi, verifyRefinedDiscoveryUi } from "./verify-discovery-ui.mjs"
 import { verifySharingViewsUi } from "./verify-sharing-views-ui.mjs"
 import { verifyLibraryWorkflowUi } from "./verify-library-workflow-ui.mjs"
 import { verifyProposalUi } from "./verify-proposal-ui.mjs"
@@ -595,8 +595,19 @@ try {
   const newer = await record({ title: "Move migration backups to object storage", why: "Large exports need durable storage without database-host pressure.", context: "Customer migration exports can exceed local disk capacity.", appliesTo: [scope], optionsConsidered: ["Object storage", "Larger database host"], tags: ["migration", "storage"] })
   const reason = "Exports now exceed local disk capacity; rollback must survive a database-host failure."
   await understand.goto(`http://localhost:5173/#/decisions/${newer.id}`)
+  // Similar active choices are suggested first; the search is local and selects nothing.
+  const supersedeSearches = []
+  await understand.route("**/api/decisions/memory-search", (route) => {
+    supersedeSearches.push(route.request().postDataJSON())
+    return route.fulfill({ json: { method: "LOCAL", candidateCount: 2, matches: [{ decisionId: earlier.id, decision: earlier, score: 90, explanation: "Similar", matchedConcepts: [] }] } })
+  })
   await understand.getByRole("button", { name: "Supersede", exact: true }).click()
+  await understand.getByText("Similar choices found on this computer are listed first.", { exact: true }).waitFor()
+  assert.deepEqual(supersedeSearches.map((input) => input.method), ["LOCAL"])
+  assert.match(await understand.getByRole("combobox", { name: "Earlier Decision" }).innerText(), /Select an active Decision/, "Nothing is selected automatically")
   await understand.getByRole("combobox", { name: "Earlier Decision" }).click()
+  assert.match(await understand.getByRole("option").nth(1).innerText(), new RegExp(`^Similar · ${earlier.decisionKey} · Keep migration backups`))
+  await understand.unroute("**/api/decisions/memory-search")
   await understand.getByRole("option", { name: new RegExp(earlier.decisionKey + " · Keep migration backups") }).click()
   assert.match(await understand.getByRole("region", { name: "Earlier choice" }).innerText(), /Early exports are small/)
   assert.match(await understand.getByRole("region", { name: "Replacing choice" }).innerText(), /Large exports need durable/)
@@ -619,7 +630,8 @@ try {
 
   await understand.getByRole("link", { name: "Scopes", exact: true }).click()
   await understand.getByRole("textbox", { name: "Find a scope" }).fill(scope)
-  await understand.getByRole("link", { name: new RegExp(scope + ".*1 active") }).click()
+  await understand.getByRole("link", { name: scope, exact: true }).locator("xpath=../..").getByText(/1 active/).waitFor()
+  await understand.getByRole("link", { name: scope, exact: true }).click()
   await understand.getByRole("heading", { name: scope, exact: true }).waitFor()
   const current = understand.getByRole("region", { name: "Active decisions" })
   assert.equal(await current.getByRole("heading", { name: earlier.title }).count(), 0)
@@ -653,6 +665,17 @@ try {
   await understand.unroute("**/api/scopes/overview?*")
   await understand.getByRole("button", { name: "Try again" }).click()
   await understand.getByRole("region", { name: "Active decisions" }).waitFor()
+  // The seeded open question appears with its scope, never as a current choice.
+  await understand.goto(`http://localhost:5173/#/scopes?${new URLSearchParams({ scope: "Atlas migration" })}`)
+  const pendingLink = understand.getByRole("link", { name: "Pending questions (1)", exact: true })
+  await pendingLink.waitFor()
+  assert.equal(await pendingLink.getAttribute("href"), "#/?appliesTo=Atlas+migration&status=PENDING")
+  await pendingLink.click()
+  await understand.getByRole("link", { name: "How long should we keep Atlas migration backups after cutover?", exact: true }).waitFor()
+  assert.equal(await understand.locator(".decision-row").count(), 1)
+  await understand.goto("http://localhost:5173/#/scopes")
+  await understand.getByRole("link", { name: "Atlas migration", exact: true }).waitFor()
+  await understand.getByRole("link", { name: "Pending questions (1) in Atlas migration", exact: true }).waitFor()
   assert.deepEqual(understandingErrors, [])
   await understand.close()
   console.log("Decision understanding QA passed: comparison, human replacement reason, scope overview, mobile layout, and failure recovery")
@@ -665,6 +688,8 @@ try {
   await verifySharingViewsUi({ browser })
   await verifyDiscoveryUi({ browser, models, workspace })
   await verifyPracticalUi({ browser, models, workspace })
+  await verifyRefinedDiscoveryUi({ browser, models, workspace })
+  await verifyShortcutUi({ browser, models, workspace })
   assert.deepEqual(pageErrors, [], `Page errors: ${pageErrors.join(" | ")}`)
   assert.deepEqual(consoleErrors, [], `Console errors: ${consoleErrors.join(" | ")}`)
   console.log("UI QA passed with Playwright/Chrome fallback: independent keyword and memory search, collapsed/expanded evidence, create/edit, desktop and mobile screenshots")

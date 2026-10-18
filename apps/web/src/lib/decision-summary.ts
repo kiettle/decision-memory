@@ -1,5 +1,6 @@
 import { headline } from "../../../../shared/decision-deadlines.js"
 import type { Decision } from "@/types"
+import { decisionUrl } from "@/lib/decision-links"
 
 // A portable rendering of stored facts, never an AI-generated interpretation.
 export function decisionSummary(decision: Decision) {
@@ -15,6 +16,7 @@ export function decisionSummary(decision: Decision) {
     `${pending ? "Question" : "Decision"}: ${headline(decision)}`,
     `Why: ${decision.why?.trim() || "No rationale recorded."}`,
     `Applies To: ${decision.appliesTo.length ? decision.appliesTo.join("; ") : "No scope recorded."}`,
+    `Decision URL: ${decisionUrl(decision.id)}`,
   ]
   if (decision.status === "SUPERSEDED") {
     const current = decision.lifecycle?.current ?? []
@@ -22,7 +24,8 @@ export function decisionSummary(decision: Decision) {
       decision.lifecycle?.supersededBy ?? decision.supersededBy ?? []
     if (current.length)
       lines.push(
-        `Current decisions: ${current.map((item) => item.decisionKey).join(", ")}`
+        "Current decisions:",
+        ...current.map((item) => `- ${item.decisionKey}: ${decisionUrl(item.id)}`)
       )
     else if (replacements.length)
       lines.push(

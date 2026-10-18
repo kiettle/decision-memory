@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
+import { DeadlineShortcuts } from "@/components/deadline-shortcuts"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -204,6 +205,9 @@ export function DecisionActions({
                   <FieldDescription>
                     Optional. Past dates are allowed.
                   </FieldDescription>
+                  {decision.decisionState === "PENDING" ? (
+                    <DeadlineShortcuts onChange={setDueDate} disabled={saving || reviewing} />
+                  ) : null}
                   <Button
                     type="button"
                     variant="link"

@@ -133,8 +133,10 @@ that scope; you can change it before saving.
 On a decision's detail page, **Copy summary** copies its choice/question, Why,
 scopes, status and available source links as plain text for pasting elsewhere.
 Pending and superseded records are clearly labeled. This uses stored facts and
-does not call AI or create a localhost link. If the browser blocks clipboard
-access, a dialog offers the same text for manual copying.
+does not call AI. Summaries include the decision's app URL and links for known
+current replacements. **Copy link** on detail or either preview copies just the
+record URL. These links use the current deployment and grant no new access. If
+the browser blocks clipboard access, a dialog offers selectable text for copying.
 
 Keep **Applies To** handy in the main controls. Open **More filters** for
 Channel, Owner, Tag, Status, Deadline, and **Created date**. Its count includes
@@ -196,8 +198,9 @@ it. One Applies To scope searches
 that exact scope; zero searches all scopes. With several selected scopes,
 **Search within** defaults to All scopes and can narrow lookup to one selected
 scope without changing the draft.
-Matches show recorded choices and stored Why excerpts; superseded choices are
-labeled. Review indexing coverage and select **Preview** to read the full saved
+Matches initially show two compact recorded choices; superseded choices are
+labeled. **Show all N related decisions** expands the existing matches and
+**Show fewer** collapses them, without another search. Review indexing coverage and select **Preview** to read the full saved
 reason, scopes and evidence links without leaving the form. Close it or choose
 **Back to draft** to continue with all input and results intact. Preview failures
 can be retried without changing the draft. Use **Open decision** or the preview's
@@ -219,7 +222,7 @@ the review page stay in review; return to your draft to edit or save the record.
 ### Ask from Slack and receive private nudges
 
 Use **Ask Decision Memory** on a message, or `/why <question>`, to retrieve
-stored choices privately in Slack.
+stored choices privately in Slack. A superseded match shows what replaced it.
 
 In channels where the bot is invited, it also offers two simple nudges:
 
@@ -240,6 +243,7 @@ of every message. Proposal analysis never runs automatically across a channel.
 When a new choice replaces an old one, explicitly link them and optionally
 record **What changed?** Both records retain that explanation. The older choice
 is labeled superseded, and links lead to its replacement and current successor.
+When you open **Supersede**, choices similar to this one are listed first.
 
 Example: “Use the database host temporarily” becomes “Use object storage”
 because backup files grew too large.
@@ -262,8 +266,12 @@ or reconstruct every past edit.
 ### Explore a scope
 
 **Scopes** groups records by their exact Applies To values. Open a service or
-feature to see its current decisions, reasons, owners, evidence links, and
-recent replacement history. You can also browse all its records in the library.
+feature to see its current decisions, reasons, owners, evidence links and recent
+replacement history. **Pending questions (N)** opens its outstanding questions in
+the existing library. Pending-only scopes appear with no recorded choices yet;
+pending dates never count as latest recorded decisions. You can also browse all
+its records in the library. Scope names are matched when you
+save, so “atlas migration” joins the existing “Atlas migration”.
 
 Start **Check a proposal in this scope** or **New decision in this scope** directly
 from the overview. The scope is already selected and remains editable. A new
@@ -376,8 +384,11 @@ history as current. Close or Escape returns to your results/draft and trigger.
 
 With several draft scopes selected, use **Search within** to choose All scopes
 or one exact selected scope for **Find related decisions**. This does not alter
-the draft's Applies To values. Scope changes clear old results and reset the
-lookup default; the new lookup scope is searched locally after a short pause.
+the draft's Applies To values. Text edits and adding scopes keep a valid lookup
+selection; removing the selected scope or changing creation mode resets the
+default. Changes clear old results and search locally after a short pause.
+Expansion preference stays for this form visit; full Why and evidence stay in
+Preview.
 
 When completing a pending record from Flat, Kanban or detail, enter a final
 choice and optionally select **Review this choice**. Return with browser Back or
@@ -385,3 +396,23 @@ choice and optionally select **Review this choice**. Return with browser Back or
 replace these inputs. Local checking and Gemini remain explicit; only **Record
 decision** in the restored dialog completes the original record. A concurrent
 completion reports the existing conflict rather than overwriting another choice.
+
+## Saved-view reset, pending scopes and deadline shortcuts
+
+While exploring a saved view, **Reset to saved view** restores its saved search,
+filters, layout and sort without changing the stored view. It also works when
+browser-storage writes are blocked.
+
+In **Scopes**, combine **With pending questions** with the scope-name search.
+Choose a scope name for its overview, or its **Pending questions (N)** link to
+manage those questions directly in the filtered library. Empty-state recovery
+can clear either control separately.
+
+An exact key such as `dm-9999` stays in keyword search automatically. If nothing
+matches, check the key or use **Clear filters and keep this key**. You can still
+explicitly Find by meaning or open Search options for Gemini. Ordinary or mixed
+text queries retain the existing automatic local fallback.
+
+For pending deadlines, **Today**, **Tomorrow**, and **In 7 days** fill the date
+using your local calendar at the time of clicking. You still choose Save;
+shortcuts never save or schedule reminders. Arbitrary dates and clearing remain.

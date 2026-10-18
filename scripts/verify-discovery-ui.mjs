@@ -10,7 +10,8 @@ export async function verifyDiscoveryUi({ browser, models, workspace }) {
   page.on("console", message => { if (message.type() === "error" && !expectedFailure) errors.push(message.text()) })
   page.on("request", request => {
     if (/\/api\/decisions\/[\da-f-]+$/.test(request.url()) && request.method() === "GET") detailCalls++
-    if (["POST", "PUT"].includes(request.method()) && !request.url().endsWith("check-proposal")) writes++
+    // Review and the automatic related lookup are reads sent as POST.
+    if (["POST", "PUT"].includes(request.method()) && !/(check-proposal|memory-search)$/.test(request.url())) writes++
     if (request.url().endsWith("check-proposal")) reviewCalls.push(request.postDataJSON())
   })
   const base = "http://localhost:5173/#"
@@ -43,6 +44,9 @@ export async function verifyDiscoveryUi({ browser, models, workspace }) {
     await preview.getByText(record.why, { exact: true }).waitFor()
     assert.ok(detailCalls > 0, "Preview fetches full details only after opening (StrictMode may replay the effect)")
     await preview.getByRole("link", { name: "Design proof", exact: true }).waitFor()
+    await preview.getByRole("button", { name: "Copy link", exact: true }).click()
+    await page.getByText("Decision link copied.", { exact: true }).waitFor()
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `${base}/decisions/${record.id}`)
     await preview.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     assert.match(await page.evaluate(() => navigator.clipboard.readText()), /https:\/\/example.com\/discovery-design/)
@@ -233,9 +237,11 @@ export async function verifyDiscoveryUi({ browser, models, workspace }) {
     await assertDraft()
     await page.unroute("**/api/decisions")
     expectedFailure = false
-    const savedResponse = page.waitForResponse(response => response.url().endsWith("/api/decisions") && response.request().method() === "POST")
-    await page.getByRole("button", { name: "Save Decision", exact: true }).click()
-    const saved = await (await savedResponse).json()
+    const [savedResponse] = await Promise.all([
+      page.waitForResponse(response => response.url().endsWith("/api/decisions") && response.request().method() === "POST"),
+      page.getByRole("button", { name: "Save Decision", exact: true }).click(),
+    ])
+    const saved = await savedResponse.json()
     created.push(saved.id)
     assert.equal(saved.title, "Original archive question")
     assert.equal(saved.outcome, "Keep the full discovery draft")
@@ -458,7 +464,7 @@ export async function verifyPracticalUi({ browser, models, workspace }) {
     releaseOld(); await page.waitForLoadState("networkidle")
     assert.equal(await related().getByText(linked.title, { exact: true }).count(), 0)
     await addScope("Practical third scope")
-    await related().getByRole("combobox", { name: "Search within", exact: true }).filter({ hasText: "All scopes" }).waitFor()
+    await related().getByRole("combobox", { name: "Search within", exact: true }).filter({ hasText: secondScope }).waitFor()
     assert.equal(await related().getByRole("article").count(), 0)
     const beforeReset = semantic.length
     await page.getByRole("button", { name: `Remove scope ${secondScope}`, exact: true }).click()
@@ -611,6 +617,195 @@ export async function verifyPracticalUi({ browser, models, workspace }) {
     releaseSearch?.()
     await page.unrouteAll({ behavior: "ignoreErrors" })
     await context.close()
+    for (const id of created) await models.Decision.destroy({ where: { id, workspaceId: workspace.id } })
+  }
+}
+
+export async function verifyRefinedDiscoveryUi({ browser, models, workspace }) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://localhost:5173" })
+  const page = await context.newPage()
+  const api = "http://localhost:3011/api", base = "http://localhost:5173/#"
+  const created = [], errors = [], calls = [], writes = []
+  let expectedFailure = false, detailReads = 0, hold = null, matches = [], failSearch = false
+  page.on("pageerror", error => errors.push(error.message))
+  page.on("console", message => { if (message.type() === "error" && !expectedFailure) errors.push(message.text()) })
+  page.on("request", request => {
+    if (/\/api\/decisions\/[\da-f-]+$/.test(request.url()) && request.method() === "GET") detailReads++
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && !request.url().endsWith("memory-search")) writes.push(request.url())
+  })
+  const create = async input => {
+    const response = await page.request.post(`${api}/decisions`, { data: { title: "Refined discovery fixture", tags: ["refined-discovery"], ...input } })
+    assert.equal(response.status(), 201)
+    const decision = await response.json(); created.push(decision.id); return decision
+  }
+  const related = () => page.getByRole("region", { name: "Related decisions", exact: true })
+  const find = () => related().getByRole("button", { name: "Find related decisions", exact: true })
+  const primary = () => page.locator("#decision")
+  const addScope = async value => {
+    await page.getByRole("combobox", { name: "Applies To", exact: true }).fill(value)
+    const existing = page.getByRole("option", { name: value, exact: true })
+    if (await existing.count()) await existing.click()
+    else await page.getByRole("option", { name: `Add “${value}”`, exact: true }).click()
+  }
+  const choose = async value => {
+    await related().getByRole("combobox", { name: "Search within", exact: true }).click()
+    await page.getByRole("option", { name: value || "All scopes", exact: true }).click()
+  }
+  const scopeLabel = value => related().getByRole("combobox", { name: "Search within", exact: true }).filter({ hasText: value || "All scopes" })
+  const waitCards = count => page.waitForFunction(count => document.querySelectorAll('section[aria-label="Related decisions"] article').length === count, count)
+  const a = "Refined scope A, exact", b = "Refined scope B", c = "Refined scope C"
+  try {
+    for (let i = 0; i < 5; i++) matches.push(await create({ title: `Refined choice ${i + 1}`, why: `Long stored rationale ${i + 1}`, appliesTo: [a] }))
+    // Preserve the actual availability field used by the application.
+    await page.route("**/api/metadata", async route => { const response = await route.fetch(); const data = await response.json(); await route.fulfill({ response, json: { ...data, features: { ...data.features, memorySearch: true } } }) })
+    await page.route("**/api/decisions/memory-search", async route => {
+      const request = route.request().postDataJSON(); calls.push(request)
+      assert.equal(request.method, "LOCAL")
+      const responseMatches = [...matches], pending = hold
+      if (pending) { pending.started(); await pending.promise }
+      await route.fulfill(failSearch ? { status: 503, json: { error: "Refined local failure" } } : { json: { method: "LOCAL", candidateCount: 5, totalCandidateCount: 8, truncated: true, matches: responseMatches.map(decision => ({ decisionId: decision.id, decision, score: 90 })) } })
+    })
+    await page.goto(`${base}/decisions/new`)
+    await page.getByRole("heading", { name: "New Decision", exact: true }).waitFor()
+    await addScope(a); await addScope(b); await choose(b)
+    await primary().fill("Refined question")
+    await waitCards(2)
+    assert.deepEqual(calls.at(-1), { method: "LOCAL", query: "Refined question", filters: { appliesTo: b } })
+    assert.equal(detailReads, 0, "Compact suggestions do not fetch full detail")
+    assert.equal(await related().getByText("Long stored rationale", { exact: false }).count(), 0)
+    await related().getByText(/Remaining records are waiting for local indexing/).waitFor()
+    const beforeToggle = calls.length
+    const expand = related().getByRole("button", { name: "Show all 5 related decisions", exact: true })
+    assert.equal(await expand.getAttribute("aria-expanded"), "false")
+    await expand.focus(); await page.keyboard.press("Enter"); await waitCards(5)
+    assert.deepEqual(await related().getByRole("article").locator("p.font-medium").allTextContents(), matches.map(row => row.title))
+    assert.equal(await related().getByRole("button", { name: "Show fewer", exact: true }).getAttribute("aria-expanded"), "true")
+    assert.equal(calls.length, beforeToggle)
+    await primary().fill("Refined edited question")
+    assert.equal(await related().getByRole("article").count(), 0, "Previous query results clear immediately")
+    await scopeLabel(b).waitFor(); await waitCards(5)
+    assert.equal(calls.at(-1).filters.appliesTo, b)
+    await addScope(c); await scopeLabel(b).waitFor(); await waitCards(5)
+    await choose(""); await waitCards(5)
+    await primary().fill("Refined all scopes question"); await scopeLabel("").waitFor(); await waitCards(5)
+    assert.deepEqual(calls.at(-1).filters, {})
+    await choose(b); await waitCards(5)
+    const beforePreview = calls.length
+    await related().getByRole("button", { name: `Preview ${matches[0].decisionKey}`, exact: true }).click()
+    const preview = page.getByRole("dialog", { name: "Decision preview", exact: true })
+    await preview.getByText(matches[0].why, { exact: true }).waitFor()
+    await preview.getByRole("button", { name: "Copy link", exact: true }).click()
+    await page.getByText("Decision link copied.", { exact: true }).waitFor()
+    const link = `${base}/decisions/${matches[0].id}`
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), link)
+    await page.keyboard.press("Escape"); await preview.waitFor({ state: "hidden" }); await scopeLabel(b).waitFor()
+    assert.equal(calls.length, beforePreview)
+    await page.getByRole("button", { name: `Remove scope ${b}`, exact: true }).click()
+    await scopeLabel("").waitFor(); await waitCards(5)
+    await page.getByRole("button", { name: `Remove scope ${c}`, exact: true }).click()
+    await waitCards(5); assert.deepEqual(calls.at(-1).filters, { appliesTo: a })
+    await page.getByRole("button", { name: `Remove scope ${a}`, exact: true }).click()
+    await waitCards(5); assert.deepEqual(calls.at(-1).filters, {})
+
+    // Slow old replies cannot publish after the text changes; rapid typing debounces.
+    let releaseOld, started
+    const begun = new Promise(resolve => { started = resolve })
+    hold = { promise: new Promise(resolve => { releaseOld = resolve }), started }
+    await primary().fill("Refined old held query"); await begun
+    matches = [matches[4]]; hold = null
+    const beforeTyping = calls.length
+    await primary().fill("Refined new")
+    await primary().pressSequentially(" question", { delay: 30 })
+    assert.equal(await related().getByRole("article").count(), 0)
+    await waitCards(1)
+    assert.equal(calls.length, beforeTyping + 1, "Typing produces one debounced lookup")
+    assert.equal(calls.at(-1).query, "Refined new question")
+    releaseOld(); await page.waitForTimeout(150)
+    await waitCards(1)
+    assert.equal(await related().getByRole("button", { name: "Show fewer", exact: true }).count(), 0)
+    const beforeManual = calls.length
+    await primary().fill("Refined manual before debounce")
+    await find().click(); await waitCards(1); await page.waitForTimeout(850)
+    assert.equal(calls.length, beforeManual + 1, "Manual lookup consumes the scheduled automatic lookup")
+    assert.equal(await related().getByRole("button", { name: /Show all/ }).count(), 0)
+    matches = []; await primary().fill("Refined zero matches")
+    await related().getByText("No related decisions were found in the searched records.", { exact: true }).waitFor()
+    assert.equal(await related().getByRole("button", { name: /Show all|Show fewer/ }).count(), 0)
+    expectedFailure = true; failSearch = true
+    await primary().fill("Refined failure query"); await related().getByRole("alert").waitFor()
+    failSearch = false; expectedFailure = false
+    matches = [await (await page.request.get(`${api}/decisions/${created[0]}`)).json(), await (await page.request.get(`${api}/decisions/${created[1]}`)).json()]
+    await find().click(); await waitCards(2)
+    assert.equal(await related().getByRole("button", { name: /Show all|Show fewer/ }).count(), 0)
+    matches = await Promise.all(created.slice(0, 5).map(async id => (await page.request.get(`${api}/decisions/${id}`)).json()))
+    await primary().fill("Refined expanded preference returns"); await waitCards(5)
+    await related().getByRole("button", { name: "Show fewer", exact: true }).click(); await waitCards(2)
+    await addScope(a); await addScope(b); await choose(b)
+    await primary().fill("Refined collapsed preference remains"); await waitCards(2); await scopeLabel(b).waitFor()
+    await page.getByRole("button", { name: "Already decided", exact: true }).click()
+    await primary().fill("Refined final choice"); await waitCards(2); await scopeLabel("").waitFor()
+    assert.deepEqual(calls.at(-1).filters, {}, "Creation mode resets the lookup scope")
+    await related().evaluate(el => window.scrollTo({ top: scrollY + el.getBoundingClientRect().top - 76, behavior: "instant" }))
+    await page.screenshot({ path: "/private/tmp/decision-refined-related-desktop.png", animations: "disabled" })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await related().evaluate(el => window.scrollTo({ top: scrollY + el.getBoundingClientRect().top - 76, behavior: "instant" }))
+    await page.screenshot({ path: "/private/tmp/decision-refined-related-mobile.png", animations: "disabled" })
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    assert.equal(await primary().inputValue(), "Refined final choice")
+    assert.deepEqual(writes, [], "Lookup, expansion, preview and copying do not mutate or invoke cloud analysis")
+    await choose(b); await waitCards(2)
+    await related().getByRole("button", { name: "Show all 5 related decisions", exact: true }).click(); await waitCards(5)
+    expectedFailure = true
+    const failSave = route => route.request().method() === "POST" ? route.fulfill({ status: 503, json: { error: "Refined save failure" } }) : route.continue()
+    await page.route("**/api/decisions", failSave)
+    await page.getByRole("button", { name: "Save Decision", exact: true }).click()
+    await page.getByText("Refined save failure", { exact: true }).waitFor()
+    await scopeLabel(b).waitFor(); await waitCards(5)
+    assert.equal(await primary().inputValue(), "Refined final choice")
+    await page.unroute("**/api/decisions", failSave)
+    expectedFailure = false
+    await page.getByRole("button", { name: "Discard draft", exact: true }).click()
+    await page.goto(base)
+    await page.getByRole("heading", { name: "Decision Library", exact: true }).waitFor()
+    await page.goto(`${base}/decisions/new`); await primary().fill("Refined fresh visit")
+    await waitCards(2)
+    assert.equal(await related().getByRole("button", { name: "Show all 5 related decisions", exact: true }).getAttribute("aria-expanded"), "false")
+    await page.getByRole("button", { name: "Discard draft", exact: true }).click()
+
+    await page.goto(link)
+    await page.getByRole("heading", { name: "Refined choice 1", exact: true, level: 1 }).waitFor()
+    // Pending-only scope surfaces link to existing library; completion refreshes counts.
+    const scope = "Refined pending, exact & scope"
+    const question = await create({ title: "Refined outstanding question", decisionState: "PENDING", appliesTo: [scope] })
+    await page.goto(`${base}/scopes`)
+    const directoryLink = page.getByRole("link", { name: scope, exact: true })
+    await directoryLink.waitFor()
+    assert.ok(!(await directoryLink.locator("xpath=../..").innerText()).includes("Latest recorded"))
+    await directoryLink.click()
+    await page.getByText("No recorded choices yet", { exact: true }).waitFor()
+    const pending = page.getByRole("link", { name: "Pending questions (1)", exact: true })
+    assert.equal(await pending.getAttribute("href"), `#/?${new URLSearchParams({ appliesTo: scope, status: "PENDING" })}`)
+    await pending.focus(); await page.keyboard.press("Enter")
+    await page.getByRole("link", { name: question.title, exact: true }).waitFor()
+    assert.equal(await page.locator(".decision-row").count(), 1)
+    await page.request.post(`${api}/decisions/${question.id}/decide`, { data: { outcome: "Refined recorded answer" } })
+    await page.goto(`${base}/scopes?${new URLSearchParams({ scope })}`)
+    await page.getByRole("region", { name: "Active decisions", exact: true }).getByText("Refined recorded answer", { exact: true }).waitFor()
+    assert.equal(await page.getByRole("link", { name: /^Pending questions/ }).count(), 0)
+    await page.getByText("1 recorded in this scope", { exact: true }).waitFor()
+    await page.screenshot({ path: "/private/tmp/decision-refined-scope-mobile.png", animations: "disabled" })
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+    assert.equal(await page.title(), "Decision Memory")
+    assert.equal(await page.locator("vite-error-overlay").count(), 0)
+    assert.deepEqual(errors, [])
+    console.log("Refined discovery passed: stable exact/all scope, debounce/manual dedup/stale responses, compact expansion/preference, preview/link, pending scope navigation/completion and mobile")
+  } catch (error) {
+    console.error("Refined discovery failure", page.url(), await page.locator("body").innerText())
+    await page.screenshot({ path: "/private/tmp/decision-refined-failure.png", animations: "disabled" })
+    throw error
+  } finally {
+    await page.unrouteAll({ behavior: "ignoreErrors" }); await context.close()
     for (const id of created) await models.Decision.destroy({ where: { id, workspaceId: workspace.id } })
   }
 }

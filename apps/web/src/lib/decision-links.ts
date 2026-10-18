@@ -8,3 +8,11 @@ export const comparisonHref = (left: string, right: string) =>
 
 export const recordedDate = (date: string) =>
   new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(date))
+
+// Keep the deployed document/base path, replacing query/hash navigation only.
+export function decisionUrl(id: string, location = window.location.href) {
+  const url = new URL(location)
+  url.search = ""
+  url.hash = `/decisions/${encodeURIComponent(id)}`
+  return url.href
+}

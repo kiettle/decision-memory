@@ -57,6 +57,7 @@ function DecisionDetail({ id }: { id: string }) {
   const libraryUrl = typeof location.state?.libraryUrl === "string" ? location.state.libraryUrl : "/"
   const [decision, setDecision] = useState<Decision | null>(null)
   const [candidates, setCandidates] = useState<Decision[]>([])
+  const [suggestedIds, setSuggestedIds] = useState<string[]>([])
   const [targetId, setTargetId] = useState("")
   const [replacementReason, setReplacementReason] = useState("")
   const [loading, setLoading] = useState(true)
@@ -91,14 +92,25 @@ function DecisionDetail({ id }: { id: string }) {
     return () => { active = false }
   }, [id, reload])
 
+  const query = decision ? headline(decision) : ""
   useEffect(() => {
     if (!supersedeOpen) return
     let active = true
     void api.decisions({ status: "ACTIVE", decisionState: "DECIDED" })
       .then((rows) => { if (active) setCandidates(rows.filter((row) => row.id !== id)) })
       .catch(() => { if (active) setCandidateError("Could not load active Decisions. Close and reopen to retry.") })
+    // Similar active choices are likely the one being replaced; local search only.
+    if (query.trim().length >= 3) {
+      void api.memorySearch(query, {}, "LOCAL")
+        .then((result) => {
+          if (active) setSuggestedIds(result.matches
+            .filter((match) => match.decisionId !== id && match.decision.status === "ACTIVE" && match.decision.decisionState === "DECIDED")
+            .slice(0, 3).map((match) => match.decisionId))
+        })
+        .catch(() => undefined)
+    }
     return () => { active = false }
-  }, [id, supersedeOpen])
+  }, [id, supersedeOpen, query])
 
   const created = useMemo(
     () =>
@@ -169,6 +181,7 @@ function DecisionDetail({ id }: { id: string }) {
         </Button>
         <div className="flex flex-wrap justify-end gap-2">
           <CopyDecisionSummary decision={decision} />
+          <CopyDecisionSummary decision={decision} linkOnly />
           {/* Decided records keep any historical deadline but no deadline action. */}
           {decision.decisionState === "PENDING" ? (
             <DecisionActions decision={decision} onSaved={setDecision} />
@@ -185,6 +198,7 @@ function DecisionDetail({ id }: { id: string }) {
               onOpenChange={(open) => {
                 setSupersedeOpen(open)
                 setCandidates([])
+                setSuggestedIds([])
                 setCandidateError("")
                 setTargetId("")
                 setReplacementReason("")
@@ -193,6 +207,7 @@ function DecisionDetail({ id }: { id: string }) {
               replacementReason={replacementReason}
               setReplacementReason={setReplacementReason}
               candidates={candidates}
+              suggestedIds={suggestedIds}
               targetId={targetId}
               setTargetId={setTargetId}
               onConfirm={supersede}
@@ -586,12 +601,13 @@ function MetadataRow({
 }
 
 function SupersedeDialog({
-  open, onOpenChange, candidates, targetId, setTargetId, onConfirm, loading, error,
+  open, onOpenChange, candidates, suggestedIds, targetId, setTargetId, onConfirm, loading, error,
   decision, replacementReason, setReplacementReason,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   candidates: Decision[]
+  suggestedIds: string[]
   targetId: string
   setTargetId: (value: string) => void
   onConfirm: () => void
@@ -602,6 +618,9 @@ function SupersedeDialog({
   setReplacementReason: (value: string) => void
 }) {
   const earlier = candidates.find((item) => item.id === targetId)
+  // Similar active choices come first; the full list stays below them.
+  const suggested = suggestedIds.map((sid) => candidates.find((item) => item.id === sid)).filter((item): item is Decision => Boolean(item))
+  const ordered = [...suggested, ...candidates.filter((item) => !suggestedIds.includes(item.id))]
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!loading) onOpenChange(next) }}>
       <DialogTrigger render={<Button variant="outline" />}><RefreshCcw /> Supersede</DialogTrigger>
@@ -612,7 +631,8 @@ function SupersedeDialog({
           <Field><FieldLabel>Earlier Decision</FieldLabel>
             <SearchableSelect label="Earlier Decision" value={targetId} disabled={loading}
               onChange={setTargetId} className="w-full justify-between"
-              options={[{ value: "", label: "Select an active Decision" }, ...candidates.map(item => ({ value: item.id, label: `${item.decisionKey} · ${headline(item)}` }))]} />
+              options={[{ value: "", label: "Select an active Decision" }, ...ordered.map(item => ({ value: item.id, label: `${suggestedIds.includes(item.id) ? "Similar · " : ""}${item.decisionKey} · ${headline(item)}` }))]} />
+            {suggested.length ? <FieldDescription>Similar choices found on this computer are listed first.</FieldDescription> : null}
           </Field>
           {earlier ? <div className="grid gap-4 border-y py-4 sm:grid-cols-2">{[earlier, decision].map((item, index) => <section key={item.id} aria-label={index === 0 ? "Earlier choice" : "Replacing choice"} className="grid min-w-0 content-start gap-2">
             <p className="text-xs font-semibold text-muted-foreground">{index === 0 ? "Earlier choice" : "Replacing choice"} · {item.decisionKey}</p><h3 className="break-words text-sm font-semibold">{headline(item)}</h3><p className="break-words text-xs text-muted-foreground">Applies to: {item.appliesTo.join(", ") || "No scope recorded"}</p><p className="whitespace-pre-wrap break-words text-sm leading-6">{item.why || "No rationale recorded."}</p>

@@ -223,3 +223,22 @@ review history, preventing later navigation from reopening that completion.
 Owner-approved: detail pages offer **Record decision** and **Set deadline / Edit
 deadline** only for pending records. Decided records keep and display any
 historical deadline without an edit action, matching Flat rows and board cards.
+
+## Saved reset and quick deadline dates — 2026-10-18
+
+Owner-approved: a selected modified view offers **Reset to saved view**. It uses
+ordinary view application to restore saved query, every filter, layout and sort
+and remove Unsaved changes, retaining the saved identity/name/configuration and
+other views. It does not write browser storage and works when writes are denied.
+Cached and in-flight semantic results invalidate as on ordinary application.
+No Gemini request is invoked by reset; the normal eligible empty-keyword local
+fallback still applies. Update, Save as new, Rename and Delete are unchanged.
+
+Pending capture and Set/Edit deadline dialogs offer **Today**, **Tomorrow** and
+**In 7 days**. These explicitly typed buttons change only the date input, computing
+the viewer's current local calendar date at click time. Calendar-day arithmetic
+handles DST, leap days and month/year boundaries; an open app uses the new day
+after midnight. Save remains explicit. Existing arbitrary/past input, clear,
+cancel, failed-save recovery and disabled/saving rules remain. Historical deadlines
+on decided edit forms do not gain shortcuts. No reminder or timezone setting is
+added. Proof extends shared-calendar unit tests and native convenience UI checks.

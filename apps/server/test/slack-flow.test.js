@@ -229,7 +229,9 @@ it("Ask Decision Memory answers privately with stored Decisions and escapes thei
   const seen = []
   const memorySearch = searchReturning([
     { decisionId: "d104", score: 95, explanation: "It moved <large> files off the database.", matchedConcepts: [], decision: stored("d104", "DM-104", "Use object storage for migration backups") },
-    { decisionId: "d102", score: 70, explanation: "Earlier choice.", matchedConcepts: [], decision: stored("d102", "DM-102", "Store exports on the database host", "SUPERSEDED") },
+    { decisionId: "d102", score: 70, explanation: "Earlier choice.", matchedConcepts: [], decision: stored("d102", "DM-102", "Store exports on the database host", "SUPERSEDED", {
+      supersededBy: [{ id: "d104", decisionKey: "DM-104", title: "Use object storage for migration backups", decisionState: "DECIDED", status: "ACTIVE" }],
+    }) },
     { decisionId: "d110", score: 30, explanation: "Weak.", matchedConcepts: [], decision: stored("d110", "DM-110", "Keep customer uploads out of PostgreSQL") },
   ], seen)
   const f = await fixture(t, {}, undefined, undefined, memorySearch)
@@ -242,6 +244,7 @@ it("Ask Decision Memory answers privately with stored Decisions and escapes thei
   assert.match(text, /<http:\/\/localhost:5173\/#\/decisions\/d104\|DM-104 · Use object storage for migration backups>/)
   assert.match(text, /Active · Applies to Migration Service/)
   assert.match(text, /Superseded/)
+  assert.match(text, /\*Replaced by:\* <http:\/\/localhost:5173\/#\/decisions\/d104\|DM-104 · Use object storage for migration backups>/, "A superseded match names its replacement")
   assert.match(text, /Backups reach &lt;tens&gt; of GB &amp; more\./)
   assert.match(text, /It moved &lt;large&gt; files off the database\./)
   assert.doesNotMatch(text, /DM-110/, "Weak matches are left out of the answer")

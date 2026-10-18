@@ -248,3 +248,16 @@ cap. The snapshot preserves channel name and separate text-truncation metadata.
 Partial retrieval retains available messages and is visibly INCOMPLETE.
 Owner text remains a recorded name, not an inferred account identity; the web
 library offers those recorded names as separate owner filter options.
+
+## Replacement and scope hints — 2026-10-17
+
+Owner-approved:
+
+- **/why, Ask Decision Memory and the "Already decided" nudge** add a
+  "Replaced by: DM-… · choice" link under any superseded match, so nobody follows
+  an outdated choice from Slack.
+- **AI draft scopes.** The optional Gemini capture draft receives up to 100
+  existing Applies To names and is asked to copy one exactly when it fits. If
+  the lookup fails, drafting continues without them. Saving still maps scopes to
+  existing names ignoring case (see
+  [decision understanding](decision-understanding.md#consistent-scopes-open-questions-and-replacement-suggestions--2026-10-17)).
