@@ -956,6 +956,7 @@ export function createSlackRouter(config, repository, services) {
         secret: config.slackSigningSecret,
       })
       if (!valid) {
+        console.warn("Slack interaction rejected: invalid signature or stale timestamp; check SLACK_SIGNING_SECRET")
         res.status(401).send("Invalid Slack signature")
         return
       }
@@ -963,11 +964,13 @@ export function createSlackRouter(config, repository, services) {
       try {
         payload = parseInteraction(rawBody)
       } catch {
+        console.warn("Slack interaction rejected: unreadable payload")
         res.status(400).send("Invalid Slack payload")
         return
       }
       const teamId = payload.team?.id ?? payload.team_id
       if (teamId !== config.slackTeamId) {
+        console.warn(`Slack interaction rejected: team ${teamId} is not SLACK_TEAM_ID ${config.slackTeamId}`)
         res.status(403).send("Slack workspace is not configured")
         return
       }
