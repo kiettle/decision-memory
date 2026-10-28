@@ -14,6 +14,9 @@ files after actual product domains, such as `overview.md`, `billing.md`,
 
 ## Current Product Contract
 
+- [Integration settings](integration-settings.md): shared local UI configuration,
+  encrypted credentials, one-time import, immediate application and recovery.
+
 - [Proposal review](proposal-review.md): local proposal checking, explicit scoped
   Gemini assessment, exact citations, current replacements and private Slack review.
 

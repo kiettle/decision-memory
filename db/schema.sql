@@ -1,5 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+\ir integration-settings.sql
+
 CREATE TABLE IF NOT EXISTS workspaces (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   external_key text NOT NULL UNIQUE,

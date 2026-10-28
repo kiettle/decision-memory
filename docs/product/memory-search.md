@@ -13,6 +13,10 @@ status, Applies To and date filters. Gemini never runs automatically. Local sear
 runs automatically only in the two cases in
 [automatic local discovery](#automatic-local-discovery--2026-10-17).
 Slack recall, similar-decision suggestions and nudges continue to use local search.
+The optional Slack **Summarize thread & search** button uses Gemini only to
+rewrite a question from a disclosed thread excerpt after an explicit click;
+retrieval remains local and requires a score of at least 90. The original local
+Ask workflow remains available. See [Slack summary search](slack-capture.md#optional-thread-summary-search).
 
 Owner-approved discovery extension (2026-10-17): ordinary keyword search also
 matches the displayed decision key, case insensitively (for example `dm-104`).
@@ -24,7 +28,7 @@ the cap. Pending questions remain excluded from semantic search as before.
 
 ## Optional Gemini AI search
 
-Set `GEMINI_API_KEY` and restart the server to enable the Gemini action. Its
+Set `GEMINI_API_KEY` in Settings and save to enable the Gemini action immediately. Its
 Search options disclosure, visible before invocation, discloses that the query and compact stored decision/evidence
 excerpts are sent to Google. Local search requires no key and remains offline.
 An explicit Gemini request uses the existing configured Gemini model, without
@@ -108,7 +112,9 @@ changes invalidate the local index before the new choice can be retrieved.
   retrieved passage. Stored discussion is never included in list responses.
 - A cosine cutoff of 0.82 rejects weak matches. Display relevance is
   `clamp((cosine - 0.7) / 0.2, 0, 1) * 100`; this is a retrieval heuristic,
-  not a calibrated probability. Slack retains its 60/75 relevance bars.
+  not a calibrated probability. Slack requires 60 for selected-message answers,
+  `/why` and similar-decision suggestions, 90 for answers using thread context
+  for replies shorter than three characters, and 75 for unasked nudges.
 - Match explanations quote the stored title; they are not generated prose.
 
 ## Index lifecycle and recovery

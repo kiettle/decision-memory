@@ -41,7 +41,7 @@ export function createJiraClient({ config, fetchImpl = (...args) => fetch(...arg
   async function call(path, body) {
     if (!enabled) {
       throw new DomainError(
-        "Jira is not configured. Add JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN.",
+        "Jira is not configured. Add JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in Settings.",
         503,
         "JIRA_NOT_CONFIGURED",
       )

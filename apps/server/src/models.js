@@ -25,6 +25,17 @@ export function createDatabase(databaseUrl, logging = false) {
     { tableName: "workspaces" },
   )
 
+  const ConfigurationScope = sequelize.define("ConfigurationScope", {
+    id: { type: DataTypes.TEXT, primaryKey: true },
+    revision: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    initializedAt: DataTypes.DATE,
+  }, { tableName: "configuration_scopes" })
+  const ConfigurationValue = sequelize.define("ConfigurationValue", {
+    scopeId: { type: DataTypes.TEXT, primaryKey: true, allowNull: false },
+    key: { type: DataTypes.TEXT, primaryKey: true, allowNull: false },
+    value: { type: DataTypes.TEXT, allowNull: false },
+  }, { tableName: "configuration_values" })
+
   const User = sequelize.define(
     "User",
     {
@@ -202,6 +213,8 @@ export function createDatabase(databaseUrl, logging = false) {
 
   return {
     sequelize,
+    ConfigurationScope,
+    ConfigurationValue,
     Workspace,
     User,
     Decision,

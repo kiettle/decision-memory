@@ -48,6 +48,8 @@ for current evidence and implementation limits.
 - Ground every AI match in an authoritative stored Decision and its evidence.
 - Ask from Slack: the **Ask Decision Memory** shortcut and `/why` answer
   privately with stored Decisions.
+  With a Gemini key, the optional **Summarize thread & search** button can recover
+  missing context after disclosing the thread excerpt sent to Google.
 - Catch repeats: saving from Slack shows similar Decisions already on record and
   can mark one as replaced.
 - Create a Jira issue from a Decision; its key is saved under Related Work.
@@ -231,7 +233,7 @@ To test Slack against the local API:
    ending in `/slack/interactions`, and the event subscription at the one
    ending in `/slack/events`.
 4. Create or update the Slack app from the manifest.
-5. Add these values to `.env`:
+5. Open **Settings → Slack** and enter these values:
 
    ```text
    SLACK_BOT_TOKEN=xoxb-...
@@ -239,7 +241,7 @@ To test Slack against the local API:
    SLACK_TEAM_ID=T...
    ```
 
-6. Restart the API.
+6. Click **Save Slack**. New requests use these settings immediately.
 7. Install the app in the configured demo workspace and invite the bot to the
    channel used for testing.
 8. Open a thread and select **More actions → Save as Decision**, or type
@@ -274,20 +276,36 @@ modal retries are idempotent.
 
 ## Configuration
 
-`.env` and `.env.example` contain only user-supplied integration values:
+Open the existing **Settings** tab to enter or edit these integration values.
+They are stored in PostgreSQL and shared by all local users. Each integration
+saves independently and applies immediately to new operations; no restart is
+needed. Saved secrets can be replaced or cleared, but never revealed.
 
 | Variable | Purpose |
 | --- | --- |
 | `SLACK_BOT_TOKEN` | Token for the installed demo Slack app |
 | `SLACK_SIGNING_SECRET` | Verifies incoming Slack requests |
 | `SLACK_TEAM_ID` | Restricts capture to the intended workspace (starts with `T`) |
-| `GEMINI_API_KEY` | Optional Gemini AI search and Slack draft; synthetic/sanitized data only |
+| `GEMINI_API_KEY` | Optional Gemini AI search, Slack draft and explicit thread summary search; synthetic/sanitized data only |
 | `JIRA_BASE_URL` | Optional Jira Cloud site, for example `https://acme.atlassian.net` |
 | `JIRA_EMAIL` | Atlassian account email that owns the API token |
 | `JIRA_API_TOKEN` | Atlassian API token used only by the server to create issues |
 
 Leave these empty until credentials are available. Basic local web operation
-requires none of them. Never commit `.env`.
+requires none of them. “Configured” means required fields are present; saving
+does not test external connections.
+
+On first startup, existing `.env` values are imported once, including empty
+initialization. Later `.env` changes cannot overwrite UI edits or restore
+cleared values. The original file is preserved and may still contain plaintext
+credentials; never commit it.
+
+Secrets are encrypted with a generated key in ignored `.local/settings.key`
+(owner-only file permissions). **Back up both the database and this key.**
+Startup refuses to replace a missing or incorrect key when encrypted data
+exists. Settings are local-only and are never exposed through port 3012.
+See [Integration settings](docs/product/integration-settings.md) for recovery,
+API behavior and `npm run test:settings` database verification.
 
 Local defaults live in `apps/server/src/config.js`: API port 3011, Slack-only
 port 3012, frontend/confirmation URL `http://localhost:5173`, local Docker

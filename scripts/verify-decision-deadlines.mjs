@@ -96,7 +96,10 @@ export async function verifyDecisionDeadlines({ repository, models, config, iden
   // Exercise the actual migration twice in an owned temporary schema, including
   // an old table layout. No existing workspace or table is dropped or rewritten.
   const localSearch = await readFile(new URL("../db/local-search.sql", import.meta.url), "utf8")
-  const schema = (await readFile(new URL("../db/schema.sql", import.meta.url), "utf8")).replace("\\ir local-search.sql", () => localSearch)
+  const integrationSettings = await readFile(new URL("../db/integration-settings.sql", import.meta.url), "utf8")
+  const schema = (await readFile(new URL("../db/schema.sql", import.meta.url), "utf8"))
+    .replace("\\ir local-search.sql", () => localSearch)
+    .replace("\\ir integration-settings.sql", () => integrationSettings)
   const temporarySchema = `deadline_migration_proof_${process.pid}`
   await models.sequelize.transaction(async (transaction) => {
     const query = (sql) => models.sequelize.query(sql, { transaction })

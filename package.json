@@ -19,6 +19,7 @@
     "typecheck": "npm run typecheck --workspace web",
     "test": "npm run test --workspace server",
     "test:integration": "node scripts/verify-integration.mjs",
+    "test:settings": "node scripts/verify-integration-settings.mjs",
     "test:ui": "node scripts/visual-qa.mjs",
     "eval:proposal": "node scripts/evaluate-proposal-review.mjs",
     "db:up": "docker compose up -d postgres",

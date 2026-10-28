@@ -12,3 +12,4 @@ documents here as real choices are accepted, then index them in this file.
 ## Accepted Decisions
 
 - [0001 Demo-First Forge Remote Architecture](0001-demo-first-forge-remote-architecture.md)
+- [0004 Shared integration settings](0004-shared-integration-settings.md)

@@ -334,9 +334,11 @@ that step. If the outcome is unknown, check Jira before starting another attempt
 
 ### Check configuration
 
-**Settings** shows the workspace and whether Slack, local memory search, and
-Gemini search are configured. It does not expose credentials. “Configured” does
-not mean the installed integration has passed a live rehearsal.
+**Settings** edits the shared Slack, Gemini and Jira configuration. Saved secrets
+are hidden and can only be replaced or cleared. Save applies to new operations
+immediately. “Configured” means the required values are present; it does not
+mean the installed integration has passed a live rehearsal. Back up the local
+encryption key together with the database.
 
 ## 8. What is ready today?
 

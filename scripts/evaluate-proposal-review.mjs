@@ -4,7 +4,9 @@ import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { GoogleGenAI } from "@google/genai"
 import { setTimeout as delay } from "node:timers/promises"
-import { config } from "../apps/server/src/config.js"
+import { config as bootstrap } from "../apps/server/src/config.js"
+import { createDatabase } from "../apps/server/src/models.js"
+import { createIntegrationSettings } from "../apps/server/src/integration-settings.js"
 import { createProposalReviewService } from "../apps/server/src/proposal-review.js"
 import { proposalEvaluationCases as regressionCases } from "./fixtures/proposal-evaluation.mjs"
 import { proposalEvaluationCases as regressionV2Cases } from "./fixtures/proposal-evaluation-v2.mjs"
@@ -12,9 +14,16 @@ import { proposalEvaluationCases as regressionV3Cases } from "./fixtures/proposa
 import { proposalEvaluationCases as holdoutCases } from "./fixtures/proposal-evaluation-v4.mjs"
 
 // Explicit opt-in is separate from all ordinary tests. Only these synthetic
-// fixtures go to Gemini; no database or Slack/Jira connection is made.
+// fixtures go to Gemini. The local database supplies credentials; no stored
+// decisions are read and no Slack/Jira connection is made.
 if (!process.argv.includes("--live")) throw new Error("Use --live to explicitly send the synthetic evaluation cases to Gemini.")
-if (!config.geminiApiKey) throw new Error("GEMINI_API_KEY is not configured; live evaluation was not run.")
+const models = createDatabase(bootstrap.databaseUrl, false)
+let config
+try {
+  await models.sequelize.authenticate()
+  config = (await createIntegrationSettings({ models, bootstrap, buildRuntime: value => value })).getRuntime()
+} finally { await models.sequelize.close() }
+if (!config.geminiApiKey) throw new Error("Configure GEMINI_API_KEY in Settings; live evaluation was not run.")
 const outputIndex = process.argv.indexOf("--output")
 const output = resolve(outputIndex >= 0 ? process.argv[outputIndex + 1] : `/private/tmp/decision-memory-proposal-evaluation-${Date.now()}.json`)
 const results = []

@@ -58,6 +58,7 @@ const replacedByLine = (appBaseUrl, decision) =>
 const MAX_SIMILAR = 3
 // Search by memory scores 0–100; weaker matches are noise in a Slack window.
 const MIN_MATCH_SCORE = 60
+const MIN_THREAD_ANSWER_SCORE = 90
 
 // "Already decided?": stored Decisions that look like the one being saved.
 async function similarDecisions(memorySearch, identity, text) {
@@ -72,8 +73,6 @@ async function similarDecisions(memorySearch, identity, text) {
         decisionKey: decision.decisionKey,
         title: headline(decision).slice(0, 60),
         status: decision.status,
-        why: decision.why?.slice(0, 180) || "",
-        appliesTo: (decision.appliesTo ?? []).slice(0, 2).map((scope) => scope.slice(0, 80)),
       }))
   } catch {
     return []
@@ -95,11 +94,9 @@ function similarBlocks(appBaseUrl, similar = [], values = {}) {
         type: "mrkdwn",
         text: [
           "*Already decided?* Similar Decisions are on record:",
-          ...similar.map((decision) => [
+          ...similar.map((decision) =>
             `• ${decisionLink(appBaseUrl, decision)} (${decision.status === "ACTIVE" ? "Active" : "Superseded"})`,
-            decision.appliesTo?.length ? `  Applies to: ${escapeMrkdwn(decision.appliesTo.join(", "))}` : "",
-            decision.why ? `  Why: ${escapeMrkdwn(decision.why)}` : "",
-          ].filter(Boolean).join("\n")),
+          ),
         ].join("\n"),
       },
     },
@@ -172,7 +169,6 @@ function captureModal({ title = "", source, metadata, values = {}, error, aiDraf
       ...(options ? [inputBlock("options", "Options Considered (one per line)", options, true)] : []),
       inputBlock("owner", "Owner", initial("owner", aiDraft?.owner)),
       inputBlock("tags", "Tags", initial("tags", aiDraft?.tags.join(", "))),
-      inputBlock("relatedUrl", "Related Jira URL", valueAt(values, "relatedUrl")),
       {
         type: "context",
         elements: [
@@ -388,6 +384,7 @@ const selectedAt = (state, blockId) => state?.[blockId]?.value?.selected_option?
 
 function submissionInput(values) {
   const list = (field) => valueAt(values, field).split(",").map((item) => item.trim()).filter(Boolean)
+  // Modals opened before the field was removed can still submit a related URL.
   const url = valueAt(values, "relatedUrl")
   return {
     title: valueAt(values, "title"), why: valueAt(values, "why"),
@@ -462,26 +459,67 @@ function answerModal(appBaseUrl, question, matches) {
   }
 }
 
-async function answerQuestion(config, memorySearch, payload, question) {
+async function questionFromThread(config, payload, selectedText) {
+  const message = payload.message
+  if (!payload.channel?.id || !message?.ts) return { query: selectedText.slice(0, 500) }
+  const replies = await threadReplies(config, payload.channel.id, message.thread_ts ?? message.ts, message)
+  const messages = selectCapturedMessages(replies.messages, message)
+  const context = messages.filter((item) => !item.anchor).map((item) => item.text.trim()).filter(Boolean)
+  const text = [selectedText, ...context].filter(Boolean).join("\n")
+  const excerpted = text.length > 500 || slackCaptureStats(replies, messages).captureTruncated
+  const notice = replies.captureFailed
+    ? context.length
+      ? "Using available thread context; some messages could not be read."
+      : "Thread context could not be read; only the selected message is available."
+    : context.length
+      ? excerpted
+        ? "Using an excerpt of the selected message’s thread."
+        : "Using context from the selected message’s thread."
+      : null
+  return { query: text.slice(0, 500), notice }
+}
+
+function withThreadSummaryAction(view, metadata) {
+  return {
+    ...view, callback_id: "decision_memory_ask", private_metadata: JSON.stringify(metadata),
+    blocks: [view.blocks[0],
+      { type: "section", text: { type: "plain_text", text: "Optional: Gemini sends up to 60 messages (1,500 characters each) from this thread to Google to clarify your question. Use synthetic or sanitized data. Search stays local; AI may misread context." } },
+      { type: "actions", elements: [{ type: "button", action_id: "ask_summarize_thread",
+        text: { type: "plain_text", text: "Summarize thread & search" } }] },
+      ...view.blocks.slice(1),
+    ],
+  }
+}
+
+async function answerQuestion(config, memorySearch, payload, question, threadQuestionSummarizer) {
   const opened = await slackApi(config, "views.open", {
     trigger_id: payload.trigger_id,
     view: progressModal("Decision Memory", "Searching stored Decisions…"),
   })
   const library = `<${config.appBaseUrl}|Decision Library>`
+  const shortcut = payload.type === "message_action" && payload.callback_id === "ask_decision_memory"
+  const selectedText = question.trim()
+  const useThreadContext = shortcut && memorySearch.enabled && selectedText.length < 3
+  const { query, notice } = useThreadContext
+    ? await questionFromThread(config, payload, selectedText)
+    : { query: selectedText.slice(0, 500) }
+  const minimumScore = useThreadContext ? MIN_THREAD_ANSWER_SCORE : MIN_MATCH_SCORE
   let view
-  if (question.trim().length < 3) {
-    view = progressModal("Decision Memory", "Ask a question after /why, for example: /why do we use PostgreSQL for the Migration Service?")
+  if (query.length < 3) {
+    view = progressModal("Decision Memory", shortcut
+      ? "This message has too little context. Select a more detailed message in the thread, or use /why followed by a question."
+      : "Ask a question after /why, for example: /why do we use PostgreSQL for the Migration Service?")
   } else if (!memorySearch.enabled) {
     view = progressModal("Decision Memory", `Asking needs Search by memory, which is not configured. Search the ${library} instead.`, true)
   } else {
     try {
       const { matches, truncated, candidateCount, totalCandidateCount } = await memorySearch.search(identityForSlack(config, payload), {
-        query: question.trim().slice(0, 500),
+        query,
       })
       view = answerModal(
         config.appBaseUrl,
         question.trim(),
-        matches.filter((match) => match.score >= MIN_MATCH_SCORE),
+        matches.filter((match) => match.score >= minimumScore),
       )
       if (truncated) view.blocks.unshift({ type: "section", text: { type: "plain_text",
         text: `Searched ${candidateCount} of ${totalCandidateCount} Decisions. The rest are waiting for local indexing. Retry shortly or use normal keyword search.` } })
@@ -489,7 +527,61 @@ async function answerQuestion(config, memorySearch, payload, question) {
       view = progressModal("Decision Memory", `Search is unavailable right now. Try again, or search the ${library}.`, true)
     }
   }
+  if (notice) view.blocks.unshift({ type: "section", text: { type: "plain_text", text: notice } })
+  if (shortcut && memorySearch.enabled && threadQuestionSummarizer?.enabled && payload.channel?.id && payload.message?.ts && payload.user?.id) {
+    view = withThreadSummaryAction(view, {
+      userId: payload.user.id, channelId: payload.channel.id, messageTs: payload.message.ts,
+      threadTs: payload.message.thread_ts ?? payload.message.ts, question: selectedText.slice(0, 500),
+    })
+  }
   await slackApi(config, "views.update", { view_id: opened.view.id, view })
+}
+
+async function summarizeThreadAndSearch(config, services, payload) {
+  let metadata
+  try { metadata = JSON.parse(payload.view?.private_metadata ?? "") } catch { return }
+  if (metadata.userId !== payload.user?.id || !/^[CGD][A-Z0-9]+$/.test(metadata.channelId ?? "") ||
+      !SLACK_TS.test(metadata.messageTs ?? "") || !SLACK_TS.test(metadata.threadTs ?? "") ||
+      typeof metadata.question !== "string" || metadata.question.length > 500 || !payload.view?.hash) return
+  const original = {
+    type: "modal", title: payload.view.title, close: { type: "plain_text", text: "Close" },
+    callback_id: "decision_memory_ask", private_metadata: payload.view.private_metadata, blocks: payload.view.blocks,
+  }
+  let busyHash
+  try {
+    const busy = await slackApi(config, "views.update", {
+      view_id: payload.view.id, hash: payload.view.hash,
+      view: progressModal("Decision Memory", "Summarizing thread with Gemini, then searching stored Decisions…"),
+    })
+    busyHash = busy.view?.hash
+    // A concurrent click or a closed view must never start another provider call.
+    if (!busyHash) return
+    if (!services.threadQuestionSummarizer?.enabled || !services.memorySearch.enabled) throw new Error("Summary unavailable")
+    const anchor = { ts: metadata.messageTs, thread_ts: metadata.threadTs, text: metadata.question }
+    const replies = await threadReplies(config, metadata.channelId, metadata.threadTs, anchor)
+    const messages = selectCapturedMessages(replies.messages, anchor)
+    if (!messages.some((message) => !message.anchor && message.text.trim())) throw new Error("Thread unavailable")
+    const query = await services.threadQuestionSummarizer.summarize(messages)
+    if (!query) throw new Error("Summary unavailable")
+    const result = await services.memorySearch.search(identityForSlack(config, payload), { query })
+    const view = answerModal(config.appBaseUrl, metadata.question, result.matches.filter((match) => match.score >= MIN_THREAD_ANSWER_SCORE))
+    view.blocks.unshift({ type: "section", text: { type: "plain_text", text: `Gemini search question (English): “${query}”` } })
+    if (replies.captureFailed || slackCaptureStats(replies, messages).captureTruncated) {
+      view.blocks.unshift({ type: "section", text: { type: "plain_text", text: "Only available thread excerpts were used; some messages may be missing." } })
+    }
+    if (result.truncated) view.blocks.unshift({ type: "section", text: { type: "plain_text", text: `Searched ${result.candidateCount} of ${result.totalCandidateCount} Decisions. Some are waiting for local indexing.` } })
+    await slackApi(config, "views.update", {
+      view_id: payload.view.id, hash: busyHash, view: withThreadSummaryAction(view, metadata),
+    })
+  } catch {
+    if (!busyHash) return
+    try {
+      await slackApi(config, "views.update", {
+        view_id: payload.view.id, hash: busyHash,
+        view: { ...original, blocks: [{ type: "section", block_id: "thread_summary_status", text: { type: "plain_text", text: "Thread summary search is unavailable. Your previous results are preserved below. Retry, or close and use the original local search." } }, ...original.blocks.filter((block) => block.block_id !== "thread_summary_status")] },
+      })
+    } catch { /* A closed or newer view stays untouched. */ }
+  }
 }
 
 // Supersedes the earlier Decision chosen in the form. Only Decisions the form
@@ -818,6 +910,12 @@ async function handleSlackPayload(config, repository, services, payload) {
     if (teamId !== config.slackTeamId) throw new Error("Slack workspace is not configured")
   }
 
+  if (payload.type === "block_actions" && payload.view?.callback_id === "decision_memory_ask" &&
+      payload.actions?.[0]?.action_id === "ask_summarize_thread") {
+    await summarizeThreadAndSearch(config, services, payload)
+    return
+  }
+
   if (payload.type === "block_actions" && payload.actions?.[0]?.action_id === "capture_continue_manually") {
     const metadata = JSON.parse(payload.view?.private_metadata || "{}")
     const draft = await repository.getSlackCaptureDraft(identityForSlack(config, payload), metadata.draftId)
@@ -836,12 +934,12 @@ async function handleSlackPayload(config, repository, services, payload) {
   }
 
   if (payload.command === "/why") {
-    await answerQuestion(config, memorySearch, payload, payload.text ?? "")
+    await answerQuestion(config, memorySearch, payload, payload.text ?? "", services.threadQuestionSummarizer)
     return
   }
 
   if (payload.type === "message_action" && payload.callback_id === "ask_decision_memory") {
-    await answerQuestion(config, memorySearch, payload, plainSlackText(payload.message?.text ?? ""))
+    await answerQuestion(config, memorySearch, payload, plainSlackText(payload.message?.text ?? ""), services.threadQuestionSummarizer)
     return
   }
 

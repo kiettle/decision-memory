@@ -20,7 +20,7 @@ export function createMemorySearchService({ repository, embedder = createLocalEm
           .slice(0, 5)
           .map(({ similarity, decision }) => ({
             decisionId: decision.id,
-            // Keep Slack's conservative 60/75 bars on a 0–100 relevance scale.
+            // Slack applies separate relevance bars for focused answers, thread context and nudges.
             score: Math.round(Math.max(0, Math.min(1, (similarity - 0.7) / 0.2)) * 100),
             similarity,
             explanation: `Similar meaning in stored decision: “${headline(decision).slice(0, 400)}”.`,

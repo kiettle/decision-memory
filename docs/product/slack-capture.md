@@ -85,8 +85,7 @@ Only Decision is required. The modal also supports:
 - Context;
 - Applies To;
 - Owner;
-- Tags;
-- Related Jira URL.
+- Tags.
 
 The message-shortcut variant displays captured source context. The slash-command
 variant instead states that no message thread is attached.
@@ -147,9 +146,9 @@ With Search by memory available, the message shortcut also searches stored
 Decisions for the drafted Decision (or the selected message) while the
 optional-assistance view is shown; **Continue manually** bypasses this wait.
 
-- Up to three matches scoring 60 or more are listed with links and their
-  status, under "Already decided?". Their bounded Why and Applies To excerpts
-  help the person understand whether they apply to the same situation.
+- Up to three matches scoring 60 or more are listed by linked title and status
+  under "Already decided?". The preview omits Why and Applies To to stay compact;
+  those details remain available in the linked Decision.
 - An optional "Replaces an earlier Decision?" picker offers only the active
   matches. Choosing one supersedes it when the new Decision is saved, with the
   same rules as the web app; superseded or unlisted Decisions are never
@@ -166,15 +165,52 @@ private proposal review. Local checking and explicit scoped Gemini analysis are
 defined in [Proposal review](proposal-review.md); they do not change Ask or the
 automatic nudge triggers. Reapply the Slack manifest to install the shortcut.
 
-The **Ask Decision Memory** message shortcut uses the selected message as the
-question; `/why <question>` uses the typed text. Both open a private Slack
-window that shows "Searching stored Decisions…" and then up to five stored
-Decisions scoring 60 or more, each with its status, Applies To, Why, a local
-match explanation, and a link. Nothing is posted to the channel. Empty
+The **Ask Decision Memory** message shortcut searches only the selected message
+when it has at least three characters, preserving focused retrieval. For a
+shorter reply such as "OK", it uses context from only that thread to retrieve
+the recorded choice discussed earlier. It opens the searching view before
+reading Slack. Thread retrieval reuses the capture limits (100 messages, 4,000 characters
+per message, a six-second overall deadline and two seconds per Slack call).
+The local query keeps the selected text first, then available thread messages,
+within the existing 500-character search limit. The response identifies thread
+context and discloses excerpts or unavailable messages. If Slack refuses the
+thread, a detailed selected message still works; a short reply explains that
+more context is needed. Context is used locally without saving a capture draft
+or invoking Gemini. `/why <question>` continues to use only the typed text.
+Both open a private Slack window that shows "Searching stored Decisions…" and
+then up to five stored Decisions. Selected-message and `/why` searches retain
+the minimum relevance score of 60; thread-based answers require at least 90.
+These are retrieval scores, not accuracy percentages. Each result shows its
+status, Applies To, Why, a local match explanation, and a link. Nothing is posted
+to the channel. Empty
 questions, no matches, missing configuration, and search failures each show a
 plain explanation. Search uses the local vector index without the former
 200-decision cap. When indexing is pending, the response states indexed/total
 coverage and offers retry or normal keyword search.
+
+### Optional thread summary search
+
+With `GEMINI_API_KEY` configured, Ask results offer **Summarize thread & search**.
+The disclosure before the button explains that clicking sends up to 60 messages,
+1,500 characters each, from only the selected thread to Google. The excerpt keeps
+the thread root and a window around the selected message; author identifiers
+are omitted. Use only synthetic or sanitized threads with the configured account.
+Opening Ask, `/why` and the default local search never invoke this summarizer.
+
+Gemini rewrites a single focused English search question (at most 500 characters), using
+the thread to recover missing topic/scope rather than combining every topic.
+Product and service names retain their original spelling. The original selected
+message remains visible alongside the normalized question. The result displays
+that question and searches the local index, showing only
+matches scoring at least 90. Stored Decisions are not sent to Gemini by this
+action. It does not save, supersede, post to a channel or create a capture draft.
+
+The provider has an eight-second deadline without automatic retries. Invalid or
+insufficient summaries, unavailable context and search/provider failures restore
+the previous local results with a retry explanation. Slack view hashes prevent
+concurrent clicks from starting duplicate requests or overwriting a newer view.
+Closing and reopening Ask always provides the original local workflow. AI can
+misinterpret the thread; the strict retrieval score is not factual confidence.
 
 ## Nudges
 

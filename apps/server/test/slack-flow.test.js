@@ -7,7 +7,7 @@ import { createSlackApp } from "../src/app.js"
 import { decisionInput } from "../src/validation.js"
 
 const config = { slackBotToken: "test-token", slackSigningSecret: "test-secret", slackTeamId: "T1", localWorkspaceId: "test", appBaseUrl: "http://localhost:5173" }
-const values = (title = "Use GCS", url = "https://example.com/DEMO-1") => ({ title: { value: { value: title } }, relatedUrl: { value: { value: url } } })
+const values = (title = "Use GCS", url) => ({ title: { value: { value: title } }, ...(url ? { relatedUrl: { value: { value: url } } } : {}) })
 const submission = (state = values()) => ({ type: "view_submission", team: { id: "T1" }, user: { id: "U1" }, view: { id: "V1", callback_id: "decision_memory_save", private_metadata: JSON.stringify({ eventId: "T1:trigger" }), state: { values: state } } })
 
 async function fixture(t, repository, response = async () => ({ ok: true, view: { id: "V1" } }), captureDrafter = { enabled: false, draft: async () => null }, memorySearch = { enabled: false }) {
@@ -43,7 +43,7 @@ it("Slack ingress rejects unsigned/wrong-team traffic and never exposes the loca
   assert.equal(f.calls.length, 0)
 })
 
-it("Slack keeps invalid submissions editable and shares web URL/title validation", async (t) => {
+it("Slack keeps invalid submissions editable and validates titles and legacy URLs", async (t) => {
   const f = await fixture(t, { createDecision: () => assert.fail("Invalid submission reached persistence") })
   for (const [title, url, field] of [["   ", "https://example.com", "title"], ["Use GCS", "not a url", "relatedUrl"], ["x".repeat(501), "https://example.com", "title"], ["Use GCS", "javascript:alert(1)", "relatedUrl"]]) {
     const result = await (await f.send(submission(values(title, url)))).json()
@@ -92,7 +92,7 @@ it("failed save restores entered values and the original retry key", async (t) =
   const view = JSON.parse(f.calls[0].args.view)
   assert.match(JSON.stringify(view), /Save could not be confirmed/)
   assert.equal(view.blocks.find((block) => block.block_id === "title").element.initial_value, "Use GCS")
-  assert.equal(view.blocks.find((block) => block.block_id === "relatedUrl").element.initial_value, "https://example.com/DEMO-1")
+  assert.equal(view.blocks.some((block) => block.block_id === "relatedUrl"), false)
   assert.equal(JSON.parse(view.private_metadata).eventId, "T1:trigger")
 })
 
@@ -248,7 +248,114 @@ it("Ask Decision Memory answers privately with stored Decisions and escapes thei
   assert.match(text, /Backups reach &lt;tens&gt; of GB &amp; more\./)
   assert.match(text, /It moved &lt;large&gt; files off the database\./)
   assert.doesNotMatch(text, /DM-110/, "Weak matches are left out of the answer")
+  assert.equal(f.calls.some((call) => call.method === "conversations.replies"), false, "Keep a detailed message focused instead of expanding its query with the thread")
   assert.equal(f.calls.some((call) => call.method.startsWith("chat.")), false, "Nothing is posted to the channel")
+})
+
+it("Ask on OK searches the selected thread and shows only scores of at least 90", async (t) => {
+  const seen = []
+  const messages = [
+    { ts: "1", text: "discuss about database for migration service", reply_count: 3 },
+    { ts: "2", thread_ts: "1", text: "we should use mongo db" },
+    { ts: "3", thread_ts: "1", text: "no postgres is better, and we also familiar with that" },
+    { ts: "4", thread_ts: "1", text: "OK" },
+  ]
+  const memorySearch = searchReturning([
+    { score: 90, explanation: "Matches the database discussion.", decision: stored("d111", "DM-111", "PostgreSQL will be used as the database for the migration service.") },
+    { score: 89, explanation: "Shared migration terms.", decision: stored("d104", "DM-104", "Use object storage for migration backups") },
+    { score: 75, explanation: "Shared database terms.", decision: stored("d102", "DM-102", "Store exports on the database host") },
+  ], seen)
+  const f = await fixture(t, { createSlackCaptureDraft: () => assert.fail("Ask must not save a capture draft") }, async (url) => url.endsWith("conversations.replies")
+    ? { ok: true, messages }
+    : { ok: true, view: { id: "V1" } }, undefined, memorySearch)
+  await f.send({ ...shortcut, callback_id: "ask_decision_memory", message: messages[3] })
+  await until(() => f.calls.some((call) => call.method === "views.update"))
+  assert.equal(f.calls[0].method, "views.open", "Open before spending the trigger deadline on thread retrieval")
+  const reads = f.calls.filter((call) => call.method === "conversations.replies")
+  assert.equal(reads.length, 1)
+  assert.equal(reads[0].args.channel, "C1")
+  assert.equal(reads[0].args.ts, "1", "Read the selected reply's root, not channel history")
+  assert.deepEqual(seen, ["OK\ndiscuss about database for migration service\nwe should use mongo db\nno postgres is better, and we also familiar with that"])
+  const text = JSON.stringify(lastView(f))
+  assert.match(text, /Using context from the selected message’s thread/)
+  assert.match(text, /You asked: “OK”/)
+  assert.match(text, /DM-111 · PostgreSQL/)
+  assert.doesNotMatch(text, /DM-104|DM-102/, "Thread context must not add lower-scoring related topics")
+  assert.doesNotMatch(text, /Ask a question after \/why/)
+  assert.equal(f.calls.some((call) => call.method.startsWith("chat.")), false)
+})
+
+it("Ask follows only the selected thread's pages and bounds its context query", async (t) => {
+  const seen = []
+  const f = await fixture(t, {}, async (url, init) => {
+    if (!url.endsWith("conversations.replies")) return { ok: true, view: { id: "V1" } }
+    assert.equal(init.body.get("channel"), "C1")
+    assert.equal(init.body.get("ts"), "1")
+    return init.body.get("cursor")
+      ? { ok: true, messages: [{ ts: "2", text: "PostgreSQL is familiar. ".repeat(40) }] }
+      : { ok: true, messages: [{ ts: "1", text: "Database for migration service", reply_count: 2 }], has_more: true, response_metadata: { next_cursor: "page2" } }
+  }, undefined, searchReturning([], seen))
+  await f.send({ ...shortcut, callback_id: "ask_decision_memory", message: { ts: "3", thread_ts: "1", text: "OK" } })
+  await until(() => f.calls.some((call) => call.method === "views.update"))
+  assert.deepEqual(f.calls.filter((call) => call.method === "conversations.replies").map((call) => call.args.cursor), [undefined, "page2"])
+  assert.equal(seen[0].length, 500)
+  assert.match(seen[0], /^OK\nDatabase for migration service\nPostgreSQL/)
+  assert.match(JSON.stringify(lastView(f)), /Using an excerpt of the selected message’s thread/)
+})
+
+it("Ask searches detailed messages directly and explains unavailable context for OK", async (t) => {
+  const seen = []
+  const f = await fixture(t, {}, async (url) => url.endsWith("conversations.replies")
+    ? { ok: false, error: "not_in_channel" }
+    : { ok: true, view: { id: "V1" } }, undefined, searchReturning([], seen))
+  for (const text of ["why PostgreSQL for migration?", "OK"]) {
+    const before = f.calls.filter((call) => call.method === "views.update").length
+    await f.send({ ...shortcut, callback_id: "ask_decision_memory", message: { ts: "4", thread_ts: "1", text } })
+    await until(() => f.calls.filter((call) => call.method === "views.update").length > before)
+    const answer = JSON.stringify(lastView(f))
+    if (text === "OK") assert.match(answer, /Thread context could not be read/)
+    else {
+      assert.doesNotMatch(answer, /Thread context could not be read/)
+      assert.equal(f.calls.some((call) => call.method === "conversations.replies"), false)
+    }
+    assert.match(answer, text === "OK" ? /too little context/ : /No stored Decision matches/)
+  }
+  assert.deepEqual(seen, ["why PostgreSQL for migration?"], "Never search an unexplained OK when context is unavailable")
+})
+
+it("Ask shows no match when all thread-based results score below 90", async (t) => {
+  const f = await fixture(t, {}, async (url) => url.endsWith("conversations.replies")
+    ? { ok: true, messages: [{ ts: "1", text: "Database choice for migration", reply_count: 1 }] }
+    : { ok: true, view: { id: "V1" } }, undefined, searchReturning([
+    { score: 89, explanation: "Related topic.", decision: stored("d104", "DM-104", "Use object storage for migration backups") },
+  ]))
+  await f.send({ ...shortcut, callback_id: "ask_decision_memory", message: { ts: "2", thread_ts: "1", text: "OK" } })
+  await until(() => f.calls.some((call) => call.method === "views.update"))
+  const text = JSON.stringify(lastView(f))
+  assert.match(text, /No stored Decision matches this/)
+  assert.doesNotMatch(text, /DM-104/)
+})
+
+it("Ask uses partial thread context if a later page fails", async (t) => {
+  const seen = []
+  const f = await fixture(t, {}, async (url, init) => {
+    if (!url.endsWith("conversations.replies")) return { ok: true, view: { id: "V1" } }
+    return init.body.get("cursor")
+      ? { ok: false, error: "ratelimited" }
+      : { ok: true, messages: [{ ts: "1", text: "Use PostgreSQL for the migration service", reply_count: 3 }], has_more: true, response_metadata: { next_cursor: "page2" } }
+  }, undefined, searchReturning([], seen))
+  await f.send({ ...shortcut, callback_id: "ask_decision_memory", message: { ts: "4", thread_ts: "1", text: "OK" } })
+  await until(() => f.calls.some((call) => call.method === "views.update"))
+  assert.deepEqual(seen, ["OK\nUse PostgreSQL for the migration service"])
+  assert.match(JSON.stringify(lastView(f)), /Using available thread context; some messages could not be read/)
+})
+
+it("Ask does not read thread context when local search is disabled", async (t) => {
+  const f = await fixture(t, {}, undefined, undefined, { enabled: false })
+  await f.send({ ...shortcut, callback_id: "ask_decision_memory" })
+  await until(() => f.calls.some((call) => call.method === "views.update"))
+  assert.match(JSON.stringify(lastView(f)), /not configured/)
+  assert.deepEqual(f.calls.map((call) => call.method), ["views.open", "views.update"])
 })
 
 it("/why asks the same way and explains empty questions, no matches, and outages", async (t) => {
@@ -267,9 +374,10 @@ it("/why asks the same way and explains empty questions, no matches, and outages
   assert.match(await ask("why postgres?"), /Search is unavailable right now/)
   memorySearch.enabled = false
   assert.match(await ask("why postgres?"), /not configured/)
+  assert.equal(f.calls.some((call) => call.method === "conversations.replies"), false, "/why searches only its typed question")
 })
 
-it("Already decided? lists similar Decisions and offers only active ones to replace", async (t) => {
+it("Already decided? lists compact linked titles and offers only active ones to replace", async (t) => {
   const seen = []
   const memorySearch = searchReturning([
     { decisionId: "d104", score: 92, explanation: "", matchedConcepts: [], decision: stored("d104", "DM-104", "Use object storage for migration backups") },
@@ -284,9 +392,9 @@ it("Already decided? lists similar Decisions and offers only active ones to repl
   const view = lastView(f)
   const text = JSON.stringify(view)
   assert.match(text, /Already decided\?/)
-  assert.match(text, /Applies to:/)
-  assert.match(text, /Why:/)
-  assert.ok(view.private_metadata.length < 3000, "Richer suggestions must remain within Slack metadata limits")
+  assert.doesNotMatch(text, /Applies to:/)
+  assert.doesNotMatch(text, /Why:/)
+  assert.ok(view.private_metadata.length < 3000, "Similar suggestions must remain within Slack metadata limits")
   assert.match(text, /DM-104 · Use object storage for migration backups> \(Active\)/)
   assert.match(text, /DM-102 · Store exports on the database host> \(Superseded\)/)
   assert.doesNotMatch(text, /DM-105/, "Weak matches are not shown")

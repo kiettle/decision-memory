@@ -112,7 +112,7 @@ export function createGeminiMemorySearchService({
   async function search(identity, { query, filters = {} }) {
     if (!enabled) {
       throw unavailable(
-        "Gemini search is not configured. Add GEMINI_API_KEY and try again. Local search is still available.",
+        "Gemini search is not configured. Add GEMINI_API_KEY in Settings and try again. Local search is still available.",
       )
     }
 

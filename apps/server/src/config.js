@@ -3,8 +3,9 @@ import { fileURLToPath } from "node:url"
 
 loadEnv({ path: fileURLToPath(new URL("../../../.env", import.meta.url)) })
 
-// Local demo settings are fixed in code. Only integration credentials belong
-// in .env; deployment overrides are supplied by the deployment environment.
+// Bootstrap settings stay outside the DB. Integration values here are only
+// the one-time import source; integration-settings.js overrides all seven
+// properties from the DB after initialization, including cleared values.
 const nodeEnv = process.env.NODE_ENV ?? "development"
 export const config = Object.freeze({
   nodeEnv,

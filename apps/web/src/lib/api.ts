@@ -9,6 +9,9 @@ import type {
   ScopeSummary,
   ScopeOverview,
   ProposalReview,
+  IntegrationSettings,
+  IntegrationProvider,
+  IntegrationKey,
 } from "@/types"
 
 // The competition demo uses the local web app. Enable only for a verified Forge deployment.
@@ -67,6 +70,9 @@ export type DecisionFilters = {
 }
 
 export const api = {
+  integrationSettings: () => request<IntegrationSettings>("/api/settings/integrations"),
+  saveIntegrationSettings: (provider: IntegrationProvider, revision: number, changes: Partial<Record<IntegrationKey, string | null>>) =>
+    request<IntegrationSettings>(`/api/settings/integrations/${provider}`, "PUT", { revision, changes }),
   checkProposal: (proposal: string, appliesTo?: string, method: MemorySearchMethod = "LOCAL") =>
     request<ProposalReview>("/api/decisions/check-proposal", "POST", { proposal, appliesTo: appliesTo || undefined, method }),
   scopes: () => request<ScopeSummary[]>("/api/scopes"),

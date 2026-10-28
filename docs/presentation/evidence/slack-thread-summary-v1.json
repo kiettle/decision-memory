@@ -1,0 +1,126 @@
+{
+  "at": "2026-10-18T16:10:58.442Z",
+  "model": "gemini-3.5-flash-lite",
+  "syntheticOnly": true,
+  "results": [
+    {
+      "name": "Vietnamese missing migration context",
+      "expected": "DM-111",
+      "query": "Tại sao lúc trước lại chọn sử dụng PostgreSQL cho migration?",
+      "matches": [
+        {
+          "key": "DM-111",
+          "score": 88
+        },
+        {
+          "key": "DM-104",
+          "score": 74
+        },
+        {
+          "key": "DM-102",
+          "score": 68
+        },
+        {
+          "key": "DM-110",
+          "score": 66
+        }
+      ],
+      "displayed": [],
+      "passed": false,
+      "elapsedMs": 2111
+    },
+    {
+      "name": "English OK after rejected MongoDB proposal",
+      "expected": "DM-111",
+      "query": "Why was PostgreSQL chosen for the migration service?",
+      "matches": [
+        {
+          "key": "DM-111",
+          "score": 100
+        },
+        {
+          "key": "DM-104",
+          "score": 64
+        },
+        {
+          "key": "DM-102",
+          "score": 64
+        }
+      ],
+      "displayed": [
+        "DM-111"
+      ],
+      "passed": true,
+      "elapsedMs": 1186
+    },
+    {
+      "name": "Object-storage pronoun",
+      "expected": "DM-104",
+      "query": "Why was object storage chosen for migration backups instead of database snapshots?",
+      "matches": [
+        {
+          "key": "DM-104",
+          "score": 95
+        },
+        {
+          "key": "DM-102",
+          "score": 76
+        },
+        {
+          "key": "DM-111",
+          "score": 72
+        },
+        {
+          "key": "DM-110",
+          "score": 70
+        }
+      ],
+      "displayed": [
+        "DM-104"
+      ],
+      "passed": true,
+      "elapsedMs": 1025
+    },
+    {
+      "name": "Explicit topic change",
+      "expected": "DM-110",
+      "query": "Why are customer uploads kept out of PostgreSQL?",
+      "matches": [
+        {
+          "key": "DM-110",
+          "score": 100
+        },
+        {
+          "key": "DM-104",
+          "score": 78
+        },
+        {
+          "key": "DM-102",
+          "score": 77
+        },
+        {
+          "key": "DM-111",
+          "score": 77
+        },
+        {
+          "key": "DM-107",
+          "score": 72
+        }
+      ],
+      "displayed": [
+        "DM-110"
+      ],
+      "passed": true,
+      "elapsedMs": 957
+    },
+    {
+      "name": "Insufficient context",
+      "expected": null,
+      "query": null,
+      "matches": [],
+      "displayed": [],
+      "passed": true,
+      "elapsedMs": 969
+    }
+  ]
+}

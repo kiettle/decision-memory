@@ -112,6 +112,16 @@ export type Metadata = {
   }
 }
 
+export type IntegrationProvider = "slack" | "gemini" | "jira"
+export type IntegrationKey = "SLACK_BOT_TOKEN" | "SLACK_SIGNING_SECRET" | "SLACK_TEAM_ID" | "GEMINI_API_KEY" | "JIRA_BASE_URL" | "JIRA_EMAIL" | "JIRA_API_TOKEN"
+export type IntegrationSettings = {
+  revision: number
+  integrations: Record<IntegrationProvider, {
+    configured: boolean
+    fields: Partial<Record<IntegrationKey, { configured: boolean; value?: string }>>
+  }>
+}
+
 export type MemorySearchMatch = {
   decisionId: string
   score: number

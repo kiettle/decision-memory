@@ -1,0 +1,193 @@
+{
+  "at": "2026-10-18T16:14:20.998Z",
+  "model": "gemini-3.5-flash-lite",
+  "syntheticOnly": true,
+  "results": [
+    {
+      "name": "Vietnamese missing migration context",
+      "texts": [
+        "hi, migration sao rồi?",
+        "dạ đang ổn a",
+        "sao lúc trước mình dùng postgres nhỉ?"
+      ],
+      "expected": "DM-111",
+      "query": "Vì sao lúc trước mình dùng PostgreSQL?",
+      "matches": [
+        {
+          "key": "DM-111",
+          "score": 72
+        },
+        {
+          "key": "DM-110",
+          "score": 63
+        }
+      ],
+      "displayed": [],
+      "passed": false,
+      "elapsedMs": 2326
+    },
+    {
+      "name": "English OK after rejected MongoDB proposal",
+      "texts": [
+        "Discuss the database for the migration service.",
+        "We should use MongoDB.",
+        "No, PostgreSQL is better and the team is familiar with it.",
+        "OK"
+      ],
+      "expected": "DM-111",
+      "query": "Vì sao PostgreSQL được chọn cho migration service?",
+      "matches": [
+        {
+          "key": "DM-111",
+          "score": 98
+        },
+        {
+          "key": "DM-110",
+          "score": 62
+        },
+        {
+          "key": "DM-102",
+          "score": 61
+        },
+        {
+          "key": "DM-104",
+          "score": 61
+        }
+      ],
+      "displayed": [
+        "DM-111"
+      ],
+      "passed": true,
+      "elapsedMs": 1332
+    },
+    {
+      "name": "Object-storage pronoun",
+      "texts": [
+        "Migration backup files are too large for database snapshots.",
+        "We selected object storage so retention and rollback do not load the database.",
+        "Why did we choose it?"
+      ],
+      "expected": "DM-104",
+      "query": "Vì sao chọn object storage cho migration backup?",
+      "matches": [
+        {
+          "key": "DM-104",
+          "score": 100
+        },
+        {
+          "key": "DM-102",
+          "score": 72
+        },
+        {
+          "key": "DM-111",
+          "score": 63
+        }
+      ],
+      "displayed": [
+        "DM-104"
+      ],
+      "passed": true,
+      "elapsedMs": 857
+    },
+    {
+      "name": "Explicit topic change",
+      "texts": [
+        "How is migration going?",
+        "It is going well.",
+        "Different question: why keep customer uploads out of PostgreSQL?"
+      ],
+      "expected": "DM-110",
+      "query": "Why are customer uploads kept out of PostgreSQL?",
+      "matches": [
+        {
+          "key": "DM-110",
+          "score": 100
+        },
+        {
+          "key": "DM-104",
+          "score": 78
+        },
+        {
+          "key": "DM-102",
+          "score": 77
+        },
+        {
+          "key": "DM-111",
+          "score": 77
+        },
+        {
+          "key": "DM-107",
+          "score": 72
+        }
+      ],
+      "displayed": [
+        "DM-110"
+      ],
+      "passed": true,
+      "elapsedMs": 975
+    },
+    {
+      "name": "Insufficient context",
+      "texts": [
+        "Hello.",
+        "Why that?"
+      ],
+      "expected": null,
+      "query": null,
+      "matches": [],
+      "displayed": [],
+      "passed": true,
+      "elapsedMs": 852
+    },
+    {
+      "name": "Holdout Vietnamese customer-upload context",
+      "texts": [
+        "Bàn về customer uploads của Support portal nhé.",
+        "Ừ, đang hoạt động ổn.",
+        "Vì sao mình không lưu ảnh upload trong Postgres?"
+      ],
+      "expected": "DM-110",
+      "query": "Vì sao không lưu ảnh upload trong Postgres của Support portal?",
+      "matches": [
+        {
+          "key": "DM-110",
+          "score": 75
+        }
+      ],
+      "displayed": [],
+      "passed": false,
+      "elapsedMs": 1309
+    },
+    {
+      "name": "Holdout Vietnamese rejected backup storage",
+      "texts": [
+        "Chọn chỗ lưu file backup cho migration nhé.",
+        "Không lưu trong PostgreSQL; đã chọn object storage cho file backup lớn.",
+        "Sao mình không lưu trong Postgres vậy?"
+      ],
+      "expected": "DM-104",
+      "query": "Vì sao không lưu file backup migration trong PostgreSQL?",
+      "matches": [
+        {
+          "key": "DM-104",
+          "score": 79
+        },
+        {
+          "key": "DM-111",
+          "score": 71
+        },
+        {
+          "key": "DM-110",
+          "score": 70
+        },
+        {
+          "key": "DM-102",
+          "score": 68
+        }
+      ],
+      "displayed": [],
+      "passed": false,
+      "elapsedMs": 814
+    }
+  ]
+}
