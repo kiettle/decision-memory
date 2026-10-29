@@ -12,6 +12,7 @@ export type DecisionNavigationState = {
   libraryUrl?: string
   libraryState?: DecisionNavigationState & { memoryResult?: unknown }
   scopePrefill?: string
+  questionPrefill?: string
   proposalDraft?: { proposal: string; appliesTo: string }
   proposalOrigin?: string
 }

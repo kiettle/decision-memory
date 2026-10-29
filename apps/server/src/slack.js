@@ -6,6 +6,7 @@ import { slackIdempotencyKey } from "./domain.js"
 import { looksLikeDecision, looksLikeQuestion } from "./nudges.js"
 import { decisionInput, replacementReasonInput } from "./validation.js"
 import { createSlackProposalHandler } from "./slack-proposal-review.js"
+import { answerContext } from "./answer-context.js"
 
 const FIVE_MINUTES_SECONDS = 60 * 5
 const MAX_CAPTURED_MESSAGES = 100
@@ -50,10 +51,15 @@ const decisionLink = (appBaseUrl, decision) =>
   `<${appBaseUrl}/#/decisions/${decision.id}|${escapeMrkdwn(`${decision.decisionKey} · ${headline(decision)}`.slice(0, 150))}>`
 
 // A superseded match names what replaced it, so nobody follows an outdated choice.
-const replacedByLine = (appBaseUrl, decision) =>
-  decision.status === "SUPERSEDED" && decision.supersededBy?.length
-    ? `*Replaced by:* ${decision.supersededBy.map((item) => decisionLink(appBaseUrl, item)).join(", ")}`
-    : null
+const replacedByLine = (appBaseUrl, decision) => {
+  if (decision.status !== "SUPERSEDED") return null
+  const current = decision.lifecycle?.current
+  if (current?.length) return `*Current replacements:* ${current.slice(0, 10).map(item => decisionLink(appBaseUrl, item)).join(", ")}`
+  const successors = decision.lifecycle?.supersededBy ?? decision.supersededBy
+  return successors?.length
+    ? `*Replaced by:* ${successors.slice(0, 10).map((item) => decisionLink(appBaseUrl, item)).join(", ")}`
+    : "Current replacement is unknown; open the record to inspect history."
+}
 
 const MAX_SIMILAR = 3
 // Search by memory scores 0–100; weaker matches are noise in a Slack window.
@@ -419,20 +425,22 @@ function identityForSlack(config, payload) {
 function answerModal(appBaseUrl, question, matches) {
   const blocks = [
     { type: "section", text: { type: "plain_text", text: `You asked: “${question.slice(0, 280)}”` } },
+    { type: "section", text: { type: "plain_text", text: "Scope is not confirmed. Compare exact Applies To and evidence below. Multiple current records may disagree; search rank is not a conflict resolution or approval." } },
   ]
   if (!matches.length) {
     blocks.push({
       type: "section",
       text: {
         type: "plain_text",
-        text: "No stored Decision matches this. If the team has decided it, save it with Save as Decision.",
+        text: "No stored Decision matches this. No result is not approval. Clarify the scope or record an unanswered question in the app.",
       },
     })
   }
   for (const { decision, explanation } of matches) {
+    const scopes = decision.appliesTo?.join(", ") ?? ""
     const details = [
-      decision.status === "ACTIVE" ? "Active" : "Superseded",
-      decision.appliesTo?.length ? `Applies to ${decision.appliesTo.join(", ")}` : null,
+      decision.status === "ACTIVE" ? "Current recorded choice" : "Historical choice · superseded",
+      scopes ? `Applies exactly to ${scopes.slice(0, 650)}${scopes.length > 650 ? "… (scope list excerpt; open record for full exact scope)" : ""}` : "Scope not recorded; applicability is uncertain",
     ].filter(Boolean).join(" · ")
     blocks.push(
       { type: "divider" },
@@ -444,13 +452,20 @@ function answerModal(appBaseUrl, question, matches) {
             `*${decisionLink(appBaseUrl, decision)}*`,
             escapeMrkdwn(details),
             replacedByLine(appBaseUrl, decision),
-            decision.why ? `*Why:* ${escapeMrkdwn(decision.why.slice(0, 400))}` : null,
-            `_${escapeMrkdwn(explanation)}_`,
+            `*Why:* ${escapeMrkdwn(decision.why?.slice(0, 400) || "No rationale recorded.")}`,
+            `*Owner:* ${escapeMrkdwn((decision.owner?.displayName || decision.ownerName || "Unassigned").slice(0, 200))}`,
+            decision.sources?.[0]?.anchorText ? `*Evidence excerpt (${escapeMrkdwn(decision.sources[0].provider)}):* ${escapeMrkdwn(decision.sources[0].anchorText.slice(0, 400))}` : "Evidence is not shown here; open the record to inspect support. Missing evidence is uncertainty.",
+            `<${appBaseUrl}/#/decisions/${decision.id}|Open decision and full evidence>`,
+            `Search suggestion (not an established answer): _${escapeMrkdwn(explanation.slice(0, 300))}_`,
           ].filter(Boolean).join("\n").slice(0, 3_000),
         },
       },
     )
   }
+  blocks.push({ type: "actions", elements: [
+    { type: "button", text: { type: "plain_text", text: "Clarify scope in app" }, url: `${appBaseUrl}/#/?q=${encodeURIComponent(question.slice(0, 500))}` },
+    { type: "button", text: { type: "plain_text", text: "Record unanswered question" }, url: `${appBaseUrl}/#/decisions/new?question=${encodeURIComponent(question.slice(0, 500))}` },
+  ] })
   return {
     type: "modal",
     title: { type: "plain_text", text: "Decision Memory" },
@@ -491,7 +506,13 @@ function withThreadSummaryAction(view, metadata) {
   }
 }
 
-async function answerQuestion(config, memorySearch, payload, question, threadQuestionSummarizer) {
+async function hydrateAnswerMatches(repository, identity, matches) {
+  if (!repository.getDecision || !matches.length) return matches
+  const context = await answerContext(repository, identity, matches.map(match => match.decision.id))
+  return context.decisions.map(decision => ({ decision, explanation: matches.find(match => match.decision.id === decision.id)?.explanation ?? "Current replacement linked by recorded history; inspect its exact scope." }))
+}
+
+async function answerQuestion(config, memorySearch, payload, question, threadQuestionSummarizer, repository) {
   const opened = await slackApi(config, "views.open", {
     trigger_id: payload.trigger_id,
     view: progressModal("Decision Memory", "Searching stored Decisions…"),
@@ -519,7 +540,7 @@ async function answerQuestion(config, memorySearch, payload, question, threadQue
       view = answerModal(
         config.appBaseUrl,
         question.trim(),
-        matches.filter((match) => match.score >= minimumScore),
+        await hydrateAnswerMatches(repository, identityForSlack(config, payload), matches.filter((match) => match.score >= minimumScore)),
       )
       if (truncated) view.blocks.unshift({ type: "section", text: { type: "plain_text",
         text: `Searched ${candidateCount} of ${totalCandidateCount} Decisions. The rest are waiting for local indexing. Retry shortly or use normal keyword search.` } })
@@ -537,7 +558,7 @@ async function answerQuestion(config, memorySearch, payload, question, threadQue
   await slackApi(config, "views.update", { view_id: opened.view.id, view })
 }
 
-async function summarizeThreadAndSearch(config, services, payload) {
+async function summarizeThreadAndSearch(config, services, payload, repository) {
   let metadata
   try { metadata = JSON.parse(payload.view?.private_metadata ?? "") } catch { return }
   if (metadata.userId !== payload.user?.id || !/^[CGD][A-Z0-9]+$/.test(metadata.channelId ?? "") ||
@@ -564,7 +585,7 @@ async function summarizeThreadAndSearch(config, services, payload) {
     const query = await services.threadQuestionSummarizer.summarize(messages)
     if (!query) throw new Error("Summary unavailable")
     const result = await services.memorySearch.search(identityForSlack(config, payload), { query })
-    const view = answerModal(config.appBaseUrl, metadata.question, result.matches.filter((match) => match.score >= MIN_THREAD_ANSWER_SCORE))
+    const view = answerModal(config.appBaseUrl, metadata.question, await hydrateAnswerMatches(repository, identityForSlack(config, payload), result.matches.filter((match) => match.score >= MIN_THREAD_ANSWER_SCORE)))
     view.blocks.unshift({ type: "section", text: { type: "plain_text", text: `Gemini search question (English): “${query}”` } })
     if (replies.captureFailed || slackCaptureStats(replies, messages).captureTruncated) {
       view.blocks.unshift({ type: "section", text: { type: "plain_text", text: "Only available thread excerpts were used; some messages may be missing." } })
@@ -912,7 +933,7 @@ async function handleSlackPayload(config, repository, services, payload) {
 
   if (payload.type === "block_actions" && payload.view?.callback_id === "decision_memory_ask" &&
       payload.actions?.[0]?.action_id === "ask_summarize_thread") {
-    await summarizeThreadAndSearch(config, services, payload)
+    await summarizeThreadAndSearch(config, services, payload, repository)
     return
   }
 
@@ -934,12 +955,12 @@ async function handleSlackPayload(config, repository, services, payload) {
   }
 
   if (payload.command === "/why") {
-    await answerQuestion(config, memorySearch, payload, payload.text ?? "", services.threadQuestionSummarizer)
+    await answerQuestion(config, memorySearch, payload, payload.text ?? "", services.threadQuestionSummarizer, repository)
     return
   }
 
   if (payload.type === "message_action" && payload.callback_id === "ask_decision_memory") {
-    await answerQuestion(config, memorySearch, payload, plainSlackText(payload.message?.text ?? ""), services.threadQuestionSummarizer)
+    await answerQuestion(config, memorySearch, payload, plainSlackText(payload.message?.text ?? ""), services.threadQuestionSummarizer, repository)
     return
   }
 

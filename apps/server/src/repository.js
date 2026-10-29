@@ -4,6 +4,7 @@ import { Op, QueryTypes } from "sequelize"
 import { DomainError, requireDecisionTitle, validateSupersession } from "./domain.js"
 import { vectorLiteral } from "./local-embeddings.js"
 import { calendarDay, compareDecisions } from "../../../shared/decision-deadlines.js"
+import { createProjectMemory } from "./project-memory.js"
 
 const blankToNull = (value) => {
   if (typeof value !== "string") return value ?? null
@@ -114,6 +115,8 @@ export function createRepository(models) {
     })
     return { workspace, user }
   }
+
+  const projectMemory = createProjectMemory({ sequelize, Decision, User, resolveContext, getDecision })
 
   async function idsFor(sql, replacements) {
     const rows = await sequelize.query(sql, { replacements, type: QueryTypes.SELECT })
@@ -663,6 +666,7 @@ export function createRepository(models) {
           optionsConsidered: listFrom(input.optionsConsidered),
           ownerId: await scopedOwnerId(workspace.id, input.ownerId, transaction),
           ownerName: blankToNull(input.ownerName),
+          ownerContact: blankToNull(input.ownerContact),
           createdById: user.id,
           status: "ACTIVE",
           ...workflowFields(input),
@@ -671,12 +675,16 @@ export function createRepository(models) {
       )
       await setTags(decision, workspace.id, input.tags, transaction)
       await setReferences(decision, workspace.id, input, transaction)
-      if (extras.source) {
+      const source = extras.source ?? (input.pastedSource ? {
+        provider: "PASTED_NOTES", anchorText: input.pastedSource.excerpt, capturedAt: new Date(),
+        messages: [], sourceContext: { entryPoint: "paste-notes", origin: input.pastedSource.origin },
+      } : null)
+      if (source) {
         await SourceSnapshot.create(
           {
             workspaceId: workspace.id,
             decisionId: decision.id,
-            ...extras.source,
+            ...source,
           },
           { transaction },
         )
@@ -692,6 +700,7 @@ export function createRepository(models) {
         )
       }
 
+      await projectMemory.recordChange(workspace.id, null, decision, transaction)
       return getDecision(identity, decision.id, transaction)
     })
   }
@@ -705,6 +714,7 @@ export function createRepository(models) {
         lock: transaction.LOCK.UPDATE,
       })
       if (!decision) return null
+      const previous = { ...decision.get({ plain: true }) }
       await decision.update(
         {
           title: requireDecisionTitle(input.title),
@@ -714,12 +724,15 @@ export function createRepository(models) {
           optionsConsidered: listFrom(input.optionsConsidered),
           ownerId: await scopedOwnerId(workspace.id, input.ownerId, transaction),
           ownerName: blankToNull(input.ownerName),
+          ownerContact: input.ownerContact === undefined ? decision.ownerContact : blankToNull(input.ownerContact),
+          handoverImportant: (input.ownerId || null) === decision.ownerId ? decision.handoverImportant : false,
           ...workflowFields(input, decision),
         },
         { transaction },
       )
       await setTags(decision, workspace.id, input.tags, transaction)
       await setReferences(decision, workspace.id, input, transaction)
+      await projectMemory.recordChange(workspace.id, previous, decision, transaction)
       return getDecision(identity, decision.id, transaction)
     })
   }
@@ -747,7 +760,9 @@ export function createRepository(models) {
         }
       } else {
         if (!outcome) throw new DomainError("Record the final choice.", 400, "OUTCOME_REQUIRED")
+        const previous = { ...decision.get({ plain: true }) }
         await decision.update({ outcome, why, decisionState: "DECIDED", decidedAt: new Date() }, { transaction })
+        await projectMemory.recordChange(workspace.id, previous, decision, transaction)
       }
       return getDecision(identity, decision.id, transaction)
     })
@@ -829,6 +844,7 @@ export function createRepository(models) {
         },
         { transaction },
       )
+      await projectMemory.recordChange(workspace.id, target, current, transaction, reason ?? "")
       return getDecision(identity, current.id, transaction)
     })
   }
@@ -874,7 +890,10 @@ export function createRepository(models) {
     const openQuestions = open.map(serializeDecision).sort((left, right) =>
       (left.dueDate ?? "9999-12-31").localeCompare(right.dueDate ?? "9999-12-31")
       || String(right.createdAt).localeCompare(String(left.createdAt)))
-    return { scope, decisionCount, openCount: open.length, activeDecisions: active.map(serializeDecision), openQuestions, changes }
+    const activeDecisions = await Promise.all(active.map(decision => decision.handoverImportant
+      ? getDecision(identity, decision.id)
+      : serializeDecision(decision)))
+    return { scope, decisionCount, openCount: open.length, activeDecisions: activeDecisions.filter(Boolean), openQuestions, changes }
   }
 
   async function metadata(identity) {
@@ -917,6 +936,7 @@ export function createRepository(models) {
   }
 
   return {
+    ...projectMemory,
     resolveContext,
     listDecisions,
     memorySearchCandidates,

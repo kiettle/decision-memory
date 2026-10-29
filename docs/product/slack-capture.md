@@ -1,5 +1,10 @@
 # Slack Capture
 
+2026-10-29: [Everyday project memory](everyday-project-memory.md) extends private
+Ask results with current replacement evidence, exact scope/owner/rationale,
+explicit uncertainty and web actions to clarify scope or record the unanswered
+question. No new Slack delivery or automatic external AI processing is introduced.
+
 Date: 2026-10-06
 
 ## Outcome
@@ -264,7 +269,8 @@ synthetic demo workspace.
 - Multi-workspace Slack OAuth installation.
 - Slack App Home.
 - Global shortcuts beyond `/decide`.
-- Notification delivery beyond the two private nudges.
+- Slack notification delivery beyond the two private nudges. Personal in-app
+  follows are documented in Everyday project memory.
 - Choosing among several AI-detected decisions and saving more than one.
 
 ## P0 reliability boundary

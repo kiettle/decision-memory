@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react"
 
 import { ComparePage } from "@/pages/compare-page"
 import { ScopesPage } from "@/pages/scopes-page"
+import { ChangesPage } from "@/pages/changes-page"
 
 import { AppShell } from "@/components/app-shell"
 import { DecisionDetailPage } from "@/pages/decision-detail-page"
@@ -18,6 +19,7 @@ export function App() {
         <Route element={<AppShell />}>
           <Route index element={<LibraryPage key="library" />} />
           <Route path="scopes" element={<ScopesPage />} />
+          <Route path="changes" element={<ChangesPage />} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="check-proposal" element={<Suspense fallback={<p className="page-frame" role="status">Loading proposal review…</p>}><ProposalReviewPage /></Suspense>} />
           <Route path="recent" element={<LibraryPage key="recent" />} />

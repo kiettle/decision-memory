@@ -1,5 +1,10 @@
 # Decision deadlines and library views
 
+2026-10-29: [Everyday project memory](everyday-project-memory.md) adds the search
+to owned-question entry, explicit resolution follows, and reviewed paste capture.
+It reuses this document's pending model, completion conflicts, manual entry and
+draft recovery rather than introducing a second task system.
+
 Accepted by the owner on 2026-10-14 in the Flat and Kanban implementation plan.
 
 Web creation defaults to Pending and requires only the question. Already decided
@@ -23,6 +28,12 @@ first; undated pending sorts newest first; Decided sorts by completion then crea
 for legacy timestamps. Memory results keep relevance order. Decided initially
 shows 10, with full count and Show more in increments of 10. Mobile board overflow
 is contained. No dragging or scheduled messages in v1.
+
+Owner-approved responsive refinement (2026-10-28): below 1024px the existing
+navigation sheet replaces the sidebar. Phone Library controls retain the quick
+shortcuts and Applies To; saved-view utilities expand through **Show saved views**.
+Kanban lane jump buttons show each group's count and scroll/focus that lane without
+changing filters, group order or the URL. All five groups remain present.
 
 The Status filter in More filters offers All/Pending/Decided/Superseded. Deadline filters
 use the browser's reference date. Preserve filters, view, sort and cached search

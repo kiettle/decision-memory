@@ -474,6 +474,16 @@ Stop the conflicting local process or update the code constants and Docker Compo
 
 ## Current boundary
 
+The [everyday project memory workflows](docs/product/everyday-project-memory.md)
+extend search with current answer evidence and unanswered-question capture,
+add reviewed pasted notes to New Decision, show owner-selected scope briefs,
+and provide explicit decision/scope follows in **Changes**. Apply the additive
+schema via normal setup before starting the updated server. Notification policy
+is workspace-visible, personal, forward-only and in-app; local demo sessions
+share the configured user. No external notification delivery is implemented.
+The [coworker validation script](docs/presentation/study/everyday-project-memory.md)
+separates task usability measurements from automated behavior proof.
+
 Local implementation is validated separately from external integrations.
 Memory search runs locally with cached embeddings and PostgreSQL/pgvector.
 `npm run test:local-search` verifies real offline inference in an isolated database.

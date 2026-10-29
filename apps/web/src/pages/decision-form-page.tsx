@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { RelatedDecisionSearch } from "@/components/related-decision-search"
+import { PasteNotes } from "@/components/paste-notes"
 import { DeadlineShortcuts } from "@/components/deadline-shortcuts"
 import { ScopePicker } from "@/components/scope-picker"
 import type { DecisionNavigationState } from "@/lib/decision-navigation"
@@ -85,7 +86,8 @@ function DecisionForm({ id }: { id?: string }) {
     const scope = !editing
       ? (origin?.proposalDraft?.appliesTo ?? origin?.scopePrefill)
       : undefined
-    const initial = { ...emptyForm, appliesTo: scope ? [scope] : [] }
+    const searchQuestion = !editing ? origin?.questionPrefill ?? new URLSearchParams(location.search).get("question") ?? "" : ""
+    const initial = { ...emptyForm, title: searchQuestion.slice(0, 500), context: searchQuestion ? `Original search query:\n${searchQuestion}` : "", appliesTo: scope ? [scope] : [] }
     return !editing && typeof proposal === "string" && proposal.trim()
       ? {
           ...initial,
@@ -143,6 +145,7 @@ function DecisionForm({ id }: { id?: string }) {
             optionsConsidered: decision.optionsConsidered,
             ownerId: decision.owner?.id ?? "",
             ownerName: decision.ownerName ?? "",
+            ownerContact: decision.ownerContact ?? "",
             tags: decision.tags,
             references: (decision.references ?? []).map((reference) => ({
               kind: reference.kind === "JIRA" ? "JIRA" : "URL",
@@ -479,6 +482,10 @@ function DecisionForm({ id }: { id?: string }) {
         disabled={Boolean(recoverable) || saving}
         className="flex min-w-0 flex-col gap-6"
       >
+        {!editing ? <PasteNotes source={form.pastedSource} onChange={value => set("pastedSource", value)} onReview={choice => {
+          setForm(current => ({ ...current, decisionState: "DECIDED", outcome: choice }))
+          formRef.current?.querySelector<HTMLTextAreaElement>("#decision")?.focus()
+        }} /> : null}
         {!editing ? (
           <ToggleGroup
             aria-label="Decision type"
@@ -662,6 +669,7 @@ function DecisionForm({ id }: { id?: string }) {
                   className="min-h-32 resize-y"
                 />
               </Field>
+              <Field><FieldLabel htmlFor="owner-contact">Owner contact context (optional)</FieldLabel><Textarea id="owner-contact" maxLength={2000} value={form.ownerContact ?? ""} onChange={event => set("ownerContact", event.target.value)} placeholder="Where or when to ask the owner; recorded text, not an automatic message." /></Field>
               <Field>
                 <FieldLabel htmlFor="options">Options Considered</FieldLabel>
                 <Textarea

@@ -9,6 +9,8 @@ import { verifyDiscoveryUi, verifyPracticalUi, verifyRefinedDiscoveryUi } from "
 import { verifySharingViewsUi } from "./verify-sharing-views-ui.mjs"
 import { verifyLibraryWorkflowUi } from "./verify-library-workflow-ui.mjs"
 import { verifyProposalUi } from "./verify-proposal-ui.mjs"
+import { verifyResponsiveUi } from "./verify-responsive-ui.mjs"
+import { verifyProjectMemoryUi } from "./verify-project-memory-ui.mjs"
 
 const browser = await chromium.launch({
   executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -193,7 +195,7 @@ try {
   await page.getByLabel(/What (did you decide|needs to be decided)\?/).fill(formFixtureTitle)
   await page.getByText("More details", { exact: true }).click()
   await page.getByLabel("Why").fill("A single service and database keep the demo easy to understand and rehearse.")
-  await page.getByLabel("Context").fill("The team is optimizing for a reliable live demonstration before deployment work.")
+  await page.getByLabel("Context", { exact: true }).fill("The team is optimizing for a reliable live demonstration before deployment work.")
   await page.screenshot({ path: "/private/tmp/decision-memory-new-desktop.png", fullPage: true })
   // Type key by key: list fields must keep spaces, commas, and new lines.
   for (const scope of ["Migration Service", "Billing"]) {
@@ -252,7 +254,7 @@ try {
   const navigationDialog = page.getByRole("dialog", { name: "Navigation", exact: true })
   await navigationDialog.waitFor()
   const mobileNavigation = page.getByRole("navigation", { name: "Mobile navigation" })
-  assert.equal(await mobileNavigation.getByRole("link").count(), 5)
+  assert.equal(await mobileNavigation.getByRole("link").count(), 6)
   await page.waitForTimeout(200)
   await page.screenshot({ path: "/private/tmp/decision-memory-mobile-navigation-fixed.png" })
   await mobileNavigation.getByRole("link", { name: "Recent", exact: true }).click()
@@ -350,25 +352,25 @@ try {
   await failurePage.screenshot({ path: "/private/tmp/decision-memory-p1-library-scopes.png" })
   await failurePage.close()
 
-  // Metadata failures must be disclosed and recover without a page reload.
+  // Settings read failures must be disclosed and recover without a page reload.
   const settingsFailurePage = await browser.newPage({ viewport: { width: 1280, height: 900 } })
-  let metadataUnavailable = true
-  await settingsFailurePage.route("**/api/metadata", (route) => metadataUnavailable
+  let settingsUnavailable = true
+  await settingsFailurePage.route("**/api/settings/integrations", (route) => settingsUnavailable
     ? route.fulfill({ status: 503, json: { error: "Temporary connection status failure" } })
     : route.continue())
   await settingsFailurePage.goto("http://localhost:5173/#/settings")
-  await settingsFailurePage.getByText("Could not load connections", { exact: true }).waitFor()
-  assert.equal(await settingsFailurePage.getByText("Checking…", { exact: true }).count(), 0)
-  const failedRetry = settingsFailurePage.waitForResponse("**/api/metadata")
+  await settingsFailurePage.getByText("Could not load settings", { exact: true }).waitFor()
+  assert.equal(await settingsFailurePage.getByLabel("Loading settings", { exact: true }).count(), 0)
+  const failedRetry = settingsFailurePage.waitForResponse("**/api/settings/integrations")
   await settingsFailurePage.getByRole("button", { name: "Try again", exact: true }).click()
   await failedRetry
-  await settingsFailurePage.getByText("Could not load connections", { exact: true }).waitFor()
+  await settingsFailurePage.getByText("Could not load settings", { exact: true }).waitFor()
   await settingsFailurePage.screenshot({ path: "/private/tmp/decision-memory-settings-error-fixed.png" })
-  metadataUnavailable = false
+  settingsUnavailable = false
   await settingsFailurePage.getByRole("button", { name: "Try again", exact: true }).click()
-  await settingsFailurePage.locator("main").getByText("Acme Engineering", { exact: true }).waitFor()
-  assert.equal(await settingsFailurePage.getByText("Could not load connections", { exact: true }).count(), 0)
-  assert.equal(await settingsFailurePage.getByText("Checking…", { exact: true }).count(), 0)
+  await settingsFailurePage.getByRole("heading", { name: "Slack", exact: true }).waitFor()
+  assert.equal(await settingsFailurePage.getByText("Could not load settings", { exact: true }).count(), 0)
+  assert.equal(await settingsFailurePage.getByLabel("Loading settings", { exact: true }).count(), 0)
   await settingsFailurePage.screenshot({ path: "/private/tmp/decision-memory-settings-recovered.png" })
   await settingsFailurePage.close()
 
@@ -624,8 +626,8 @@ try {
   await understand.getByRole("button", { name: "Compare before and after" }).click()
   await understand.getByRole("article", { name: "First Decision" }).waitFor()
   await understand.getByRole("region", { name: "Reason for replacement" }).getByText(reason, { exact: true }).waitFor()
-  assert.match(await understand.getByRole("article", { name: "First Decision" }).innerText(), /Early exports are small/)
-  assert.match(await understand.getByRole("article", { name: "Second Decision" }).innerText(), /Large exports need durable/)
+  assert.match(await understand.getByRole("group", { name: "First Decision Why", exact: true }).innerText(), /Early exports are small/)
+  assert.match(await understand.getByRole("group", { name: "Second Decision Why", exact: true }).innerText(), /Large exports need durable/)
   await understand.screenshot({ path: "/private/tmp/decision-memory-evolution-desktop.png", fullPage: true })
 
   await understand.getByRole("link", { name: "Scopes", exact: true }).click()
@@ -690,6 +692,8 @@ try {
   await verifyPracticalUi({ browser, models, workspace })
   await verifyRefinedDiscoveryUi({ browser, models, workspace })
   await verifyShortcutUi({ browser, models, workspace })
+  await verifyResponsiveUi({ browser })
+  await verifyProjectMemoryUi({ browser, models, workspace })
   assert.deepEqual(pageErrors, [], `Page errors: ${pageErrors.join(" | ")}`)
   assert.deepEqual(consoleErrors, [], `Console errors: ${consoleErrors.join(" | ")}`)
   console.log("UI QA passed with Playwright/Chrome fallback: independent keyword and memory search, collapsed/expanded evidence, create/edit, desktop and mobile screenshots")

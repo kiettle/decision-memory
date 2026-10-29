@@ -20,6 +20,8 @@ export const decisionInput = z.object({
   optionsConsidered: z.array(z.string().max(500)).max(30).optional(),
   ownerId: z.string().uuid().optional().nullable().or(z.literal("")),
   ownerName: z.string().max(200).optional().nullable(),
+  ownerContact: z.string().max(2000).optional().nullable(),
+  pastedSource: z.object({ excerpt: z.string().min(1).max(20000), origin: z.string().trim().min(1).max(200) }).strict().optional(),
   tags: z.array(z.string().max(80)).max(30).optional(),
   references: z.array(z.object({
     kind: z.enum(["JIRA", "URL"]),

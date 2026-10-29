@@ -69,7 +69,6 @@ function Comparison({ left, right }: { left: string; right: string }) {
       </Button>
       <div className="page-heading-row">
         <div>
-          <p className="eyebrow">Reasons, scope, and evidence</p>
           <h1>Compare decisions</h1>
         </div>
         <CompareDecisionsDialog />

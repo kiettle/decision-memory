@@ -6,6 +6,7 @@ import type { DecisionNavigationState } from "@/lib/decision-navigation"
 
 import { headline } from "../../../../shared/decision-deadlines.js"
 import { StatusBadge } from "@/components/status-badge"
+import { FollowButton } from "@/components/follow-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -235,6 +236,7 @@ function ScopeDetail({ scope }: { scope: string }) {
         <div className="flex flex-wrap gap-2">
           {overview ? (
             <>
+              <FollowButton kind="SCOPE" target={scope} />
               <Button
                 render={
                   <Link
@@ -300,6 +302,28 @@ function ScopeDetail({ scope }: { scope: string }) {
         </Empty>
       ) : (
         <>
+          <section aria-label="Project brief" className="grid gap-4 border-y py-5">
+            <h2 className="text-lg font-semibold">Project brief</h2>
+            <p className="text-sm text-muted-foreground">Important current choices selected by their linked owners. Every item opens its record and evidence. No AI summary is required.</p>
+            {overview.activeDecisions.filter(decision => decision.handoverImportant).length ? overview.activeDecisions.filter(decision => decision.handoverImportant).map(decision => <article key={decision.id} className="grid gap-2 border-b pb-4">
+              <h3 className="font-semibold"><Link className="underline" to={`/decisions/${decision.id}`}>{decision.decisionKey} · {headline(decision)}</Link></h3>
+              <p className="whitespace-pre-wrap text-sm"><strong>Why: </strong>{decision.why || "No rationale was recorded."}</p>
+              <p className="text-sm">Exact scope: {decision.appliesTo.join(", ") || "Not recorded"}</p>
+              <p className="text-sm">Owner: {decision.owner?.displayName ?? decision.ownerName ?? "Unassigned"} · Contact context: {decision.ownerContact || "Not recorded"}</p>
+              {(decision.sources ?? []).map(source => <blockquote key={source.id} className="border-l-2 pl-3 text-sm whitespace-pre-wrap">{source.provider === "PASTED_NOTES" ? `Pasted notes · ${source.sourceContext?.origin ?? "Supplied label"}` : source.provider}: {source.anchorText?.slice(0, 500) || source.messages?.find(message => message.anchor)?.text.slice(0, 500) || "No source excerpt recorded."}</blockquote>)}
+              {!decision.sources?.length && !decision.references?.length ? <p className="text-sm">Supporting evidence is missing.</p> : null}
+              {(decision.references ?? []).map(reference => <a key={reference.id} className="text-sm underline" href={reference.url} target="_blank" rel="noreferrer">{reference.label}</a>)}
+              {decision.lifecycle?.supersedes.map(previous => <p key={previous.id} className="text-sm"><Link className="underline" to={`/decisions/${previous.id}`}>Previously {previous.decisionKey} · {previous.outcome ?? previous.title}</Link> · What changed: {previous.replacementReason || "No replacement reason recorded."}</p>)}
+              <Link className="text-sm underline" to={`/decisions/${decision.id}`}>Inspect supporting evidence and replacement history ({decision.evidenceCount} captured sources)</Link>
+            </article>) : <p className="text-sm text-muted-foreground">No important choices selected yet. A linked decision owner can mark a current choice from its detail page.</p>}
+            <h3 className="font-semibold">Open questions</h3>
+            {overview.openQuestions.length ? overview.openQuestions.map(question => <article key={question.id} className="grid gap-1 border-b pb-3 text-sm">
+              <Link className="underline" to={`/decisions/${question.id}`}>{question.decisionKey} · {question.title}</Link>
+              <p>Not yet decided · Owner: {question.owner?.displayName ?? question.ownerName ?? "Unassigned"} · Contact context: {question.ownerContact || "Not recorded"}</p>
+              <Link className="underline" to={`/decisions/${question.id}`}>Open question, follow resolution or record the answer</Link>
+            </article>) : <p className="text-sm text-muted-foreground">No pending questions in this scope.</p>}
+            <p className="text-sm text-muted-foreground">Recent scope replacements are recorded below under How this scope evolved.</p>
+          </section>
           <section aria-label="Active decisions" className="grid gap-5">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-lg font-semibold">Current decisions</h2>
@@ -386,7 +410,7 @@ function ScopeDetail({ scope }: { scope: string }) {
               Pending questions ({overview.openCount})
             </Link>
           ) : null}
-          <section aria-label="Recent replacements" className="grid gap-5">
+          <section id="scope-replacement-history" aria-label="Recent replacements" className="grid gap-5">
             <div>
               <h2 className="text-lg font-semibold">How this scope evolved</h2>
               <p className="mt-1 text-sm text-muted-foreground">

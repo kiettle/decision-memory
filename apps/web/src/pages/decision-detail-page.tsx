@@ -7,6 +7,7 @@ import {
   Hash,
   Link2,
   MessageSquare,
+  MoreHorizontal,
   Pencil,
   RefreshCcw,
   Tag,
@@ -19,6 +20,7 @@ import { headline } from "../../../../shared/decision-deadlines.js"
 import { useLocalDate } from "@/hooks/use-local-date"
 import { CompletionReturn } from "@/components/completion-return"
 import { DecisionActions } from "@/components/decision-actions"
+import { FollowButton } from "@/components/follow-button"
 import { CopyDecisionSummary } from "@/components/copy-decision-summary"
 import { DecisionDeadline } from "@/components/decision-deadline"
 import { CompareDecisionsDialog } from "@/components/compare-decisions-dialog"
@@ -67,13 +69,16 @@ function DecisionDetail({ id }: { id: string }) {
   const [superseding, setSuperseding] = useState(false)
   const [supersedeOpen, setSupersedeOpen] = useState(false)
   const [jiraEnabled, setJiraEnabled] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
+  const [viewerId, setViewerId] = useState("")
+  const [curating, setCurating] = useState(false)
 
   useEffect(() => {
     let active = true
     api
       .metadata()
       .then((metadata) => {
-        if (active) setJiraEnabled(metadata.features.jira)
+        if (active) { setJiraEnabled(metadata.features.jira); setViewerId(metadata.currentUser.id) }
       })
       .catch(() => undefined)
     return () => {
@@ -177,15 +182,110 @@ function DecisionDetail({ id }: { id: string }) {
           nativeButton={false}
           className="-ml-2"
         >
-          <ArrowLeft /> Back to decisions
+          <ArrowLeft /> Back<span className="max-sm:sr-only"> to decisions</span>
         </Button>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            render={<Link to={`/decisions/${decision.id}/edit`} state={location.state} />}
+            nativeButton={false}
+          >
+            <Pencil /> Edit
+          </Button>
+          <Button
+            variant="outline"
+            className="lg:hidden"
+            aria-expanded={toolsOpen}
+            aria-controls="decision-tools"
+            onClick={() => setToolsOpen(open => !open)}
+          >
+            <MoreHorizontal /> More actions
+          </Button>
+        </div>
+      </div>
+
+      <div className="detail-title-block">
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge status={decision.status} decisionState={decision.decisionState} />
+          <span className="decision-key">{decision.decisionKey}</span>
+        </div>
+        <h1>{headline(decision)}</h1>
+        <p>
+          {decision.decisionState === "PENDING" ? "Created" : "Recorded"} {created}
+          {decision.owner?.displayName || decision.ownerName
+            ? ` · Owned by ${decision.owner?.displayName ?? decision.ownerName}`
+            : ""}
+          {channels.length ? ` · Discussed in ${channels.join(", ")}` : ""}
+        </p>
+      </div>
+
+      {decision.decisionState === "PENDING" || decision.dueDate ? <DecisionDeadline decision={decision} today={today} /> : null}
+
+      <div className="flex flex-wrap items-start gap-3">
+        <FollowButton kind="DECISION" target={decision.id} />
+        {decision.owner?.id === viewerId && decision.decisionState === "DECIDED" && decision.status === "ACTIVE" ? <Button variant="outline" disabled={curating} aria-pressed={Boolean(decision.handoverImportant)} onClick={async () => {
+          setCurating(true)
+          try { setDecision(await api.setImportant(id, !decision.handoverImportant)) }
+          catch (error) { toast.error(error instanceof Error ? error.message : "Could not update brief selection.") }
+          finally { setCurating(false) }
+        }}>{decision.handoverImportant ? "Remove from project brief" : "Mark important for project brief"}</Button> : null}
+      </div>
+
+      {decision.lifecycle?.supersededBy.map((item) => (
+        <Link
+          key={item.id}
+          to={`/decisions/${item.id}`}
+          state={{ libraryUrl, libraryState }}
+          className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 hover:bg-amber-100"
+        >
+          <RefreshCcw aria-hidden="true" className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            This Decision was replaced by{" "}
+            <strong>{item.decisionKey}</strong> · {headline(item)}
+          </span>
+          <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+        </Link>
+      ))}
+
+      {decision.lifecycle?.current?.map((item) => (
+        <Link key={item.id} to={`/decisions/${item.id}`} state={{ libraryUrl, libraryState }} className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+          <span className="min-w-0 flex-1">Current active Decision: <strong>{item.decisionKey}</strong> · {headline(item)}</span>
+          <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+        </Link>
+      ))}
+
+      <section aria-label="Decision rationale" className="grid gap-3">
+        <h2 className="text-sm font-semibold">Why</h2>
+        <p className="max-w-3xl text-[15px] leading-7 text-foreground">
+          {decision.why || "No rationale was recorded."}
+        </p>
+        {decision.sources?.length ? (
+          <Button
+            variant="link"
+            className="w-fit px-0"
+            onClick={() => {
+              const discussion = document.getElementById("decision-discussion")
+              discussion?.scrollIntoView({ block: "start" })
+              discussion?.focus({ preventScroll: true })
+            }}
+          >
+            <MessageSquare /> Read saved evidence
+          </Button>
+        ) : null}
+      </section>
+      {decision.decisionState === "PENDING" ? (
+        <div className="flex flex-wrap gap-2">
+          <DecisionActions decision={decision} onSaved={setDecision} />
+        </div>
+      ) : null}
+      <div
+        id="decision-tools"
+        aria-label="Decision actions"
+        role="group"
+        className={toolsOpen ? "detail-tools-panel" : "detail-tools-panel hidden lg:flex"}
+      >
           <CopyDecisionSummary decision={decision} />
           <CopyDecisionSummary decision={decision} linkOnly />
-          {/* Decided records keep any historical deadline but no deadline action. */}
-          {decision.decisionState === "PENDING" ? (
-            <DecisionActions decision={decision} onSaved={setDecision} />
-          ) : null}
           <CompareDecisionsDialog decision={decision} />
           <CreateJiraIssueDialog
             decision={decision}
@@ -215,55 +315,7 @@ function DecisionDetail({ id }: { id: string }) {
               error={candidateError}
             />
           ) : null}
-          <Button
-            variant="outline"
-            render={<Link to={`/decisions/${decision.id}/edit`} state={location.state} />}
-            nativeButton={false}
-          >
-            <Pencil /> Edit
-          </Button>
-        </div>
       </div>
-
-      <div className="detail-title-block">
-        <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge status={decision.status} decisionState={decision.decisionState} />
-          <span className="decision-key">{decision.decisionKey}</span>
-        </div>
-        <h1>{headline(decision)}</h1>
-        <p>
-          {decision.decisionState === "PENDING" ? "Created" : "Recorded"} {created}
-          {decision.owner?.displayName || decision.ownerName
-            ? ` · Owned by ${decision.owner?.displayName ?? decision.ownerName}`
-            : ""}
-          {channels.length ? ` · Discussed in ${channels.join(", ")}` : ""}
-        </p>
-      </div>
-
-      {decision.decisionState === "PENDING" || decision.dueDate ? <DecisionDeadline decision={decision} today={today} /> : null}
-
-      {decision.lifecycle?.supersededBy.map((item) => (
-        <Link
-          key={item.id}
-          to={`/decisions/${item.id}`}
-          state={{ libraryUrl, libraryState }}
-          className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 hover:bg-amber-100"
-        >
-          <RefreshCcw aria-hidden="true" className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1">
-            This Decision was replaced by{" "}
-            <strong>{item.decisionKey}</strong> · {headline(item)}
-          </span>
-          <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
-        </Link>
-      ))}
-
-      {decision.lifecycle?.current?.map((item) => (
-        <Link key={item.id} to={`/decisions/${item.id}`} state={{ libraryUrl, libraryState }} className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
-          <span className="min-w-0 flex-1">Current active Decision: <strong>{item.decisionKey}</strong> · {headline(item)}</span>
-          <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
-        </Link>
-      ))}
 
       {decision.lifecycle?.supersedes.length || decision.lifecycle?.supersededBy.length ? (
         <section aria-label="Decision evolution" className="grid gap-4 border-y py-5">
@@ -297,13 +349,11 @@ function DecisionDetail({ id }: { id: string }) {
           </EditorialSection>
           {/* The page title is already the choice (or the pending question). */}
           {decision.decisionState === "DECIDED" && decision.title !== headline(decision) ? <EditorialSection title="Original question"><p>{decision.title}</p></EditorialSection> : null}
-          <EditorialSection title="Why">
-            <p>{decision.why || "No rationale was recorded."}</p>
-          </EditorialSection>
           <EditorialSection title="Context">
             <p>{decision.context || "No additional context was recorded."}</p>
           </EditorialSection>
           <EditorialSection title="Options Considered">
+            <p className="text-sm text-muted-foreground">Listed options are not necessarily rejected. No outcome is inferred from this list.</p>
             {decision.optionsConsidered.length ? (
               <ul>
                 {decision.optionsConsidered.map((option) => (
@@ -314,7 +364,7 @@ function DecisionDetail({ id }: { id: string }) {
               <p>No alternatives were recorded.</p>
             )}
           </EditorialSection>
-          <EditorialSection title="Relevant Discussion">
+          <EditorialSection title="Relevant Discussion" id="decision-discussion">
             <CapturedDiscussion sources={decision.sources ?? []} />
           </EditorialSection>
 
@@ -323,6 +373,7 @@ function DecisionDetail({ id }: { id: string }) {
         <aside className="detail-rail">
           <section>
             <h2>Details</h2>
+            <p className="mb-3 whitespace-pre-wrap text-sm">Contact context: {decision.ownerContact || "No contact context recorded."}</p>
             <dl>
               <MetadataRow
                 icon={
@@ -376,7 +427,7 @@ function DecisionDetail({ id }: { id: string }) {
                   ) : (
                     <span className="rail-link" key={source.id}>
                       <MessageSquare />
-                      {source.channelName ? `Slack · #${source.channelName}` : "Slack snapshot"}
+                      {source.provider === "PASTED_NOTES" ? `Pasted notes · ${source.sourceContext?.origin ?? "Origin not recorded"} (supplied label)` : source.channelName ? `Slack · #${source.channelName}` : "Slack snapshot"}
                     </span>
                   )
                 )
@@ -457,7 +508,7 @@ function messagesFromSources(sources: SourceSnapshot[]) {
       : source.anchorText
         ? [
             {
-              author: "Slack",
+              author: source.provider === "PASTED_NOTES" ? `Pasted notes · ${source.sourceContext?.origin ?? "Supplied text"}` : "Slack",
               timestamp: source.capturedAt,
               text: source.anchorText,
               anchor: true,
@@ -511,7 +562,7 @@ function CapturedDiscussion({ sources }: { sources: SourceSnapshot[] }) {
       <p className="text-sm text-muted-foreground">
         {incomplete
           ? "Slack thread retrieval was incomplete. Only the messages shown here were preserved; other discussion may be missing."
-          : "Captured context is stored here independently of Slack. If the original message is unavailable, this copy remains readable."}
+          : sources.some(source => source.provider === "PASTED_NOTES") ? "Supplied excerpt preserved as pasted notes. Origin is labelled by the person capturing it; authorship and agreement are not independently verified." : "Captured context is stored here independently of Slack. If the original message is unavailable, this copy remains readable."}
       </p>
       {textTruncated ? <p className="text-sm text-muted-foreground">Long message text was shortened to 4,000 characters.</p> : null}
       {aiDrafted ? (
@@ -568,12 +619,14 @@ function DiscussionMessages({ messages }: { messages: SourceMessage[] }) {
 function EditorialSection({
   title,
   children,
+  id,
 }: {
   title: string
   children: React.ReactNode
+  id?: string
 }) {
   return (
-    <section className="editorial-section">
+    <section className="editorial-section scroll-mt-20" id={id} tabIndex={id ? -1 : undefined}>
       <h2>{title}</h2>
       <div>{children}</div>
     </section>

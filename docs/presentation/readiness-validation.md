@@ -1,5 +1,34 @@
 # Local demo readiness evidence
 
+## Everyday project memory — 2026-10-29
+
+Implemented current scoped answer context in web/private Slack, reviewed local
+paste capture with exact source preservation, owner-selected scope briefs,
+search-to-owned-question completion, and explicit personal in-app follows.
+Accepted policy and details are in the [product contract](../product/everyday-project-memory.md)
+and [ADR 0005](../decisions/0005-personal-in-app-follows.md).
+
+Passed 145/145 unit/HTTP/signed-Slack tests, native PostgreSQL integration,
+real offline local search, lint, typecheck, production build and the complete
+native browser regression. Browser checks cover positive workflows, failed saves
+and reload recovery, identity/owner/workspace boundaries, personal read/unfollow,
+current replacements, questions/evidence and desktop/mobile layouts. A concurrent
+database check proves an unseen late commit stays unread. The final backend
+scope-set refinement passed integration and lint after browser validation.
+
+Browser plugin unavailable; Playwright/Chrome used isolated synthetic state.
+The design inspector also reported zero failures for scope briefs and Changes
+at 1440 and 390 pixels; inherited label/edge warnings remain. The build retains
+its main-chunk size advisory. No assertion or threshold was weakened.
+
+Owned services/database were removed; normal app data and existing listeners
+were preserved. Apply the additive schema through normal setup before using the
+updated app. See the [completed execution record](../plans/completed/everyday-project-memory.md)
+for commands, transport constraints, evidence and limits. No real-user benefit
+is claimed: the [coworker script](study/everyday-project-memory.md) measures correct
+answers, task completion, assistance and capture effort. Human observation,
+other browsers, installed Forge/Slack use and external delivery remain separate.
+
 ## Web convenience update — 2026-10-16
 
 Implemented the approved web-only scope/filter/navigation improvement. Users can

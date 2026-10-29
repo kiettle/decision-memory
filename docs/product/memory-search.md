@@ -1,5 +1,9 @@
 # Memory search: local vectors and Gemini
 
+2026-10-29: [Current answer context](everyday-project-memory.md#current-applicable-answers)
+adds on-demand recorded evidence and replacement hydration to web and Slack
+results. Existing retrieval/ranking, filters and AI consent rules remain.
+
 ## Accepted outcome
 
 On 2026-10-12 the owner approved local multilingual embeddings with PostgreSQL

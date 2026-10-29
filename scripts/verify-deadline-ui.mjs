@@ -144,7 +144,7 @@ export async function verifyDeadlineUi({ browser, models, workspace }) {
     await page.getByText("New Decision", { exact: true }).click()
     await page.getByLabel(/What needs to be decided\?/).fill("Minimal pending capture question")
     assert.equal(await page.locator("form [required]").count(), 1)
-    assert.equal(await page.getByLabel("Context").isVisible(), false)
+    assert.equal(await page.getByLabel("Context", { exact: true }).isVisible(), false)
     await page.getByLabel("Decide by (optional)").fill("2026-10-17")
     await page.screenshot({ path: "/private/tmp/decision-memory-pending-form.png", fullPage: false })
     await page.getByRole("button", { name: "Save Decision", exact: true }).click()

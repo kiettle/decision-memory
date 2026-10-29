@@ -5,12 +5,16 @@ import { Link } from "react-router-dom"
 import { StatusBadge } from "@/components/status-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { recordedDate, scopeHref } from "@/lib/decision-links"
 import type { Decision } from "@/types"
 
 const values = (decision: Decision) => [
-  ["Decision", decision.decisionState === "PENDING" ? "Not decided yet." : headline(decision)],
+  [
+    "Decision",
+    decision.decisionState === "PENDING"
+      ? "Not decided yet."
+      : headline(decision),
+  ],
   ["Original question", decision.title],
   ["Why", decision.why || "No rationale recorded."],
   ["Context", decision.context || "No context recorded."],
@@ -36,7 +40,9 @@ export function DecisionComparison({
   const rightValues = values(right)
   const comparable = (decision: Decision) =>
     [
-      decision.decisionState === "PENDING" ? "Not decided yet." : headline(decision),
+      decision.decisionState === "PENDING"
+        ? "Not decided yet."
+        : headline(decision),
       decision.title,
       decision.why ?? "",
       decision.context ?? "",
@@ -58,7 +64,8 @@ export function DecisionComparison({
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
         <Badge variant="secondary">
-          {differences.filter(Boolean).length} of {leftFields.length} fields differ
+          {differences.filter(Boolean).length} of {leftFields.length} fields
+          differ
         </Badge>
         <span>
           {sharedScopes.length
@@ -87,97 +94,130 @@ export function DecisionComparison({
         Compare the recorded wording and evidence to understand whether these
         choices apply in the same situation.
       </p>
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4 md:gap-8">
         {[left, right].map((decision, side) => (
           <article
             key={decision.id}
             aria-label={side === 0 ? "First Decision" : "Second Decision"}
-            className="min-w-0 border-t pt-5"
+            className="grid min-w-0 content-start gap-3 border-t pt-5"
           >
-            <div className="mb-5 grid gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={decision.status} decisionState={decision.decisionState} />
-                <span className="decision-key">{decision.decisionKey}</span>
-              </div>
-              <h2 className="text-xl leading-7 font-semibold">
-                {headline(decision)}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {decision.owner?.displayName ??
-                  decision.ownerName ??
-                  "Unassigned"}{" "}
-                · {recordedDate(decision.createdAt)}
-              </p>
-              <Button
-                variant="outline"
-                className="w-fit"
-                render={<Link to={`/decisions/${decision.id}`} />}
-                nativeButton={false}
-              >
-                Open Decision <ArrowRight data-icon="inline-end" />
-              </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge
+                status={decision.status}
+                decisionState={decision.decisionState}
+              />
+              <span className="decision-key">{decision.decisionKey}</span>
             </div>
-            <dl className="grid gap-5">
-              {(side === 0 ? leftValues : rightValues).map(
-                ([label, value], index) => (
-                  <div key={label} className="grid gap-2">
-                    <dt className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                      {label}
-                      <Badge variant="outline">
-                        {differences[index]
-                          ? "Different wording"
-                          : "Same wording"}
-                      </Badge>
-                    </dt>
-                    <dd className="text-sm leading-6 break-words whitespace-pre-wrap">
-                      {label === "Applies To" && decision.appliesTo.length ? (
-                        <div className="flex flex-wrap gap-2">
-                          {decision.appliesTo.map((scope) => (
-                            <Link
-                              key={scope}
-                              to={scopeHref(scope, decision.decisionState)}
-                              className="text-primary underline underline-offset-4"
-                            >
-                              {scope}
-                            </Link>
-                          ))}
-                        </div>
-                      ) : (
-                        value
-                      )}
-                    </dd>
-                  </div>
-                )
-              )}
-            </dl>
-            <Separator className="my-5" />
-            <div className="grid gap-3">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <FileText className="size-4" /> Evidence and related work
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {decision.evidenceCount} captured source
-                {decision.evidenceCount === 1 ? "" : "s"} ·{" "}
-                {decision.references?.length ?? 0} related link
-                {decision.references?.length === 1 ? "" : "s"}
-              </p>
-              {decision.sources?.find((source) => source.anchorText)
-                ?.anchorText ? (
-                <blockquote className="border-l-2 pl-3 text-sm leading-6">
-                  {decision.sources
-                    .find((source) => source.anchorText)
-                    ?.anchorText?.slice(0, 320)}
-                </blockquote>
-              ) : null}
-              <Link
-                to={`/decisions/${decision.id}`}
-                className="text-sm text-primary underline underline-offset-4"
-              >
-                Read saved evidence for {decision.decisionKey}
-              </Link>
-            </div>
+            <h2 className="text-sm leading-6 font-semibold md:text-xl md:leading-7">
+              <span className="md:hidden">
+                {side === 0 ? "First" : "Second"} · {decision.decisionKey}
+              </span>
+              <span className="hidden md:inline">{headline(decision)}</span>
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {decision.owner?.displayName ??
+                decision.ownerName ??
+                "Unassigned"}
+              {" · "}
+              {recordedDate(decision.createdAt)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {decision.evidenceCount} captured source
+              {decision.evidenceCount === 1 ? "" : "s"}
+              {" · "}
+              {decision.references?.length ?? 0} related link
+              {decision.references?.length === 1 ? "" : "s"}
+            </p>
+            <Button
+              variant="outline"
+              className="w-fit"
+              render={<Link to={`/decisions/${decision.id}`} />}
+              nativeButton={false}
+            >
+              Open Decision <ArrowRight data-icon="inline-end" />
+            </Button>
           </article>
         ))}
+      </div>
+      <div>
+        {leftValues.map(([label], index) => (
+          <section
+            key={label}
+            aria-label={`${label} comparison`}
+            className="comparison-field"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold">{label}</h2>
+              <Badge variant="outline">
+                {differences[index] ? "Different wording" : "Same wording"}
+              </Badge>
+            </div>
+            <div className="comparison-grid">
+              {[left, right].map((decision, side) => (
+                <div
+                  key={decision.id}
+                  role="group"
+                  aria-label={`${side === 0 ? "First" : "Second"} Decision ${label}`}
+                  className="grid min-w-0 content-start gap-1"
+                >
+                  <p className="text-xs font-medium text-muted-foreground md:sr-only">
+                    {side === 0 ? "First" : "Second"} · {decision.decisionKey}
+                  </p>
+                  <div className="comparison-value">
+                    {label === "Applies To" && decision.appliesTo.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {decision.appliesTo.map((scope) => (
+                          <Link
+                            key={scope}
+                            to={scopeHref(scope, decision.decisionState)}
+                            className="text-primary underline underline-offset-4"
+                          >
+                            {scope}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      (side === 0 ? leftValues : rightValues)[index][1]
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+        <section aria-label="Evidence comparison" className="comparison-field">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <FileText className="size-4" /> Evidence and related work
+          </h2>
+          <div className="comparison-grid">
+            {[left, right].map((decision, side) => (
+              <div
+                key={decision.id}
+                role="group"
+                aria-label={`${side === 0 ? "First" : "Second"} Decision evidence`}
+                className="grid min-w-0 content-start gap-3"
+              >
+                <p className="text-xs font-medium text-muted-foreground">
+                  {side === 0 ? "First" : "Second"} · {decision.decisionKey}
+                </p>
+                {decision.sources?.find((source) => source.anchorText)
+                  ?.anchorText ? (
+                  <blockquote className="border-l-2 pl-3 text-sm leading-6">
+                    {decision.sources
+                      .find((source) => source.anchorText)
+                      ?.anchorText?.slice(0, 320)}
+                  </blockquote>
+                ) : null}
+                <Link
+                  to={`/decisions/${decision.id}`}
+                  className="text-sm text-primary underline underline-offset-4"
+                >
+                  Read saved evidence for {decision.decisionKey}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   )

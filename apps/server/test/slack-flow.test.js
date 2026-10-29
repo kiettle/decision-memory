@@ -225,6 +225,28 @@ async function sendCommand(f, fields) {
   return f.post("/slack/interactions", { headers: { "content-type": "application/x-www-form-urlencoded", "x-slack-request-timestamp": timestamp, "x-slack-signature": signature }, body })
 }
 
+it("Slack Ask hydrates the actual current replacement, owner and supplied evidence from scoped records", async (t) => {
+  const earlier = stored("old", "DM-201", "Use local disk", "SUPERSEDED", { lifecycle: { current: [{ id: "new" }] } })
+  const current = stored("new", "DM-202", "Use object storage", "ACTIVE", {
+    owner: { displayName: "Synthetic owner" }, sources: [{ provider: "PASTED_NOTES", anchorText: "Agreed storage; workers restart." }],
+  })
+  const seen = []
+  const f = await fixture(t, { getDecision: async (identity, id) => {
+    assert.equal(identity.workspaceExternalKey, config.localWorkspaceId)
+    return { old: earlier, new: current }[id] ?? null
+  } }, undefined, undefined, searchReturning([{ decisionId: "old", score: 95, explanation: "Historical match", decision: earlier }], seen))
+  await sendCommand(f, { command: "/why", text: "Where do exports live?" })
+  await until(() => f.calls.some(call => call.method === "views.update"))
+  const text = JSON.stringify(lastView(f))
+  assert.match(text, /DM-202 · Use object storage/)
+  assert.match(text, /Synthetic owner/)
+  assert.match(text, /Agreed storage; workers restart/)
+  assert.match(text, /Historical choice/)
+  assert.match(text, /Scope is not confirmed/)
+  assert.match(text, /Record unanswered question/)
+  assert.equal(f.calls.some(call => call.method === "chat.postMessage"), false)
+})
+
 it("Ask Decision Memory answers privately with stored Decisions and escapes their text", async (t) => {
   const seen = []
   const memorySearch = searchReturning([
@@ -242,8 +264,8 @@ it("Ask Decision Memory answers privately with stored Decisions and escapes thei
   assert.deepEqual(seen, ["why did @U2 pick object storage for migration?"])
   const text = JSON.stringify(lastView(f))
   assert.match(text, /<http:\/\/localhost:5173\/#\/decisions\/d104\|DM-104 · Use object storage for migration backups>/)
-  assert.match(text, /Active · Applies to Migration Service/)
-  assert.match(text, /Superseded/)
+  assert.match(text, /Current recorded choice · Applies exactly to Migration Service/)
+  assert.match(text, /Historical choice · superseded/)
   assert.match(text, /\*Replaced by:\* <http:\/\/localhost:5173\/#\/decisions\/d104\|DM-104 · Use object storage for migration backups>/, "A superseded match names its replacement")
   assert.match(text, /Backups reach &lt;tens&gt; of GB &amp; more\./)
   assert.match(text, /It moved &lt;large&gt; files off the database\./)

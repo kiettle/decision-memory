@@ -3,6 +3,39 @@ import { once } from "node:events"
 import { it } from "node:test"
 import { createApp } from "../src/app.js"
 
+it("personal change APIs use authenticated identity and reject client-supplied recipients and invalid targets", async (t) => {
+  const calls = []
+  const repository = {
+    follows: async identity => { calls.push(identity); return [] },
+    setFollow: async (identity, input) => { calls.push(identity); return input },
+    notifications: async identity => { calls.push(identity); return { items: [] } },
+    readNotifications: async identity => { calls.push(identity); return { read: true } },
+  }
+  const app = createApp({ config: { nodeEnv: "development", localDemoMode: true, localWorkspaceId: "synthetic-workspace", localUserId: "synthetic-person" }, repository, memorySearch: { enabled: false } })
+  const server = app.listen(0, "127.0.0.1"); await once(server, "listening")
+  t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections() }))
+  const base = `http://127.0.0.1:${server.address().port}/api`
+  const put = (path, body) => fetch(base + path, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+  assert.equal((await fetch(base + "/follows")).status, 200)
+  const notifications = await fetch(base + "/notifications")
+  assert.equal(notifications.status, 200)
+  assert.equal(notifications.headers.get("cache-control"), "private, no-store")
+  assert.equal((await put("/follows", { kind: "SCOPE", target: "Synthetic scope", following: true })).status, 200)
+  assert.equal((await put("/follows", { kind: "SCOPE", target: "Synthetic scope", following: true, userId: "someone-else" })).status, 400)
+  assert.equal((await put("/follows", { kind: "DECISION", target: "not-an-id", following: true })).status, 404)
+  assert.equal((await put("/notifications/read", { ids: [], userId: "someone-else" })).status, 400)
+  assert.equal((await put("/notifications/read", { ids: [] })).status, 200)
+  assert.equal(calls.length, 4)
+  assert.ok(calls.every(identity => identity.workspaceExternalKey === "synthetic-workspace" && identity.userExternalId === "synthetic-person"))
+})
+
+it("personal feeds and follows require authentication outside local demo mode", async (t) => {
+  const app = createApp({ config: { nodeEnv: "production", localDemoMode: false }, repository: {}, memorySearch: { enabled: false } })
+  const server = app.listen(0, "127.0.0.1"); await once(server, "listening")
+  t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections() }))
+  for (const path of ["follows", "notifications"]) assert.equal((await fetch(`http://127.0.0.1:${server.address().port}/api/${path}`)).status, 401)
+})
+
 it("memory search defaults to local, requires explicit Gemini selection, and preserves validated filters", async (t) => {
   const calls = []
   const app = createApp({

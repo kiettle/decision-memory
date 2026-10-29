@@ -13,6 +13,7 @@ import { createDatabase } from "../apps/server/src/models.js"
 import { createRepository } from "../apps/server/src/repository.js"
 import { verifyDecisionDeadlines } from "./verify-decision-deadlines.mjs"
 import { verifyProposalReview } from "./verify-proposal-review.mjs"
+import { verifyProjectMemory } from "./verify-project-memory.mjs"
 
 if (config.nodeEnv !== "development" || !config.localDemoMode) {
   throw new Error("Integration verification only runs in development demo mode.")
@@ -525,6 +526,7 @@ try {
   await verifyLibraryDiscovery({ repository, models, identity, otherIdentity })
   await verifyDecisionDeadlines({ repository, models, config, identity, otherIdentity, source: capturedSource })
   await verifyProposalReview({ repository, identity, otherIdentity })
+  await verifyProjectMemory({ repository, models, identity, otherIdentity })
   console.log("Gemini candidate proof passed: newest 200, filter-first channel/tag/owner/name/status/scope/date, counts and workspace isolation; provider mocked")
   console.log("Review regressions passed: active successor, durable Jira recovery/concurrency/isolation, uncapped recall filter inputs")
 

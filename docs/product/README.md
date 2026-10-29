@@ -14,6 +14,10 @@ files after actual product domains, such as `overview.md`, `billing.md`,
 
 ## Current Product Contract
 
+- [Everyday project memory](everyday-project-memory.md): current scoped answers,
+  reviewed pasted notes, owner-selected project briefs, question resolution and
+  personal in-app change notifications.
+
 - [Integration settings](integration-settings.md): shared local UI configuration,
   encrypted credentials, one-time import, immediate application and recovery.
 

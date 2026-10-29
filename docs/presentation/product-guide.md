@@ -5,6 +5,13 @@ Updated: 2026-10-16. Read this to understand the app. Use the
 
 ## 1. The idea in one sentence
 
+The [everyday project memory extension](../product/everyday-project-memory.md)
+adds current scoped answer evidence, locally reviewed pasted notes, owner-selected
+scope briefs, search-to-question resolution, and explicit personal in-app follows.
+Try these in the existing Library, New Decision, Scopes, detail and Changes flows.
+The [coworker study script](study/everyday-project-memory.md) measures usefulness;
+automated verification does not establish that benefit.
+
 **Before your team repeats a mistake, recover what it decided, why, and what changed.**
 
 Decision Memory saves team decisions with their reasons and supporting discussion.

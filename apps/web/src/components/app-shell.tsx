@@ -21,6 +21,7 @@ const navigation = [
   { label: "Decisions", icon: FileText, to: "/" },
   { label: "Check a proposal", icon: ScanSearch, to: "/check-proposal" },
   { label: "Scopes", icon: Box, to: "/scopes" },
+  { label: "Changes", icon: Clock3, to: "/changes" },
   { label: "Recent", icon: Clock3, to: "/recent" },
   { label: "Settings", icon: Settings, to: "/settings" },
 ]
@@ -36,6 +37,18 @@ const initialsOf = (name = "") =>
 export function AppShell() {
   const [metadata, setMetadata] = useState<Metadata | null>(null)
   const [navigationOpen, setNavigationOpen] = useState(false)
+  const [unread, setUnread] = useState(0)
+  useEffect(() => {
+    let active = true
+    const refresh = () => { void api.notifications().then(feed => {
+      if (active) setUnread(feed.items.filter(item => !item.read).length)
+    }).catch(() => undefined) }
+    refresh()
+    const interval = window.setInterval(refresh, 60000)
+    window.addEventListener("focus", refresh)
+    window.addEventListener("memory-changes", refresh)
+    return () => { active = false; clearInterval(interval); window.removeEventListener("focus", refresh); window.removeEventListener("memory-changes", refresh) }
+  }, [])
   useEffect(() => {
     api
       .metadata()
@@ -70,7 +83,7 @@ export function AppShell() {
               className="flex flex-col gap-1 px-3"
               aria-label="Mobile navigation"
             >
-              <NavigationLinks onNavigate={() => setNavigationOpen(false)} />
+              <NavigationLinks unread={unread} onNavigate={() => setNavigationOpen(false)} />
             </nav>
             <SheetFooter>
               <div className="flex items-center gap-3">
@@ -87,7 +100,7 @@ export function AppShell() {
       <aside className="desktop-sidebar">
         <Brand />
         <nav className="flex flex-col gap-1" aria-label="Primary navigation">
-          <NavigationLinks />
+          <NavigationLinks unread={unread} />
         </nav>
         <div className="mt-auto flex flex-col gap-3">
           <div className="sidebar-meta">
@@ -115,7 +128,7 @@ export function AppShell() {
   )
 }
 
-function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavigationLinks({ onNavigate, unread }: { onNavigate?: () => void; unread: number }) {
   return navigation.map(({ label, icon: Icon, to }) => (
     <NavLink
       key={label}
@@ -128,6 +141,7 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
     >
       <Icon aria-hidden="true" />
       {label}
+      {to === "/changes" && unread > 0 ? <span aria-label={`${unread} unread changes`}>({unread})</span> : null}
     </NavLink>
   ))
 }

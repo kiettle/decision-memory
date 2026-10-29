@@ -147,11 +147,11 @@
 
 @layer components {
   .desktop-sidebar {
-    @apply fixed inset-y-0 left-0 z-30 hidden w-57 flex-col gap-8 border-r border-sidebar-border bg-sidebar px-3 py-7 md:flex;
+    @apply fixed inset-y-0 left-0 z-30 hidden w-57 flex-col gap-8 border-r border-sidebar-border bg-sidebar px-3 py-7 lg:flex;
   }
 
   .mobile-header {
-    @apply sticky top-0 z-30 flex h-15 items-center justify-between border-b bg-white px-4 md:hidden;
+    @apply sticky top-0 z-30 flex h-15 items-center justify-between border-b bg-background px-4 lg:hidden;
   }
 
   .brand-mark {
@@ -188,7 +188,7 @@
   }
 
   .app-main {
-    @apply min-w-0 md:ml-57;
+    @apply min-w-0 lg:ml-57;
   }
 
   .page-frame {
@@ -275,6 +275,30 @@
     @apply h-7;
   }
 
+  .library-page h1 {
+    @apply text-2xl sm:text-[28px] lg:text-[32px];
+  }
+
+  .library-quick-filters {
+    @apply flex max-w-full items-center gap-2 overflow-x-auto;
+  }
+
+  .library-results-toolbar {
+    @apply flex flex-wrap items-center justify-between gap-2;
+  }
+
+  .library-saved-views {
+    @apply basis-full lg:basis-auto;
+  }
+
+  .board-lane-links {
+    @apply flex max-w-full flex-wrap gap-2;
+  }
+
+  .board-lane-links [data-slot="button"] {
+    @apply min-h-11 gap-2 lg:min-h-8;
+  }
+
   .decision-row {
     @apply flex min-w-0 flex-col gap-2 border-t border-border py-4 text-sm first:border-t-0;
   }
@@ -336,7 +360,7 @@
   }
 
   .form-actions {
-    @apply fixed right-0 bottom-0 left-0 z-20 flex justify-end gap-3 border-t bg-white/95 px-4 py-4 backdrop-blur-sm md:left-57 md:px-10;
+    @apply fixed right-0 bottom-0 left-0 z-20 flex justify-end gap-3 border-t bg-white/95 px-4 py-4 backdrop-blur-sm lg:left-57 md:px-10;
   }
 
   .detail-topbar {
@@ -344,11 +368,11 @@
   }
 
   .detail-title-block {
-    @apply flex max-w-4xl flex-col gap-3 border-b pb-8;
+    @apply flex max-w-4xl flex-col gap-3;
   }
 
   .detail-title-block h1 {
-    @apply text-[30px] md:text-[36px];
+    @apply text-2xl md:text-[32px];
   }
 
   .detail-title-block > p {
@@ -357,6 +381,22 @@
 
   .detail-layout {
     @apply grid gap-12 lg:grid-cols-[minmax(0,1fr)_300px];
+  }
+
+  .detail-tools-panel {
+    @apply flex flex-wrap items-center gap-2 rounded-lg border bg-muted p-3;
+  }
+
+  .comparison-grid {
+    @apply grid gap-4 md:grid-cols-2 md:gap-8;
+  }
+
+  .comparison-field {
+    @apply grid gap-3 border-t py-5;
+  }
+
+  .comparison-value {
+    @apply min-w-0 text-sm leading-6 break-words whitespace-pre-wrap;
   }
 
   .detail-article {
@@ -440,6 +480,30 @@
 
   .metadata-item {
     @apply rounded-lg border bg-slate-50 p-4;
+  }
+}
+
+@media (width < 640px) {
+  .library-page [data-slot="button"],
+  .library-page [data-slot="toggle-group-item"],
+  .library-page [data-slot="select-trigger"],
+  .library-page [data-slot="combobox-trigger"],
+  .detail-topbar [data-slot="button"],
+  .detail-tools-panel [data-slot="button"] {
+    min-height: 44px;
+  }
+
+  .library-results-toolbar {
+    gap: 6px;
+  }
+
+  .library-results-toolbar > span {
+    font-size: 12px;
+  }
+
+  .library-results-toolbar [data-slot="select-trigger"] {
+    min-width: 0;
+    padding-inline: 8px;
   }
 }
 

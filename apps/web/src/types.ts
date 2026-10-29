@@ -25,6 +25,7 @@ export type SourceSnapshot = {
   messages: SourceMessage[]
   sourceContext?: {
     entryPoint?: string
+    origin?: string
     invokingUserId?: string
     teamId?: string
     totalMessageCount?: number | null
@@ -74,6 +75,8 @@ export type Decision = {
   owner?: User | null
   ownerId?: string | null
   ownerName?: string | null
+  ownerContact?: string | null
+  handoverImportant?: boolean
   tags: string[]
   status: DecisionStatus
   createdAt: string
@@ -181,6 +184,8 @@ export type DecisionInput = {
   optionsConsidered: string[]
   ownerId: string
   ownerName: string
+  ownerContact?: string
+  pastedSource?: { excerpt: string; origin: string }
   tags: string[]
   references: Array<{
     kind: "JIRA" | "URL"
@@ -206,6 +211,13 @@ export type ScopeSummary = {
   activeCount: number
   openCount: number
   latestDecisionAt: string | null
+}
+
+export type Follow = { kind: "DECISION" | "SCOPE"; target: string; label?: string; createdAt: string }
+export type ChangeValue = { id: string; decisionKey: string; title: string; choice: string | null; why: string | null; appliesTo: string[] }
+export type ChangeFeed = {
+  items: Array<{ id: string; kind: "RECORDED" | "UPDATED" | "ANSWERED" | "REPLACED"; previous: ChangeValue | null; current: ChangeValue; reason: string | null; scopes: string[]; createdAt: string; read: boolean }>
+  asOf: string
 }
 
 export type ScopeOverview = {

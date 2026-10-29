@@ -26,6 +26,8 @@ export function recoveredDraftText(
     `Applies To:\n${form.appliesTo.join("\n")}`,
     `Decide by: ${form.dueDate ?? ""}`,
     `Owner: ${owner}`,
+    `Contact context: ${form.ownerContact ?? ""}`,
+    `Pasted source: ${form.pastedSource?.origin ?? ""}\n${form.pastedSource?.excerpt ?? ""}`,
     `Tags: ${listText.tags}`,
     `Options Considered:\n${listText.options}`,
     `Related work:\n${form.references.map((link) => `${link.kind}: ${link.label}\n${link.url}`).join("\n")}`,
@@ -45,6 +47,8 @@ export function validDecisionDraft(value: unknown): value is DecisionFormDraft {
     typeof draft.listText.tags === "string" &&
     typeof draft.listText.options === "string" &&
     typeof form.title === "string" &&
+    (form.ownerContact === undefined || typeof form.ownerContact === "string") &&
+    (form.pastedSource === undefined || (typeof form.pastedSource.origin === "string" && typeof form.pastedSource.excerpt === "string")) &&
     (form.decisionState === "PENDING" || form.decisionState === "DECIDED") &&
     (form.outcome === null || typeof form.outcome === "string") &&
     (form.dueDate === null || typeof form.dueDate === "string") &&

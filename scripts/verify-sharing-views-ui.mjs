@@ -89,11 +89,13 @@ export async function verifySharingViewsUi({ browser }) {
     await apply("My migration")
     await changeQuery("mobile")
     await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole("button", { name: "Show saved views", exact: true }).click()
     await page.screenshot({ path: "/private/tmp/decision-saved-views-mobile.png", fullPage: true, animations: "disabled" })
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
     await apply("Storage")
     assert.equal(query().get("q"), "storage")
     await page.reload()
+    await page.getByRole("button", { name: "Show saved views", exact: true }).click()
     await selected("Storage").waitFor()
     assert.deepEqual(await stored(), pair)
 
@@ -110,6 +112,7 @@ export async function verifySharingViewsUi({ browser }) {
     }
     await page.route(`**/api/decisions/${id}`, route => route.fulfill({ json: decision }))
     await page.goto(`${base}/decisions/${id}`)
+    await page.getByRole("button", { name: "More actions", exact: true }).click()
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     const copied = await page.evaluate(() => navigator.clipboard.readText())
@@ -134,12 +137,14 @@ export async function verifySharingViewsUi({ browser }) {
 
     decision = { ...decision, decisionState: "PENDING", outcome: null, why: null, sources: [], references: [], appliesTo: [] }
     await page.reload()
+    await page.getByRole("button", { name: "More actions", exact: true }).click()
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "DM-COPY · Pending — not yet decided\nQuestion: Which archive?\nWhy: No rationale recorded.\nApplies To: No scope recorded.\nDecision URL: http://localhost:5173/#/decisions/33333333-3333-4333-8333-333333333301")
 
     decision = { ...decision, decisionState: "DECIDED", outcome: "Use local storage", status: "SUPERSEDED", lifecycle: { supersedes: [], supersededBy: [], current: [{ id: "current", decisionKey: "DM-NEW", title: "Use object storage", status: "ACTIVE" }, { id: "second-current", decisionKey: "DM-SECOND", title: "Second current choice", status: "ACTIVE" }] } }
     await page.reload()
+    await page.getByRole("button", { name: "More actions", exact: true }).click()
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     const historical = await page.evaluate(() => navigator.clipboard.readText())
@@ -152,6 +157,7 @@ export async function verifySharingViewsUi({ browser }) {
     // Clipboard rejection and missing API both offer the exact text for manual copy.
     for (const unavailable of [false, true]) {
       await page.reload()
+      await page.getByRole("button", { name: "More actions", exact: true }).click()
       await page.getByRole("button", { name: "Copy summary", exact: true }).waitFor()
       await page.evaluate(unavailable => {
         Object.defineProperty(navigator, "clipboard", { configurable: true, value: unavailable ? undefined : { writeText: () => Promise.reject(new Error("Denied")) } })
@@ -178,6 +184,7 @@ export async function verifySharingViewsUi({ browser }) {
     }
     decision = { ...decision, lifecycle: { current: [], supersedes: [], supersededBy: [{ id: "intermediate", decisionKey: "DM-INTERMEDIATE", status: "SUPERSEDED" }] } }
     await page.reload()
+    await page.getByRole("button", { name: "More actions", exact: true }).click()
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     const intermediate = await page.evaluate(() => navigator.clipboard.readText())
@@ -185,6 +192,7 @@ export async function verifySharingViewsUi({ browser }) {
     assert.ok(!intermediate.includes("Current decisions:"), "Immediate history is never labeled current")
     decision = { ...decision, lifecycle: undefined, supersededBy: [] }
     await page.reload()
+    await page.getByRole("button", { name: "More actions", exact: true }).click()
     await page.getByRole("button", { name: "Copy summary", exact: true }).click()
     await page.getByText("Decision summary copied.", { exact: true }).waitFor()
     const missing = await page.evaluate(() => navigator.clipboard.readText())

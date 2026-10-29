@@ -13,3 +13,4 @@ documents here as real choices are accepted, then index them in this file.
 
 - [0001 Demo-First Forge Remote Architecture](0001-demo-first-forge-remote-architecture.md)
 - [0004 Shared integration settings](0004-shared-integration-settings.md)
+- [0005 Personal in-app follows and owner-curated briefs](0005-personal-in-app-follows.md)

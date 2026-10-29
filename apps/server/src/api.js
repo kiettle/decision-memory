@@ -4,6 +4,7 @@ import { z } from "zod"
 import { createLinkedJiraIssue } from "./jira.js"
 import { DomainError } from "./domain.js"
 import { proposalReviewInput } from "./proposal-review.js"
+import { answerContext } from "./answer-context.js"
 
 import { calendarDateInput, deadlineInput, decideInput, decisionInput, replacementReasonInput } from "./validation.js"
 
@@ -39,6 +40,10 @@ const jiraIssueInput = z.object({
 export function createApiRouter(repository, identityMiddleware, { memorySearch, geminiMemorySearch, jira, proposalReview }, features = {}) {
   const router = express.Router()
   router.use(identityMiddleware)
+  router.use(["/follows", "/notifications"], (_req, res, next) => {
+    res.set("Cache-Control", "private, no-store")
+    next()
+  })
 
   // A malformed id in a link or typed URL is simply a Decision that does not exist.
   router.param("id", (_req, res, next, id) => {
@@ -75,8 +80,29 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
     }),
   )
 
+  router.post("/decisions/answer-context", asyncRoute(async (req, res) => {
+    const { ids, scope } = z.object({ ids: z.array(z.string().uuid()).max(5), scope: z.string().min(1).max(200).optional() }).strict().parse(req.body)
+    res.json(await answerContext(repository, req.identity, ids, scope))
+  }))
+
   router.get("/scopes", asyncRoute(async (req, res) => {
     res.json(await repository.listScopes(req.identity))
+  }))
+
+  router.get("/follows", asyncRoute(async (req, res) => res.json(await repository.follows(req.identity))))
+  router.put("/follows", asyncRoute(async (req, res) => {
+    const input = z.object({ kind: z.enum(["DECISION", "SCOPE"]), target: z.string().min(1).max(200), following: z.boolean() }).strict().parse(req.body)
+    if (input.kind === "DECISION" && !z.string().uuid().safeParse(input.target).success) return res.status(404).json({ error: "Decision not found." })
+    res.json(await repository.setFollow(req.identity, input))
+  }))
+  router.get("/notifications", asyncRoute(async (req, res) => res.json(await repository.notifications(req.identity))))
+  router.put("/notifications/read", asyncRoute(async (req, res) => {
+    const { ids } = z.object({ ids: z.array(z.string().uuid()).max(100) }).strict().parse(req.body)
+    res.json(await repository.readNotifications(req.identity, ids))
+  }))
+  router.put("/decisions/:id/important", asyncRoute(async (req, res) => {
+    const { important } = z.object({ important: z.boolean() }).strict().parse(req.body)
+    res.json(await repository.setImportant(req.identity, req.params.id, important))
   }))
 
   router.get("/scopes/overview", asyncRoute(async (req, res) => {
@@ -122,6 +148,7 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
     "/decisions/:id",
     asyncRoute(async (req, res) => {
       const input = decisionInput.parse(req.body)
+      if (input.pastedSource) throw new DomainError("Pasted evidence is attached during new capture. Existing evidence is preserved; add a related evidence link when editing.", 400, "PASTED_SOURCE_CREATE_ONLY")
       const decision = await repository.updateDecision(req.identity, req.params.id, input)
       if (!decision) {
         res.status(404).json({ error: "Decision not found." })

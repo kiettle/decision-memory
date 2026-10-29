@@ -25,6 +25,11 @@ export async function verifyLibraryWorkflowUi({ browser, models, workspace }) {
     await page.getByRole("button", { name: "Restore draft", exact: true }).waitFor({ state: "detached" })
   }
   const saveView = async name => {
+    const disclosure = page.getByRole("button", { name: "Show saved views", exact: true })
+    if (page.viewportSize().width < 1024) {
+      await disclosure.waitFor()
+      if (await disclosure.getAttribute("aria-expanded") === "false") await disclosure.click()
+    }
     await page.getByRole("region", { name: "Saved library views", exact: true }).getByRole("button", { name: /^(Save view|Save as new)$/ }).click()
     const dialog = page.getByRole("dialog", { name: "Save library view", exact: true })
     await dialog.getByLabel("View name").fill(name)

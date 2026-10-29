@@ -36,6 +36,10 @@ Build a local-first Jira Forge app with:
 Notification audiences such as leader, PM, and user are deferred until their
 events and delivery channel are specified.
 
+2026-10-29: [ADR 0005](0005-personal-in-app-follows.md) resolves explicit personal
+in-app follows and their qualifying events. Role-based audiences and external
+delivery remain deferred.
+
 ## Alternatives Considered
 
 1. Copy the `agile-test` Connect-on-Forge stack, including its Connect

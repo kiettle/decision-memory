@@ -12,6 +12,8 @@ import type {
   IntegrationSettings,
   IntegrationProvider,
   IntegrationKey,
+  Follow,
+  ChangeFeed,
 } from "@/types"
 
 // The competition demo uses the local web app. Enable only for a verified Forge deployment.
@@ -70,6 +72,12 @@ export type DecisionFilters = {
 }
 
 export const api = {
+  follows: () => request<Follow[]>("/api/follows"),
+  answerContext: (ids: string[], scope?: string) => request<{ decisions: Decision[]; omittedSuccessors: number }>("/api/decisions/answer-context", "POST", { ids, scope }),
+  setFollow: (kind: Follow["kind"], target: string, following: boolean) => request("/api/follows", "PUT", { kind, target, following }),
+  notifications: () => request<ChangeFeed>("/api/notifications"),
+  readNotifications: (ids: string[]) => request("/api/notifications/read", "PUT", { ids }),
+  setImportant: (id: string, important: boolean) => request<Decision>(`/api/decisions/${id}/important`, "PUT", { important }),
   integrationSettings: () => request<IntegrationSettings>("/api/settings/integrations"),
   saveIntegrationSettings: (provider: IntegrationProvider, revision: number, changes: Partial<Record<IntegrationKey, string | null>>) =>
     request<IntegrationSettings>(`/api/settings/integrations/${provider}`, "PUT", { revision, changes }),

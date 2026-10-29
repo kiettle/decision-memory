@@ -66,6 +66,8 @@ export function createDatabase(databaseUrl, logging = false) {
       team: DataTypes.TEXT,
       ownerId: DataTypes.UUID,
       ownerName: DataTypes.TEXT,
+      ownerContact: DataTypes.TEXT,
+      handoverImportant: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       status: { type: DataTypes.TEXT, allowNull: false, defaultValue: "ACTIVE" },
       decisionState: { type: DataTypes.TEXT, allowNull: false, defaultValue: "DECIDED" },
       dueDate: DataTypes.DATEONLY,

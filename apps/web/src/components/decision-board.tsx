@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useId, useRef, useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import {
   compareDecisions,
@@ -41,6 +41,8 @@ export function DecisionBoard({
   onSaved: (decision: Decision) => void
 }) {
   const [decidedLimit, setDecidedLimit] = useState(10)
+  const boardId = useId()
+  const laneElements = useRef<Partial<Record<DeadlineBucket, HTMLElement>>>({})
   const location = useLocation()
   const groups = new Map<DeadlineBucket, Decision[]>(
     columns.map(({ key }) => [key, []])
@@ -54,6 +56,30 @@ export function DecisionBoard({
         Grouped automatically by deadline using your local date. Due soon
         includes today through seven days ahead.
       </p>
+      <div
+        className="board-lane-links"
+        role="group"
+        aria-label="Jump to Kanban lane"
+      >
+        {columns.map(({ key, label }) => (
+          <Button
+            key={key}
+            variant="outline"
+            aria-label={`Jump to ${label} (${groups.get(key)!.length})`}
+            aria-controls={`${boardId}-${key}`}
+            onClick={() => {
+              const lane = laneElements.current[key]
+              lane?.scrollIntoView({ block: "nearest", inline: "start" })
+              lane?.focus({ preventScroll: true })
+            }}
+          >
+            {label}
+            <span className="text-muted-foreground tabular-nums">
+              {groups.get(key)!.length}
+            </span>
+          </Button>
+        ))}
+      </div>
       <div
         className="decision-board"
         role="region"
@@ -74,6 +100,11 @@ export function DecisionBoard({
           return (
             <section
               key={key}
+              id={`${boardId}-${key}`}
+              ref={(element) => {
+                laneElements.current[key] = element ?? undefined
+              }}
+              tabIndex={-1}
               className="board-column"
               aria-label={`${label} decisions`}
             >

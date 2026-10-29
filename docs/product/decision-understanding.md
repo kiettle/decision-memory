@@ -1,5 +1,11 @@
 # Decision understanding
 
+2026-10-29 extension: [Everyday project memory](everyday-project-memory.md) adds
+owner-selected important choices with evidence/contact context and open questions
+to scope briefs, grounded current answer context, and explicit personal follows.
+It supersedes the earlier counts-only pending display for the brief; full library
+links, current lists and recent replacement history remain.
+
 Accepted by the owner on 2026-10-12 after the feature-priority review: preserve
 why decisions change, help people compare recorded choices, and provide an
 overview of current decisions for each existing Applies To value.
@@ -30,6 +36,13 @@ those stored fields; it is not an AI judgment of conflict or correctness. Scope
 and alternative lists are compared irrespective of their order. A direct
 replacement's reason is displayed verbatim. No unstated change trigger is
 invented, and this is not an immutable audit of every edit to the records.
+
+Owner-approved presentation refinement (2026-10-28): comparison values are paired
+by field, side by side on wider screens and adjacent with record identity on
+phones. Detail leads with the choice and its ordinary Why; **More actions** reveals
+secondary tools on phone/tablet. Replacement notices and the separately labelled
+What changed? reason remain visible, and saved discussion is reachable from Why.
+These layout changes do not change comparisons, lifecycle actions or saved data.
 
 Slack's similar-decision suggestions show bounded rationale and scope excerpts.
 Only the original compact identity/title/status data is placed in retry metadata

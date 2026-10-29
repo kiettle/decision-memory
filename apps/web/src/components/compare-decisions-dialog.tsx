@@ -19,7 +19,13 @@ import { api } from "@/lib/api"
 import { comparisonHref } from "@/lib/decision-links"
 import type { Decision } from "@/types"
 
-export function CompareDecisionsDialog({ decision }: { decision?: Decision }) {
+export function CompareDecisionsDialog({
+  decision,
+  compact = false,
+}: {
+  decision?: Decision
+  compact?: boolean
+}) {
   const navigate = useNavigate()
   const location = useLocation()
   const [open, setOpen] = useState(false)
@@ -65,8 +71,19 @@ export function CompareDecisionsDialog({ decision }: { decision?: Decision }) {
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogTrigger render={<Button variant="outline" />}>
-        <Columns2 data-icon="inline-start" /> Compare decisions
+      <DialogTrigger
+        render={
+          <Button
+            variant="outline"
+            title="Compare decisions"
+            className={compact ? "max-sm:size-11 max-sm:p-0" : undefined}
+          />
+        }
+      >
+        <Columns2 data-icon="inline-start" />
+        <span className={compact ? "max-sm:sr-only" : undefined}>
+          Compare decisions
+        </span>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -88,11 +105,32 @@ export function CompareDecisionsDialog({ decision }: { decision?: Decision }) {
                     value={selected}
                     disabled={loading || (index === 0 && Boolean(decision))}
                     className="w-full justify-between"
-                    onChange={(value) => index === 0 ? setLeft(value) : setRight(value)}
+                    onChange={(value) =>
+                      index === 0 ? setLeft(value) : setRight(value)
+                    }
                     options={[
-                      { value: "", label: loading ? "Loading Decisions…" : "Choose a Decision" },
-                      ...(decision && !selectedRow && index === 0 ? [{ value: decision.id, label: `${decision.decisionKey} · ${headline(decision)}` }] : []),
-                      ...rows.filter(item => item.id !== (index === 0 ? right : left)).map(item => ({ value: item.id, label: `${item.decisionKey} · ${headline(item)}` })),
+                      {
+                        value: "",
+                        label: loading
+                          ? "Loading Decisions…"
+                          : "Choose a Decision",
+                      },
+                      ...(decision && !selectedRow && index === 0
+                        ? [
+                            {
+                              value: decision.id,
+                              label: `${decision.decisionKey} · ${headline(decision)}`,
+                            },
+                          ]
+                        : []),
+                      ...rows
+                        .filter(
+                          (item) => item.id !== (index === 0 ? right : left)
+                        )
+                        .map((item) => ({
+                          value: item.id,
+                          label: `${item.decisionKey} · ${headline(item)}`,
+                        })),
                     ]}
                   />
                 </Field>

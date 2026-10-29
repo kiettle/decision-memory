@@ -9,6 +9,7 @@ import {
   Hash,
   Columns3,
   List,
+  Bookmark,
   X,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -26,6 +27,7 @@ import {
   type ApplyMetadataFilter,
 } from "@/components/library-metadata-filter"
 import { RelatedDecisionPreview } from "@/components/related-decision-preview"
+import { CurrentAnswers } from "@/components/current-answers"
 import { CompletionReturn } from "@/components/completion-return"
 import { DecisionActions } from "@/components/decision-actions"
 import { DecisionBoard } from "@/components/decision-board"
@@ -130,6 +132,7 @@ export function LibraryPage() {
   }, [location.pathname, location.search])
   const [decisions, setDecisions] = useState<Decision[]>([])
   const [metadata, setMetadata] = useState<Metadata | null>(null)
+  const [savedViewsOpen, setSavedViewsOpen] = useState(false)
   const [metadataError, setMetadataError] = useState(false)
   const [metadataAttempt, setMetadataAttempt] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -352,7 +355,7 @@ export function LibraryPage() {
         ? "Local meaning search is unavailable. Keyword search is still available."
         : identifierOnly
           ? "Decision keys use keyword results. Choose Find by meaning to search for similar choices."
-        : "It runs on this computer, and by itself when keywords find nothing."
+          : "It runs on this computer, and by itself when keywords find nothing."
 
   const options = useMemo(
     () => ({
@@ -538,12 +541,12 @@ export function LibraryPage() {
   return (
     <div className="page-frame library-page">
       <CompletionReturn onSaved={onSaved} />
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1>{recentOnly ? "Recent Decisions" : "Decision Library"}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <CompareDecisionsDialog />
+          <CompareDecisionsDialog compact />
           <Button
             render={
               <Link
@@ -558,21 +561,23 @@ export function LibraryPage() {
             }
             nativeButton={false}
             size="lg"
+            className="max-sm:size-11 max-sm:p-0"
+            title="New Decision"
           >
             <Plus data-icon="inline-start" />
-            New Decision
+            <span className="max-sm:sr-only">New Decision</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 items-start gap-2 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
-        <InputGroup className="col-span-2 h-13 rounded-lg border-border bg-white lg:col-span-1">
+      <div className="grid grid-cols-2 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <InputGroup className="col-span-2 h-11 rounded-lg border-border bg-background sm:col-span-1">
           <InputGroupInput
             aria-label="Search decisions"
             placeholder="Search decisions, context, channels, or captured discussion..."
             value={filters.q}
             onChange={(event) => updateFilter("q", event.target.value)}
-            className="h-12 px-1 text-base"
+            className="h-10 px-1 text-base"
           />
           <InputGroupAddon align="inline-start" className="pl-4">
             <Search />
@@ -580,7 +585,8 @@ export function LibraryPage() {
         </InputGroup>
         <Button
           size="lg"
-          className="h-13"
+          className="h-11"
+          title="Find by meaning"
           onClick={() => void searchByMemory()}
           disabled={
             Boolean(memorySearching) ||
@@ -597,7 +603,7 @@ export function LibraryPage() {
         </Button>
         {/* Opens as an overlay so the search row keeps its height. */}
         <details ref={searchOptions} className="relative min-w-0 text-sm">
-          <summary className="flex h-13 cursor-pointer items-center rounded-lg border px-4 font-medium focus-visible:outline-2 focus-visible:outline-ring">
+          <summary className="flex h-11 cursor-pointer items-center justify-center rounded-lg border px-3 font-medium focus-visible:outline-2 focus-visible:outline-ring">
             Search options
           </summary>
           <div className="absolute top-full right-0 z-20 mt-2 flex w-[min(20rem,calc(100vw-2rem))] flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg">
@@ -637,9 +643,12 @@ export function LibraryPage() {
         </details>
         <p
           id="meaning-search-help"
-          className="col-span-2 text-xs leading-5 text-muted-foreground lg:col-span-3"
+          className="col-span-2 text-xs leading-5 text-muted-foreground sm:col-span-3"
         >
-          Remember the idea, not the wording? Use Find by meaning. {memoryHelp}
+          <span className="hidden lg:inline">
+            Remember the idea, not the wording? Use Find by meaning.{" "}
+          </span>
+          {memoryHelp}
         </p>
       </div>
 
@@ -692,7 +701,7 @@ export function LibraryPage() {
         </div>
       ) : null}
       {/* One toolbar: filters on the left, presentation on the right. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">
           {!recentOnly ? (
             <>
@@ -700,7 +709,7 @@ export function LibraryPage() {
                 aria-label="Quick filters"
                 variant="outline"
                 spacing={1}
-                className="contents"
+                className="library-quick-filters max-sm:basis-full"
                 value={selectedShortcut ? [selectedShortcut] : []}
                 onValueChange={(values) => {
                   const next = shortcuts.find(
@@ -716,7 +725,11 @@ export function LibraryPage() {
                 }}
               >
                 {shortcuts.map((item) => (
-                  <ToggleGroupItem key={item.label} value={item.label}>
+                  <ToggleGroupItem
+                    key={item.label}
+                    value={item.label}
+                    className="max-sm:px-1.5"
+                  >
                     {item.label}
                   </ToggleGroupItem>
                 ))}
@@ -730,10 +743,7 @@ export function LibraryPage() {
                   !currentUserId ? "assignment-help" : undefined
                 }
                 onClick={() =>
-                  updateFilter(
-                    "ownerId",
-                    assignedToMe ? "ALL" : currentUserId!
-                  )
+                  updateFilter("ownerId", assignedToMe ? "ALL" : currentUserId!)
                 }
               >
                 Assigned to me
@@ -750,12 +760,10 @@ export function LibraryPage() {
           <Sheet>
             <SheetTrigger render={<Button variant="outline" />}>
               <SlidersHorizontal />
-              More filters{moreFilterCount ? ` (${moreFilterCount})` : ""}
+              <span className="max-sm:sr-only">More filters</span>
+              {moreFilterCount ? ` (${moreFilterCount})` : ""}
             </SheetTrigger>
-            <SheetContent
-              side="bottom"
-              className="max-h-[85svh] rounded-t-2xl"
-            >
+            <SheetContent side="bottom" className="max-h-[85svh] rounded-t-2xl">
               <SheetHeader>
                 <SheetTitle>More filters</SheetTitle>
                 <SheetDescription>
@@ -778,26 +786,6 @@ export function LibraryPage() {
             </Button>
           ) : null}
         </div>
-        {!recentOnly ? (
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <ToggleGroup
-              aria-label="Library view"
-              variant="outline"
-              spacing={0}
-              value={[view]}
-              onValueChange={(values) => {
-                if (values[0]) setPresentation("view", values[0])
-              }}
-            >
-              <ToggleGroupItem value="flat">
-                <List /> Flat
-              </ToggleGroupItem>
-              <ToggleGroupItem value="kanban">
-                <Columns3 /> Kanban
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        ) : null}
       </div>
       {!recentOnly && !currentUserId ? (
         <p id="assignment-help" className="text-xs text-muted-foreground">
@@ -830,41 +818,89 @@ export function LibraryPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-semibold">
-            {loading && !memoryResult
-              ? "Loading decisions…"
-              : `${displayedDecisions.length} decision${displayedDecisions.length === 1 ? "" : "s"}`}
-            {memoryResult ? (
-              <span className="font-normal text-muted-foreground">
-                {" "}
-                · best match first
-              </span>
-            ) : null}
-          </span>
-          {!recentOnly && view === "flat" && !memoryResult ? (
-            <FilterSelect
-              label="Sort"
-              includeAll={false}
-              value={sort}
-              options={[
-                { label: "Newest first", value: "NEWEST" },
-                { label: "Earliest deadline first", value: "DEADLINE" },
-              ]}
-              onChange={(value) => setPresentation("sort", value)}
-            />
+      <div className="library-results-toolbar">
+        <span className="text-sm font-semibold">
+          {loading && !memoryResult
+            ? "Loading decisions…"
+            : `${displayedDecisions.length} decision${displayedDecisions.length === 1 ? "" : "s"}`}
+          {memoryResult ? (
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              · best match first
+            </span>
           ) : null}
-        </div>
-        {!recentOnly && metadata?.currentUser?.id ? (
-          <SavedLibraryViews
-            key={browserStorageKey(metadata, "library-views")}
-            storageKey={browserStorageKey(metadata, "library-views")}
-            search={location.search}
-            onApply={applySavedView}
+        </span>
+        {!recentOnly && view === "flat" && !memoryResult ? (
+          <FilterSelect
+            label="Sort"
+            includeAll={false}
+            value={sort}
+            options={[
+              { label: "Newest first", value: "NEWEST" },
+              { label: "Earliest deadline first", value: "DEADLINE" },
+            ]}
+            onChange={(value) => setPresentation("sort", value)}
           />
         ) : null}
+        {!recentOnly ? (
+          <ToggleGroup
+            aria-label="Library view"
+            variant="outline"
+            spacing={0}
+            value={[view]}
+            onValueChange={(values) => {
+              if (values[0]) setPresentation("view", values[0])
+            }}
+          >
+            <ToggleGroupItem value="flat" className="max-sm:w-11">
+              <List />
+              <span className="max-sm:sr-only">Flat</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="kanban" className="max-sm:w-11">
+              <Columns3 />
+              <span className="max-sm:sr-only">Kanban</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        ) : null}
+        {!recentOnly && metadata?.currentUser?.id ? (
+          <Button
+            variant="outline"
+            className="size-11 p-0 lg:hidden"
+            aria-label="Show saved views"
+            title="Saved views"
+            aria-expanded={savedViewsOpen}
+            aria-controls="library-saved-views"
+            onClick={() => setSavedViewsOpen((open) => !open)}
+          >
+            <Bookmark />
+          </Button>
+        ) : null}
+        {!recentOnly && metadata?.currentUser?.id ? (
+          <div
+            id="library-saved-views"
+            className={
+              savedViewsOpen
+                ? "library-saved-views"
+                : "library-saved-views hidden lg:block"
+            }
+          >
+            <SavedLibraryViews
+              key={browserStorageKey(metadata, "library-views")}
+              storageKey={browserStorageKey(metadata, "library-views")}
+              search={location.search}
+              onApply={applySavedView}
+            />
+          </div>
+        ) : null}
       </div>
+
+      {!recentOnly && filters.q.trim() ? <section aria-label="Search next steps" className="grid gap-3">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" render={<Link to="/decisions/new" state={{ questionPrefill: filters.q, scopePrefill: filters.appliesTo === "ALL" ? undefined : filters.appliesTo, libraryUrl: location.pathname + location.search }} />} nativeButton={false}>Record unanswered question</Button>
+          <Button variant="outline" render={<Link to="/check-proposal" state={{ proposalDraft: { proposal: filters.q, appliesTo: filters.appliesTo === "ALL" ? "" : filters.appliesTo }, proposalOrigin: location.pathname + location.search }} />} nativeButton={false}>Check a proposal against evidence</Button>
+        </div>
+        {!loading && !error && displayedDecisions.length ? <CurrentAnswers ids={displayedDecisions.map(d => d.id)} scope={filters.appliesTo === "ALL" ? undefined : filters.appliesTo} /> : <p className="text-sm text-muted-foreground">No sufficient answer yet? Keep the query and scope as a pending question, assign an owner in More details, then explicitly follow it from the saved record. No result is not approval.</p>}
+      </section> : null}
 
       {error && !memoryResult ? (
         <Empty className="border-y py-20">
@@ -906,22 +942,22 @@ export function LibraryPage() {
                 ? "No memory matches in the searched decisions"
                 : identifierOnly
                   ? "No matching decision under these filters."
-                : activeFilterCount || filters.q.trim()
-                  ? "No decisions match these filters"
-                  : "No decisions yet"}
+                  : activeFilterCount || filters.q.trim()
+                    ? "No decisions match these filters"
+                    : "No decisions yet"}
             </EmptyTitle>
             <EmptyDescription>
               {memoryResult
                 ? "No matches were found in the searched records. Try keyword search or broaden your filters."
                 : identifierOnly && !memorySearching
                   ? "Check the key or adjust your filters. You can still search by meaning explicitly."
-                : memorySearching === "LOCAL"
-                  ? "No exact keyword matches. Searching by meaning on this computer…"
-                  : autoMeaningEmpty
-                    ? "Find by meaning also found nothing similar. Try different words or remove a filter."
-                    : activeFilterCount || filters.q.trim()
-                      ? "Try different words or remove a filter."
-                      : "Capture a pending question or a choice your team has already made."}
+                  : memorySearching === "LOCAL"
+                    ? "No exact keyword matches. Searching by meaning on this computer…"
+                    : autoMeaningEmpty
+                      ? "Find by meaning also found nothing similar. Try different words or remove a filter."
+                      : activeFilterCount || filters.q.trim()
+                        ? "Try different words or remove a filter."
+                        : "Capture a pending question or a choice your team has already made."}
             </EmptyDescription>
           </EmptyHeader>
           <div className="flex flex-wrap justify-center gap-2">
@@ -966,7 +1002,9 @@ export function LibraryPage() {
             ) : null}
             {activeFilterCount > 0 ? (
               <Button variant="outline" onClick={resetFilters}>
-                {identifierOnly && !memoryResult ? "Clear filters and keep this key" : "Clear non-search filters"}
+                {identifierOnly && !memoryResult
+                  ? "Clear filters and keep this key"
+                  : "Clear non-search filters"}
               </Button>
             ) : null}
             {filters.q ? (

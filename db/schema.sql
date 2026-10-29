@@ -206,3 +206,34 @@ CREATE TABLE IF NOT EXISTS jira_issue_requests (
 
 -- Additive local semantic-search storage and invalidation triggers.
 \ir local-search.sql
+
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS handover_important boolean NOT NULL DEFAULT false;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS owner_contact text;
+
+CREATE TABLE IF NOT EXISTS memory_follows (
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('DECISION', 'SCOPE')),
+  target text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY (workspace_id, user_id, kind, target)
+);
+CREATE TABLE IF NOT EXISTS memory_changes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  decision_id uuid NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+  replacement_id uuid REFERENCES decisions(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('RECORDED', 'UPDATED', 'ANSWERED', 'REPLACED')),
+  previous jsonb,
+  current_value jsonb NOT NULL,
+  reason text,
+  scopes jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX IF NOT EXISTS memory_changes_workspace_date_idx ON memory_changes(workspace_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS memory_change_reads (
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  change_id uuid NOT NULL REFERENCES memory_changes(id) ON DELETE CASCADE,
+  PRIMARY KEY (workspace_id, user_id, change_id)
+);
