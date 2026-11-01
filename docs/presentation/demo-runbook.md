@@ -38,8 +38,20 @@ presentation; runtime local search uses the cached model.
 - Verify browser zoom, readable window size and recording resolution. Keep the
   required screens open before presenting.
 
-Do not use schema/seed commands to reset an existing database. Startup preserves
-existing decisions and seeds only an empty database.
+Do not use raw schema/seed commands to reset an existing database. Startup
+preserves existing decisions and seeds only an empty database.
+
+To start every take from the same records, run:
+
+```bash
+npm run demo:reset -- --yes
+```
+
+It backs up the database to `.local/backups`, replaces only the demo workspace
+with the synthetic seed in one transaction, and rebuilds local search.
+Integration settings are kept. The command prints an undo line. Saved views and
+unsent drafts live in the browser, so clear site data for `localhost:5173` if
+they appear.
 
 ## 2. Create known state for this take
 

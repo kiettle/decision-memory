@@ -138,7 +138,9 @@ For separate terminals, run `npm run setup:local`, then `npm run dev:server` and
 
 ## Try the demo locally
 
-The basic demo requires no external credentials:
+The basic demo requires no external credentials. To return the demo workspace to
+the synthetic seed before a recording, run `npm run demo:reset -- --yes`. It
+backs up first, keeps integration settings, and prints an undo command.
 
 1. Search for `migration storage` to exercise normal PostgreSQL search. Every
    word must appear somewhere in a Decision, its tags, or its captured
