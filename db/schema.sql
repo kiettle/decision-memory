@@ -210,6 +210,11 @@ CREATE TABLE IF NOT EXISTS jira_issue_requests (
 ALTER TABLE decisions ADD COLUMN IF NOT EXISTS handover_important boolean NOT NULL DEFAULT false;
 ALTER TABLE decisions ADD COLUMN IF NOT EXISTS owner_contact text;
 
+-- Capture provenance only when known. Historical state/timestamp differences
+-- cannot establish whether a recorded choice began as a pending question.
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS initial_decision_state text
+  CHECK (initial_decision_state IN ('PENDING', 'DECIDED'));
+
 CREATE TABLE IF NOT EXISTS memory_follows (
   workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -237,3 +242,29 @@ CREATE TABLE IF NOT EXISTS memory_change_reads (
   change_id uuid NOT NULL REFERENCES memory_changes(id) ON DELETE CASCADE,
   PRIMARY KEY (workspace_id, user_id, change_id)
 );
+
+-- Dashboard usage facts. Collection is off until a teammate turns it on for the
+-- workspace. Rows older than 90 days are purged; neither table names a person.
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS usage_tracking_enabled boolean NOT NULL DEFAULT false;
+CREATE TABLE IF NOT EXISTS decision_view_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  decision_id uuid NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+  -- One-way hash used only to count a page open once per viewer per 30 minutes.
+  viewer_key text NOT NULL,
+  bucket_start timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  UNIQUE (decision_id, viewer_key, bucket_start)
+);
+CREATE INDEX IF NOT EXISTS decision_view_events_workspace_date_idx ON decision_view_events(workspace_id, bucket_start DESC);
+CREATE TABLE IF NOT EXISTS search_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  query text NOT NULL CHECK (char_length(query) BETWEEN 1 AND 500),
+  scope text,
+  method text NOT NULL CHECK (method IN ('KEYWORD', 'LOCAL', 'GEMINI')),
+  outcome text NOT NULL CHECK (outcome IN ('NO_RESULTS', 'RESULTS', 'UNHELPFUL')),
+  result_count integer NOT NULL DEFAULT 0 CHECK (result_count >= 0),
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX IF NOT EXISTS search_events_workspace_date_idx ON search_events(workspace_id, created_at DESC);

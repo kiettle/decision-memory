@@ -14,6 +14,10 @@ files after actual product domains, such as `overview.md`, `billing.md`,
 
 ## Current Product Contract
 
+- [Team memory dashboard](dashboard.md): open questions by owner, searches that
+  found nothing, recorded trend, most consulted decisions, and the opt-in usage
+  collection policy.
+
 - [Everyday project memory](everyday-project-memory.md): current scoped answers,
   reviewed pasted notes, owner-selected project briefs, question resolution and
   personal in-app change notifications.

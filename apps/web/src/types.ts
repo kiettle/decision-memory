@@ -112,7 +112,45 @@ export type Metadata = {
     jira: boolean
     slack: boolean
     proposalAnalysis: boolean
+    usageTracking?: boolean
   }
+}
+
+export type SearchEvent = {
+  query: string
+  scope?: string
+  method: "KEYWORD" | "LOCAL" | "GEMINI"
+  outcome: "NO_RESULTS" | "RESULTS" | "UNHELPFUL"
+  resultCount: number
+}
+
+export type DashboardTrendSeries = "QUESTIONS" | "RESOLVED" | "CAPTURED" | "UNKNOWN"
+export type Dashboard = {
+  window: { start: string; end: string; from: string; through: string; days: number }
+  asOf: string
+  pending: { key: string; label: string; kind: "LINKED" | "UNAVAILABLE" | "NAME" | "UNASSIGNED"; overdue: number; pending: number }[]
+  contributors: { key: string; label: string; decided: number; pending: number }[]
+  trend: ({ day: string } & Record<DashboardTrendSeries, number>)[]
+  coverage: { missingRecordingDates: number; unknownInitialState: number }
+  usage: {
+    tracking: { enabled: boolean; retentionDays: number }
+    consulted: { id: string; decisionKey: string; title: string; outcome: string | null; status: DecisionStatus; decisionState: DecisionState; views: number }[]
+    gaps: { key: string; query: string; scope: string | null; searches: number; unhelpful: number; lastSearchedAt: string; ids: string[] }[]
+    totals: { views: number; searches: number; gaps: number }
+  }
+}
+export type DashboardRecordQuery = {
+  chart: "PENDING" | "CONTRIBUTOR" | "TREND"
+  segment: "PENDING" | "OVERDUE" | "DECIDED" | DashboardTrendSeries
+  key?: string
+  from?: string
+  through?: string
+  offset?: number
+}
+export type DashboardRecordPage = {
+  total: number
+  offset: number
+  records: { id: string; decisionKey: string; title: string; outcome: string | null; status: DecisionStatus; decisionState: DecisionState; dueDate: string | null; appliesTo: string[]; createdAt: string; decidedAt: string | null; ownerLabel: string }[]
 }
 
 export type IntegrationProvider = "slack" | "gemini" | "jira"

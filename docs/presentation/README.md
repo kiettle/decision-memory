@@ -84,7 +84,7 @@ local evidence, replacement history, and comparison using the
 
 **Put on the slide:**
 
-- 117 automated tests passed; database and desktop/mobile checks passed.
+- 147 unit tests, the database integration suite and desktop/mobile browser checks passed (2026-11-01).
 - Latest 24-case synthetic evaluation: 23 expected outcomes, one timeout.
 - Installed rehearsal and user study: pending.
 

@@ -151,9 +151,8 @@ export function SettingsPage() {
   return (
     <div className="page-frame max-w-4xl">
       <div>
-        <p className="eyebrow">Shared configuration</p>
         <h1>Settings</h1>
-        <p className="mt-3">Shared by all users. Changes apply to new operations immediately.</p>
+        <p className="mt-1.5">Shared by all users. Changes apply to new operations immediately.</p>
         <p className="mt-2 text-sm text-muted-foreground">Saved secrets stay hidden; replace or clear them here. Configured means required values are present, not that the connection has been tested.</p>
       </div>
       {error ? (

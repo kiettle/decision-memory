@@ -26,6 +26,28 @@ const memorySearchInput = z.object({
   filters: decisionFilters.optional(),
 })
 
+const dashboardInput = z.object({
+  scope: z.string().min(1).max(200).optional(),
+  days: z.coerce.number().int().refine((days) => [7, 30, 90].includes(days), "Choose 7, 30 or 90 days.").default(30),
+  asOf: calendarDateInput,
+})
+const dashboardRecordsInput = dashboardInput.extend({
+  chart: z.enum(["PENDING", "CONTRIBUTOR", "TREND"]),
+  segment: z.enum(["PENDING", "OVERDUE", "DECIDED", "QUESTIONS", "RESOLVED", "CAPTURED", "UNKNOWN"]),
+  key: z.string().max(260).optional(),
+  day: calendarDateInput.optional(),
+  from: calendarDateInput.optional(),
+  through: calendarDateInput.optional(),
+  offset: z.coerce.number().int().min(0).max(10000).default(0),
+})
+const searchEventInput = z.object({
+  query: z.string().trim().min(1).max(500),
+  scope: z.string().min(1).max(200).optional(),
+  method: z.enum(["KEYWORD", "LOCAL", "GEMINI"]),
+  outcome: z.enum(["NO_RESULTS", "RESULTS", "UNHELPFUL"]),
+  resultCount: z.number().int().min(0).max(100000),
+}).strict()
+
 function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
 }
@@ -40,7 +62,7 @@ const jiraIssueInput = z.object({
 export function createApiRouter(repository, identityMiddleware, { memorySearch, geminiMemorySearch, jira, proposalReview }, features = {}) {
   const router = express.Router()
   router.use(identityMiddleware)
-  router.use(["/follows", "/notifications"], (_req, res, next) => {
+  router.use(["/follows", "/notifications", "/dashboard"], (_req, res, next) => {
     res.set("Cache-Control", "private, no-store")
     next()
   })
@@ -57,9 +79,13 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
   router.get(
     "/metadata",
     asyncRoute(async (req, res) => {
+      const [metadata, usage] = await Promise.all([
+        repository.metadata(req.identity),
+        repository.usageTracking ? repository.usageTracking(req.identity) : { enabled: false },
+      ])
       res.json({
-        ...(await repository.metadata(req.identity)),
-        features: { ...features, memorySearch: memorySearch.enabled, geminiMemorySearch: geminiMemorySearch.enabled, proposalAnalysis: proposalReview.enabled },
+        ...metadata,
+        features: { ...features, memorySearch: memorySearch.enabled, geminiMemorySearch: geminiMemorySearch.enabled, proposalAnalysis: proposalReview.enabled, usageTracking: usage.enabled },
       })
     }),
   )
@@ -103,6 +129,34 @@ export function createApiRouter(repository, identityMiddleware, { memorySearch, 
   router.put("/decisions/:id/important", asyncRoute(async (req, res) => {
     const { important } = z.object({ important: z.boolean() }).strict().parse(req.body)
     res.json(await repository.setImportant(req.identity, req.params.id, important))
+  }))
+
+  // Dashboard: record facts always; usage facts only while the workspace collects them.
+  router.get("/dashboard", asyncRoute(async (req, res) => {
+    const input = dashboardInput.parse(req.query)
+    const [records, usage] = await Promise.all([
+      repository.dashboardRecords(req.identity, input),
+      repository.dashboardUsage(req.identity, input),
+    ])
+    res.json({ ...records, usage })
+  }))
+  router.get("/dashboard/records", asyncRoute(async (req, res) => {
+    res.json(await repository.dashboardRecordDetail(req.identity, dashboardRecordsInput.parse(req.query)))
+  }))
+  router.put("/dashboard/tracking", asyncRoute(async (req, res) => {
+    const { enabled } = z.object({ enabled: z.boolean() }).strict().parse(req.body)
+    res.json(await repository.setUsageTracking(req.identity, enabled))
+  }))
+  router.delete("/dashboard/searches", asyncRoute(async (req, res) => {
+    const { ids } = z.object({ ids: z.array(z.string().uuid()).min(1).max(100) }).strict().parse(req.body)
+    res.json(await repository.deleteSearches(req.identity, ids))
+  }))
+  router.post("/usage/views", asyncRoute(async (req, res) => {
+    const input = z.object({ decisionId: z.string().uuid(), session: z.string().min(8).max(100) }).strict().parse(req.body)
+    res.status(202).json(await repository.recordView(req.identity, input))
+  }))
+  router.post("/usage/searches", asyncRoute(async (req, res) => {
+    res.status(202).json(await repository.recordSearch(req.identity, searchEventInput.parse(req.body)))
   }))
 
   router.get("/scopes/overview", asyncRoute(async (req, res) => {

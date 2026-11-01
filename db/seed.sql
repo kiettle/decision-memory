@@ -3,7 +3,7 @@ VALUES (
   '11111111-1111-4111-8111-111111111111',
   'demo-workspace',
   'demo-cloud',
-  'Acme Engineering'
+  'Platform Team'
 )
 ON CONFLICT (external_key) DO UPDATE SET name = EXCLUDED.name;
 
@@ -309,4 +309,50 @@ VALUES (
   'SUPERSEDES',
   'The rehearsal export outgrew the database host''s free disk, and keeping exports beside PostgreSQL slowed backup and restore. Rollback must not depend on the database host.'
 )
+ON CONFLICT (id) DO UPDATE SET replacement_reason = EXCLUDED.replacement_reason;
+
+-- Dashboard demo facts. All synthetic: the seeded choices were captured directly
+-- and the seeded questions began open; consultations and searches are spread
+-- over the weeks before the day the seed runs.
+UPDATE decisions
+SET initial_decision_state = decision_state,
+    decided_at = CASE WHEN decision_state = 'DECIDED' THEN COALESCE(decided_at, created_at) END
+WHERE workspace_id = '11111111-1111-4111-8111-111111111111'
+  AND id IN (
+    '33333333-3333-4333-8333-333333333301', '33333333-3333-4333-8333-333333333302',
+    '33333333-3333-4333-8333-333333333303', '33333333-3333-4333-8333-333333333304',
+    '33333333-3333-4333-8333-333333333305', '33333333-3333-4333-8333-333333333306',
+    '33333333-3333-4333-8333-333333333307', '33333333-3333-4333-8333-333333333308',
+    '33333333-3333-4333-8333-333333333309', '33333333-3333-4333-8333-333333333310',
+    '33333333-3333-4333-8333-333333333311', '33333333-3333-4333-8333-333333333312'
+  )
+  AND initial_decision_state IS NULL;
+
+UPDATE workspaces SET usage_tracking_enabled = true
+WHERE id = '11111111-1111-4111-8111-111111111111';
+
+INSERT INTO decision_view_events (workspace_id, decision_id, viewer_key, bucket_start)
+SELECT '11111111-1111-4111-8111-111111111111', v.decision_id::uuid,
+  md5('seed-view:' || v.decision_id || ':' || g), date_trunc('hour', now()) - g * interval '41 hours'
+FROM (VALUES
+  ('33333333-3333-4333-8333-333333333301', 14),
+  ('33333333-3333-4333-8333-333333333308', 9),
+  ('33333333-3333-4333-8333-333333333304', 6),
+  ('33333333-3333-4333-8333-333333333303', 4),
+  ('33333333-3333-4333-8333-333333333305', 3)
+) AS v(decision_id, opens)
+CROSS JOIN LATERAL generate_series(1, v.opens) AS g
 ON CONFLICT DO NOTHING;
+
+INSERT INTO search_events (workspace_id, query, scope, method, outcome, result_count, created_at)
+SELECT '11111111-1111-4111-8111-111111111111', s.query, s.scope, s.method, s.outcome, s.result_count,
+  now() - g * interval '2 days' - s.offset_hours * interval '1 hour'
+FROM (VALUES
+  ('backup retention after cutover', 'Atlas migration', 'KEYWORD', 'NO_RESULTS', 0, 3, 5),
+  ('who approves schema migrations', NULL, 'LOCAL', 'NO_RESULTS', 0, 2, 9),
+  ('partner API rate limit', NULL, 'KEYWORD', 'NO_RESULTS', 0, 2, 3),
+  ('feature flag cleanup', NULL, 'LOCAL', 'UNHELPFUL', 3, 1, 7),
+  ('object storage backups', NULL, 'KEYWORD', 'RESULTS', 2, 4, 2),
+  ('webhook retries', NULL, 'LOCAL', 'RESULTS', 1, 3, 11)
+) AS s(query, scope, method, outcome, result_count, searches, offset_hours)
+CROSS JOIN LATERAL generate_series(1, s.searches) AS g;

@@ -438,10 +438,10 @@ export async function verifyEverydayConvenienceUi({ browser, models, workspace }
     await page.keyboard.press("Tab")
     await page.keyboard.press("Shift+Tab")
     assert.equal(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle !== "none"), true)
-    await page.keyboard.press("Tab")
-    assert.equal(await page.evaluate(() => document.activeElement.getAttribute("aria-label")), "Filter Tag to everyday-proof")
+    // Reading order: the title, then the pending actions; tags sit in the metadata line after them.
     await page.keyboard.press("Tab")
     assert.equal(await page.evaluate(() => document.activeElement.textContent), "Record decision")
+    assert.equal(await row().getByRole("button", { name: "Filter Tag to everyday-proof", exact: true }).count(), 1)
     await page.keyboard.press("Enter")
     let dialog = page.getByRole("dialog")
     await dialog.getByLabel("What did you decide?").fill("Cancelled choice")

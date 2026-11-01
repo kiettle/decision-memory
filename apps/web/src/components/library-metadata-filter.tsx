@@ -28,6 +28,7 @@ export function LibraryMetadataFilter({
   onFilter: ApplyMetadataFilter
 }) {
   const props = {
+    "data-metadata-filter": true,
     "aria-label": `Filter ${label}`,
     onClick: () => onFilter(field, value),
   }
@@ -45,7 +46,7 @@ export function LibraryMetadataFilter({
       type="button"
       variant="link"
       size="sm"
-      className="h-auto max-w-full min-w-0 shrink justify-start p-0 text-left break-words whitespace-normal"
+      className="h-auto max-w-full min-w-0 shrink justify-start p-0 text-left break-words whitespace-normal text-foreground/80 hover:text-foreground"
       {...props}
     >
       <span className="min-w-0 break-words whitespace-normal">{children}</span>

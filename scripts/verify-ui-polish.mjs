@@ -1,0 +1,100 @@
+import assert from "node:assert/strict"
+
+export async function verifyUiPolish({ browser, models, workspace }) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await context.newPage()
+  const api = "http://localhost:3011/api", base = "http://localhost:5173/#"
+  const scope = "UI polish synthetic scope", ids = [], errors = []
+  let releaseSlow = () => {}
+  page.on("pageerror", error => errors.push(error.message))
+  page.on("console", message => { if (message.type() === "error" && !message.text().includes("503")) errors.push(message.text()) })
+  const create = async data => {
+    const response = await page.request.post(`${api}/decisions`, { data })
+    assert.equal(response.status(), 201)
+    const result = await response.json(); ids.push(result.id); return result
+  }
+  const fits = async () => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
+  try {
+    const meta = await (await page.request.get(`${api}/metadata`)).json()
+    const current = await create({ title: "Polish keeps exports in object storage", appliesTo: [scope], ownerId: meta.currentUser.id,
+      why: "Workers can restart without losing the recovery files.", ownerContact: "Ask during synthetic planning.",
+      pastedSource: { origin: "Synthetic polish review", excerpt: "Reviewed note: durable recovery files survive worker restarts." } })
+    assert.equal((await page.request.put(`${api}/decisions/${current.id}/important`, { data: { important: true } })).status(), 200)
+    const question = await create({ title: "Polish question: which team reviews the retention window before removing recovery files?", decisionState: "PENDING", appliesTo: [scope], ownerId: meta.currentUser.id, dueDate: "2026-10-27" })
+    await page.goto(`${base}/`)
+    await page.locator(".decision-row").first().waitFor()
+    assert.ok((await page.locator(".decision-row").first().boundingBox()).y <= 420, "Phone Library should show records before half the viewport (UI polish plan).")
+    await fits()
+
+    const params = new URLSearchParams({ appliesTo: scope, status: "PENDING" })
+    await page.goto(`${base}/?${params}`)
+    await page.getByRole("link", { name: question.title, exact: true }).waitFor()
+    const previousHeight = (await page.locator(".decision-row").first().boundingBox()).height
+    const slow = new Promise(resolve => { releaseSlow = resolve })
+    await page.route("**/api/decisions?*", async route => { await slow; await route.continue() })
+    await page.getByRole("textbox", { name: "Search decisions", exact: true }).fill("Polish")
+    await page.waitForFunction(() => document.querySelector('[aria-label="Decision results"]')?.getAttribute("aria-busy") === "true")
+    assert.match(await page.getByRole("status").innerText(), /Loading/)
+    assert.equal(await page.getByRole("link", { name: question.title, exact: true }).count(), 0, "Old records must not claim to match a new query while loading.")
+    assert.equal(await page.getByRole("button", { name: "Record unanswered question", exact: true }).count(), 0, "An unfinished search must not imply an unanswered question.")
+    const skeletonHeight = (await page.getByRole("region", { name: "Decision results", exact: true }).locator(".decision-loading-row").first().boundingBox()).height
+    assert.ok(Math.abs(skeletonHeight - previousHeight) <= 64, `Skeleton row ${skeletonHeight}px must resemble the prior ${previousHeight}px record.`)
+    releaseSlow()
+    await page.getByRole("link", { name: question.title, exact: true }).waitFor()
+    await page.unroute("**/api/decisions?*")
+    await page.route("**/api/decisions?*", route => route.fulfill({ status: 503, json: { error: "Synthetic search unavailable." } }))
+    await page.getByRole("textbox", { name: "Search decisions", exact: true }).fill("Polish unanswered query")
+    await page.getByText("Could not load the Decision Library", { exact: true }).waitFor()
+    assert.equal(await page.getByRole("status").innerText(), "Unavailable", "Failed requests must not show a stale result count.")
+    const retry = await page.getByRole("button", { name: "Try again", exact: true }).boundingBox()
+    assert.ok(retry.y + retry.height <= 844, "Retry must fit in the phone viewport before secondary search actions.")
+    await fits()
+    await page.unroute("**/api/decisions?*")
+    await page.getByRole("button", { name: "Record unanswered question", exact: true }).click()
+    const primary = page.getByLabel(/What needs to be decided/)
+    assert.equal(await primary.inputValue(), "Polish unanswered query")
+    assert.ok((await primary.boundingBox()).y <= 330, "The phone capture input should come before introductory boilerplate.")
+    assert.ok((await page.getByRole("button", { name: "Save Decision", exact: true }).boundingBox()).height >= 44)
+    assert.ok((await page.locator("main").innerText()).includes(scope), "Failure fallback must preserve the selected exact scope.")
+    assert.equal(await primary.evaluate(el => Boolean(el.compareDocumentPosition(document.querySelector('.capture-source')) & Node.DOCUMENT_POSITION_FOLLOWING)), true, "The main input must precede optional pasted notes in reading/tab order.")
+
+    await page.goto(`${base}/scopes?${new URLSearchParams({ scope })}`)
+    const brief = page.getByRole("region", { name: "Project brief", exact: true })
+    await brief.getByRole("link", { name: `${current.decisionKey} · ${current.outcome}`, exact: true }).waitFor()
+    await brief.getByText("Ask during synthetic planning.", { exact: true }).waitFor()
+    assert.equal(await brief.locator("blockquote").isVisible(), false)
+    await brief.locator("summary").filter({ hasText: "Evidence and history" }).click()
+    await brief.getByText("Reviewed note: durable recovery files survive worker restarts.", { exact: true }).waitFor()
+    const active = page.getByRole("region", { name: "Active decisions", exact: true })
+    assert.equal(await active.getByText(current.why, { exact: true }).count(), 0, "The current list should refer to a curated brief rather than repeat its full prose.")
+    const before = page.url()
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    await active.getByRole("button", { name: "Read in project brief", exact: true }).focus()
+    await page.keyboard.press("Enter")
+    assert.equal(page.url(), before, "Jumping to a brief must not break HashRouter navigation.")
+    assert.equal(await page.evaluate(() => document.activeElement.id), `brief-${current.id}`)
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    const briefPosition = await page.locator(`[id="brief-${current.id}"]`).boundingBox()
+    assert.ok(briefPosition.y >= 60 && briefPosition.y <= 100, "A reduced-motion brief jump must settle immediately below the sticky header.")
+    await brief.getByRole("link", { name: `${current.decisionKey} · ${current.outcome}`, exact: true }).click()
+    const applicable = page.getByRole("region", { name: "Applicable scope", exact: true })
+    await applicable.waitFor()
+    assert.ok((await applicable.boundingBox()).y < (await page.getByRole("region", { name: "Decision rationale", exact: true }).boundingBox()).y)
+    assert.ok((await page.getByRole("button", { name: "Follow decision", exact: true }).boundingBox()).height >= 44)
+    await fits()
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click()
+    const dialog = page.getByRole("dialog", { name: "Navigation", exact: true })
+    await dialog.waitFor()
+    assert.ok((await dialog.evaluate(el => parseFloat(getComputedStyle(el).transitionDuration))) < 0.001)
+    await page.keyboard.press("Escape")
+    await dialog.waitFor({ state: "hidden" })
+    assert.equal(await page.getByRole("button", { name: "Open navigation", exact: true }).evaluate(el => document.activeElement === el), true)
+    assert.deepEqual(errors, [])
+    console.log("UI polish passed: truthful/announced loading, stable placeholders, visible phone recovery, scoped capture fallback, early input/touch targets, brief evidence and focus, applicability, reduced motion")
+  } finally {
+    releaseSlow()
+    await context.close()
+    for (const id of ids) await models.Decision.destroy({ where: { id, workspaceId: workspace.id } })
+  }
+}

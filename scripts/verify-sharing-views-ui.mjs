@@ -7,7 +7,8 @@ export async function verifySharingViewsUi({ browser }) {
   const errors = [], writes = []
   page.on("pageerror", error => errors.push(error.message))
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()) })
-  page.on("request", request => { if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method())) writes.push(request.url()) })
+  // Opt-in usage facts (page opens, searches) are not decision writes.
+  page.on("request", request => { if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && !request.url().includes("/api/usage/")) writes.push(request.url()) })
   const api = "http://localhost:3011/api"
   const base = "http://localhost:5173/#"
   const metadata = await (await page.request.get(`${api}/metadata`)).json()

@@ -2,6 +2,7 @@ import { ArrowRight, Search, Sparkles } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
+import { DecisionLineage } from "@/components/decision-lineage"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Empty,
@@ -25,13 +26,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { api } from "@/lib/api"
 import { comparisonHref } from "@/lib/decision-links"
+import { headline } from "../../../../shared/decision-deadlines.js"
 import type {
+  Decision,
+  RelatedDecision,
   Metadata,
   MemorySearchMethod,
   ProposalAssessment,
   ProposalEvidence,
   ProposalReview,
 } from "@/types"
+
+// Synthetic proposals that exercise a replaced choice and two current ones.
+const examples = [
+  "Keep migration backup files on the database host.",
+  "Remove the timeout so public API requests can run as long as they need.",
+  "Store customer uploads as PostgreSQL large objects.",
+]
 
 const labels: Record<ProposalAssessment, string> = {
   POSSIBLE_MISMATCH: "Possible mismatch",
@@ -86,6 +97,7 @@ export function ProposalReviewPage() {
   const [result, setResult] = useState<ProposalReview | null>(null)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState<MemorySearchMethod | null>(null)
+  const [recentChanges, setRecentChanges] = useState<{ earlier: Decision; later: RelatedDecision }[]>([])
   const revision = useRef(0)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -116,6 +128,22 @@ export function ProposalReviewPage() {
     []
   )
 
+  // The latest replaced choices show what a check can surface before anything is typed.
+  useEffect(() => {
+    let active = true
+    api.decisions({ status: "SUPERSEDED", decisionState: "DECIDED", sort: "NEWEST" })
+      .then((rows) => Promise.all(rows.slice(0, 2).map((row) => api.decision(row.id))))
+      .then((details) => {
+        if (!active) return
+        setRecentChanges(details.flatMap((earlier) => {
+          const later = earlier.lifecycle?.supersededBy[0]
+          return later ? [{ earlier, later }] : []
+        }))
+      })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [])
+
   useEffect(() => {
     if (navigationState?.proposalOrigin)
       formRef.current?.querySelector("textarea")?.focus()
@@ -136,12 +164,12 @@ export function ProposalReviewPage() {
       },
     })
   }
-  async function check(method: MemorySearchMethod, scopeValue = scope) {
+  async function check(method: MemorySearchMethod, scopeValue = scope, text = proposal) {
     const version = ++revision.current
     setBusy(method)
     setError("")
     try {
-      const next = await api.checkProposal(proposal.trim(), scopeValue, method)
+      const next = await api.checkProposal(text.trim(), scopeValue, method)
       if (revision.current === version) setResult(next)
     } catch (e) {
       if (revision.current === version)
@@ -156,6 +184,12 @@ export function ProposalReviewPage() {
     setScope(next)
     remember(proposal, next)
     void check(method, next)
+  }
+  function tryExample(text: string) {
+    invalidate()
+    setProposal(text)
+    remember(text, scope)
+    void check("LOCAL", scope, text)
   }
   const valid = proposal.trim().length >= 3
   const canAnalyze =
@@ -176,7 +210,7 @@ export function ProposalReviewPage() {
   }
 
   return (
-    <div className="page-frame max-w-6xl">
+    <div className="page-frame">
       {completionReturn ? (
         <Button variant="ghost" className="w-fit" onClick={backToCompletion}>
           Back to completion
@@ -198,12 +232,10 @@ export function ProposalReviewPage() {
           Back to scope
         </Link>
       ) : null}
-      <header className="flex flex-col gap-2">
-        <p className="eyebrow">Before the team decides</p>
+      <header className="flex flex-col gap-1.5">
         <h1>Check a proposed decision</h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Recover what the team decided, why, and what changed. Review the
-          evidence before repeating an old choice.
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          See what the team already decided, why, and what replaced it before you repeat an old choice.
         </p>
       </header>
       {completionReturn ? (
@@ -219,13 +251,14 @@ export function ProposalReviewPage() {
           return to the draft to edit or save it.
         </p>
       ) : null}
+      <div className="proposal-workspace">
       <form
         ref={formRef}
         onSubmit={(event) => {
           event.preventDefault()
           void check("LOCAL")
         }}
-        className="flex flex-col gap-5"
+        className="proposal-form"
       >
         <FieldGroup>
           <Field data-invalid={Boolean(error)}>
@@ -289,7 +322,7 @@ export function ProposalReviewPage() {
           </Field>
         </FieldGroup>
         <div className="flex flex-wrap gap-3">
-          <Button type="submit" disabled={!valid || Boolean(busy)}>
+          <Button type="submit" variant={result ? "outline" : "default"} disabled={!valid || Boolean(busy)}>
             <Search data-icon="inline-start" />
             {busy === "LOCAL" ? "Checking locally…" : "Check locally"}
           </Button>
@@ -304,15 +337,14 @@ export function ProposalReviewPage() {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Check locally stays on this computer. Analyze with Gemini sends your
-          proposal, scope and short stored excerpts to Google; use synthetic or
-          sanitized data.
+          Checking locally stays on this computer. Gemini receives the proposal,
+          scope and short stored excerpts; use synthetic or sanitized data.
           {metadata && !metadata.features.proposalAnalysis
             ? " Gemini is not configured; local checking remains available."
             : ""}
         </p>
       </form>
-      <Separator />
+      <Separator className="xl:hidden" />
       <div
         aria-live="polite"
         aria-busy={Boolean(busy)}
@@ -323,25 +355,31 @@ export function ProposalReviewPage() {
             {summary ? (
               <section
                 aria-label="Closest recorded decision"
-                className={
-                  summary.replaced
-                    ? "flex min-w-0 flex-col gap-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950"
-                    : "flex min-w-0 flex-col gap-1 rounded-lg border bg-muted/40 px-4 py-3"
-                }
+                className="flex min-w-0 flex-col gap-4 rounded-lg border p-5"
               >
-                <p className="font-semibold">{summary.title}</p>
-                <p className="text-sm break-words">
-                  {summary.text}{" "}
-                  {summary.current ? (
-                    <Link
-                      className="whitespace-nowrap text-primary underline"
-                      to={`/decisions/${summary.current.decisionId}`}
-                      state={origin}
-                    >
-                      Open {summary.current.decisionKey}
-                    </Link>
-                  ) : null}
-                </p>
+                <div className="grid gap-1">
+                  <h2 className="text-xl font-semibold tracking-[-0.01em]">{summary.title}</h2>
+                  <p className="text-sm break-words text-muted-foreground">
+                    {summary.text}{" "}
+                    {summary.current ? (
+                      <Link
+                        className="whitespace-nowrap text-primary hover:underline"
+                        to={`/decisions/${summary.current.decisionId}`}
+                        state={origin}
+                      >
+                        Open {summary.current.decisionKey}
+                      </Link>
+                    ) : null}
+                  </p>
+                </div>
+                {summary.replaced && summary.successor ? (
+                  <DecisionLineage
+                    earlier={{ id: summary.earlier.decisionId, decisionKey: summary.earlier.decisionKey, title: summary.earlier.title }}
+                    current={{ id: summary.successor.decisionId, decisionKey: summary.successor.decisionKey, title: summary.successor.title }}
+                    reason={summary.reason}
+                    state={origin}
+                  />
+                ) : null}
               </section>
             ) : null}
             {suggestion ? (
@@ -356,6 +394,7 @@ export function ProposalReviewPage() {
                 {valid && metadata?.features.proposalAnalysis ? (
                   <Button
                     type="button"
+                    variant="outline"
                     disabled={Boolean(busy)}
                     onClick={() => applySuggestedScope(suggestion, "GEMINI")}
                   >
@@ -378,12 +417,7 @@ export function ProposalReviewPage() {
               aria-label="Review assessment"
               className="flex flex-col gap-3"
             >
-              <p className="eyebrow">
-                {result.analysis.status === "NOT_REQUESTED"
-                  ? "Local retrieval"
-                  : "Assessment"}
-              </p>
-              <h2>
+              <h2 className="text-lg font-semibold">
                 {result.analysis.assessment
                   ? labels[result.analysis.assessment]
                   : result.analysis.status === "UNAVAILABLE"
@@ -396,7 +430,7 @@ export function ProposalReviewPage() {
               {result.analysis.findings.map((finding, i) => (
                 <article
                   key={i}
-                  className="flex min-w-0 flex-col gap-3 rounded-xl border p-5"
+                  className="flex min-w-0 flex-col gap-3 rounded-lg border p-5"
                 >
                   <Badge
                     variant={
@@ -423,7 +457,7 @@ export function ProposalReviewPage() {
                           “{citation.quote}”
                         </p>
                         <Link
-                          className="text-primary underline"
+                          className="text-primary hover:underline"
                           to={`/decisions/${record.decisionId}`}
                           state={origin}
                         >
@@ -439,7 +473,7 @@ export function ProposalReviewPage() {
               aria-label="Stored evidence"
               className="flex min-w-0 flex-col gap-4"
             >
-              <h2>Stored evidence</h2>
+              <h2 className="text-lg font-semibold">Stored evidence</h2>
               <p className="text-sm text-muted-foreground">
                 Searched {result.coverage.indexed} of {result.coverage.total}{" "}
                 decisions; showing {result.coverage.retrieved} plus current
@@ -512,17 +546,43 @@ export function ProposalReviewPage() {
             </p>
           </>
         ) : !busy ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>Find the precedent before committing</EmptyTitle>
-              <EmptyDescription>
-                Check locally to see recorded choices and what replaced them.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <section aria-label="Example proposals" className="flex min-w-0 flex-col gap-3">
+            <h2 className="text-sm font-semibold">Try an example</h2>
+            <div className="flex flex-wrap gap-2">
+              {examples.map((text) => (
+                <Button
+                  key={text}
+                  type="button"
+                  variant="outline"
+                  className="h-auto max-w-full py-2 text-left whitespace-normal"
+                  onClick={() => tryExample(text)}
+                >
+                  {text}
+                </Button>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Each example checks against the recorded choices and what replaced them. Nothing is saved.
+            </p>
+            {recentChanges.length ? (
+              <div className="mt-4 grid gap-4 border-t pt-5">
+                <h2 className="text-sm font-semibold">Choices the team changed recently</h2>
+                {recentChanges.map(({ earlier, later }) => (
+                  <DecisionLineage
+                    key={earlier.id}
+                    earlier={{ id: earlier.id, decisionKey: earlier.decisionKey, title: headline(earlier) }}
+                    current={{ id: later.id, decisionKey: later.decisionKey, title: headline(later) }}
+                    currentIsActive={later.status === "ACTIVE"}
+                    reason={later.replacementReason}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </section>
         ) : (
           <p>Retrieving stored evidence…</p>
         )}
+      </div>
       </div>
     </div>
   )
@@ -540,6 +600,9 @@ function retrievalHeadline(result: ProposalReview) {
       title: "Closest recorded decision",
       text: `${quoted(closest)} is the current choice.`,
       current: closest,
+      earlier: closest,
+      successor: undefined,
+      reason: null,
     }
   const current = closest.currentIds
     .map((id) => result.evidence.find((record) => record.decisionId === id))
@@ -551,6 +614,9 @@ function retrievalHeadline(result: ProposalReview) {
       ? `${quoted(closest)} was replaced by ${quoted(current)}, which is current.`
       : `${quoted(closest)} was replaced. Open it to see its current replacement.`,
     current: current ?? closest,
+    earlier: closest,
+    successor: current,
+    reason: current?.replacements.find((r) => r.decisionId === closest.decisionId)?.reason ?? null,
   }
 }
 
@@ -589,7 +655,7 @@ function Evidence({
   return (
     <article
       aria-label={record.decisionKey}
-      className="flex min-w-0 flex-col gap-3 rounded-xl border p-5"
+      className="flex min-w-0 flex-col gap-3 rounded-lg border p-5"
     >
       <div className="flex flex-wrap items-center gap-2">
         <Badge
@@ -607,7 +673,7 @@ function Evidence({
       <Link
         to={`/decisions/${record.decisionId}`}
         state={origin}
-        className="font-semibold text-primary underline"
+        className="font-semibold text-foreground hover:underline"
       >
         {record.title}
       </Link>
@@ -628,7 +694,7 @@ function Evidence({
           key={id}
           to={`/decisions/${id}`}
           state={origin}
-          className="text-sm text-primary underline"
+          className="text-sm text-primary hover:underline"
         >
           Open current replacement
         </Link>
@@ -640,7 +706,7 @@ function Evidence({
             {r.reason || "No replacement reason recorded."}
           </p>
           <Link
-            className="text-primary underline"
+            className="text-primary hover:underline"
             to={comparisonHref(r.decisionId, record.decisionId)}
             state={{
               returnUrl: origin.libraryUrl,

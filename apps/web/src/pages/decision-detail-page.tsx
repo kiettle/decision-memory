@@ -24,6 +24,7 @@ import { FollowButton } from "@/components/follow-button"
 import { CopyDecisionSummary } from "@/components/copy-decision-summary"
 import { DecisionDeadline } from "@/components/decision-deadline"
 import { CompareDecisionsDialog } from "@/components/compare-decisions-dialog"
+import { DecisionLineage } from "@/components/decision-lineage"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
 import { comparisonHref, recordedDate, scopeHref } from "@/lib/decision-links"
@@ -45,6 +46,7 @@ import { SearchableSelect } from "@/components/searchable-select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 import { slackChannels } from "@/lib/slack"
+import { recordDecisionView } from "@/lib/usage"
 import type { Decision, SourceMessage, SourceSnapshot } from "@/types"
 
 export function DecisionDetailPage() {
@@ -89,7 +91,11 @@ function DecisionDetail({ id }: { id: string }) {
   useEffect(() => {
     let active = true
     void api.decision(id)
-      .then((detail) => { if (active) setDecision(detail) })
+      .then((detail) => {
+        if (!active) return
+        setDecision(detail)
+        recordDecisionView(detail.id)
+      })
       .catch((error) => {
         if (active) setError(error instanceof Error ? error.message : "Could not load the Decision.")
       })
@@ -172,7 +178,7 @@ function DecisionDetail({ id }: { id: string }) {
       .join("")
       .slice(0, 2) || "—"
   return (
-    <div className="page-frame max-w-[1240px]">
+    <div className="page-frame decision-detail-page max-w-[1240px]">
       <CompletionReturn onSaved={setDecision} />
       <div className="detail-topbar flex-wrap">
         <Button
@@ -184,7 +190,45 @@ function DecisionDetail({ id }: { id: string }) {
         >
           <ArrowLeft /> Back<span className="max-sm:sr-only"> to decisions</span>
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="detail-topbar-actions">
+        <div
+          id="decision-tools"
+          aria-label="Decision actions"
+          role="group"
+          className={toolsOpen ? "detail-tools-panel" : "detail-tools-panel hidden lg:flex"}
+        >
+            <CopyDecisionSummary decision={decision} />
+            <CopyDecisionSummary decision={decision} linkOnly />
+            <CompareDecisionsDialog decision={decision} />
+            <CreateJiraIssueDialog
+              decision={decision}
+              enabled={jiraEnabled}
+              onCreated={setDecision}
+            />
+            {decision.status === "ACTIVE" && decision.decisionState !== "PENDING" ? (
+              <SupersedeDialog
+                open={supersedeOpen}
+                onOpenChange={(open) => {
+                  setSupersedeOpen(open)
+                  setCandidates([])
+                  setSuggestedIds([])
+                  setCandidateError("")
+                  setTargetId("")
+                  setReplacementReason("")
+                }}
+                decision={decision}
+                replacementReason={replacementReason}
+                setReplacementReason={setReplacementReason}
+                candidates={candidates}
+                suggestedIds={suggestedIds}
+                targetId={targetId}
+                setTargetId={setTargetId}
+                onConfirm={supersede}
+                loading={superseding}
+                error={candidateError}
+              />
+            ) : null}
+        </div>
           <Button
             variant="outline"
             render={<Link to={`/decisions/${decision.id}/edit`} state={location.state} />}
@@ -219,17 +263,25 @@ function DecisionDetail({ id }: { id: string }) {
         </p>
       </div>
 
+          <section aria-label="Applicable scope" className="detail-scope">
+            <h2>Applies To</h2>
+            <div className="flex flex-wrap gap-2">
+              {decision.appliesTo.length ? (
+                decision.appliesTo.map((item) => (
+                  <Badge key={item} variant="outline">
+                    <Box />
+                    <Link to={scopeHref(item, decision.decisionState)} className="hover:underline">{item}</Link>
+                  </Badge>
+                ))
+              ) : (
+                <p>No scope was recorded.</p>
+              )}
+            </div>
+          </section>
+
       {decision.decisionState === "PENDING" || decision.dueDate ? <DecisionDeadline decision={decision} today={today} /> : null}
 
-      <div className="flex flex-wrap items-start gap-3">
-        <FollowButton kind="DECISION" target={decision.id} />
-        {decision.owner?.id === viewerId && decision.decisionState === "DECIDED" && decision.status === "ACTIVE" ? <Button variant="outline" disabled={curating} aria-pressed={Boolean(decision.handoverImportant)} onClick={async () => {
-          setCurating(true)
-          try { setDecision(await api.setImportant(id, !decision.handoverImportant)) }
-          catch (error) { toast.error(error instanceof Error ? error.message : "Could not update brief selection.") }
-          finally { setCurating(false) }
-        }}>{decision.handoverImportant ? "Remove from project brief" : "Mark important for project brief"}</Button> : null}
-      </div>
+
 
       {decision.lifecycle?.supersededBy.map((item) => (
         <Link
@@ -248,7 +300,7 @@ function DecisionDetail({ id }: { id: string }) {
       ))}
 
       {decision.lifecycle?.current?.map((item) => (
-        <Link key={item.id} to={`/decisions/${item.id}`} state={{ libraryUrl, libraryState }} className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+        <Link key={item.id} to={`/decisions/${item.id}`} state={{ libraryUrl, libraryState }} className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-sm text-foreground hover:bg-accent">
           <span className="min-w-0 flex-1">Current active Decision: <strong>{item.decisionKey}</strong> · {headline(item)}</span>
           <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
         </Link>
@@ -256,7 +308,7 @@ function DecisionDetail({ id }: { id: string }) {
 
       <section aria-label="Decision rationale" className="grid gap-3">
         <h2 className="text-sm font-semibold">Why</h2>
-        <p className="max-w-3xl text-[15px] leading-7 text-foreground">
+        <p className="max-w-[72ch] text-[15px] leading-6 text-foreground">
           {decision.why || "No rationale was recorded."}
         </p>
         {decision.sources?.length ? (
@@ -278,75 +330,42 @@ function DecisionDetail({ id }: { id: string }) {
           <DecisionActions decision={decision} onSaved={setDecision} />
         </div>
       ) : null}
-      <div
-        id="decision-tools"
-        aria-label="Decision actions"
-        role="group"
-        className={toolsOpen ? "detail-tools-panel" : "detail-tools-panel hidden lg:flex"}
-      >
-          <CopyDecisionSummary decision={decision} />
-          <CopyDecisionSummary decision={decision} linkOnly />
-          <CompareDecisionsDialog decision={decision} />
-          <CreateJiraIssueDialog
-            decision={decision}
-            enabled={jiraEnabled}
-            onCreated={setDecision}
-          />
-          {decision.status === "ACTIVE" && decision.decisionState !== "PENDING" ? (
-            <SupersedeDialog
-              open={supersedeOpen}
-              onOpenChange={(open) => {
-                setSupersedeOpen(open)
-                setCandidates([])
-                setSuggestedIds([])
-                setCandidateError("")
-                setTargetId("")
-                setReplacementReason("")
-              }}
-              decision={decision}
-              replacementReason={replacementReason}
-              setReplacementReason={setReplacementReason}
-              candidates={candidates}
-              suggestedIds={suggestedIds}
-              targetId={targetId}
-              setTargetId={setTargetId}
-              onConfirm={supersede}
-              loading={superseding}
-              error={candidateError}
-            />
-          ) : null}
+      <div className="flex flex-wrap items-start gap-3">
+        <FollowButton kind="DECISION" target={decision.id} />
+        {decision.owner?.id === viewerId && decision.decisionState === "DECIDED" && decision.status === "ACTIVE" ? <Button variant="outline" disabled={curating} aria-pressed={Boolean(decision.handoverImportant)} onClick={async () => {
+          setCurating(true)
+          try { setDecision(await api.setImportant(id, !decision.handoverImportant)) }
+          catch (error) { toast.error(error instanceof Error ? error.message : "Could not update brief selection.") }
+          finally { setCurating(false) }
+        }}>{decision.handoverImportant ? "Remove from project brief" : "Mark important for project brief"}</Button> : null}
       </div>
-
       {decision.lifecycle?.supersedes.length || decision.lifecycle?.supersededBy.length ? (
-        <section aria-label="Decision evolution" className="grid gap-4 border-y py-5">
+        <section aria-label="Decision evolution" className="grid gap-4 border-y py-6">
           <h2 className="text-lg font-semibold">Why did this change?</h2>
           {[
             ...(decision.lifecycle.supersedes.map((item) => ({ item, earlierId: item.id, newerId: decision.id, label: `Replaces ${item.decisionKey}` }))),
             ...(decision.lifecycle.supersededBy.map((item) => ({ item, earlierId: decision.id, newerId: item.id, label: `Replaced by ${item.decisionKey}` }))),
-          ].map(({ item, earlierId, newerId, label }) => <div key={`${earlierId}:${newerId}`} className="grid gap-2">
-            <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-semibold">{label}</span>{item.replacedAt ? <span className="text-xs text-muted-foreground">{recordedDate(item.replacedAt)}</span> : null}</div>
-            <p className="whitespace-pre-wrap break-words text-sm leading-6">{item.replacementReason || "No replacement reason was recorded."}</p>
-            <Button className="w-fit" variant="outline" render={<Link to={comparisonHref(earlierId, newerId)} state={{ returnUrl: location.pathname + location.search, returnState: location.state }} />} nativeButton={false}>Compare before and after <ArrowRight data-icon="inline-end" /></Button>
-          </div>)}
+          ].map(({ item, earlierId, newerId, label }) => {
+            const earlier = earlierId === decision.id ? decision : item
+            const newer = newerId === decision.id ? decision : item
+            return <div key={`${earlierId}:${newerId}`} className="grid gap-2" aria-label={label} role="group">
+              <DecisionLineage
+                earlier={{ id: earlier.id, decisionKey: earlier.decisionKey, title: headline(earlier) }}
+                current={{ id: newer.id, decisionKey: newer.decisionKey, title: headline(newer), date: item.replacedAt ? recordedDate(item.replacedAt) : null }}
+                reason={item.replacementReason}
+                currentIsActive={newer.status === "ACTIVE"}
+                selfId={decision.id}
+                state={{ libraryUrl, libraryState }}
+                actions={<Button className="w-fit" variant="outline" render={<Link to={comparisonHref(earlierId, newerId)} state={{ returnUrl: location.pathname + location.search, returnState: location.state }} />} nativeButton={false}>Compare before and after <ArrowRight data-icon="inline-end" /></Button>}
+              />
+            </div>
+          })}
         </section>
       ) : null}
 
       <div className="detail-layout">
         <article className="detail-article">
-          <EditorialSection title="Applies To">
-            <div className="flex flex-wrap gap-2">
-              {decision.appliesTo.length ? (
-                decision.appliesTo.map((item) => (
-                  <Badge key={item} variant="outline">
-                    <Box />
-                    <Link to={scopeHref(item, decision.decisionState)} className="hover:underline">{item}</Link>
-                  </Badge>
-                ))
-              ) : (
-                <p>No scope was recorded.</p>
-              )}
-            </div>
-          </EditorialSection>
+
           {/* The page title is already the choice (or the pending question). */}
           {decision.decisionState === "DECIDED" && decision.title !== headline(decision) ? <EditorialSection title="Original question"><p>{decision.title}</p></EditorialSection> : null}
           <EditorialSection title="Context">
@@ -373,7 +392,6 @@ function DecisionDetail({ id }: { id: string }) {
         <aside className="detail-rail">
           <section>
             <h2>Details</h2>
-            <p className="mb-3 whitespace-pre-wrap text-sm">Contact context: {decision.ownerContact || "No contact context recorded."}</p>
             <dl>
               <MetadataRow
                 icon={
@@ -388,6 +406,13 @@ function DecisionDetail({ id }: { id: string }) {
                   "Unassigned"
                 }
               />
+              {decision.ownerContact ? (
+                <MetadataRow
+                  icon={<MessageSquare />}
+                  label="How to reach the owner"
+                  value={decision.ownerContact}
+                />
+              ) : null}
               <MetadataRow
                 icon={<Tag />}
                 label="Tags"

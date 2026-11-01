@@ -27,6 +27,83 @@ Avoid marketing layouts, decorative illustration, gradients, KPI cards, bento
 grids, graph views, and nested card stacks. The visual signature is the open,
 highly scannable decision list and the editorial detail page.
 
+### Everyday polish — 2026-10-29
+
+Owner-authorized refinement retains the existing white/cobalt/Geist system.
+On phones, bring the capture input ahead of optional pasted notes and routine
+draft explanation; keep recoverable drafts/storage errors prominent and Save
+fixed in view. Primary controls and popup triggers have 44px phone targets;
+inline metadata remains compact. Use sentence-case contextual labels.
+
+Library loading announces its status and marks the results region busy. Replace
+records with placeholders shaped like recent rows; placeholders do not count as
+records. Failed loads say Unavailable, preserve query/filters and put Retry before
+secondary capture actions. Only completed no-match results may say no matches;
+neither failure nor loading implies an unanswered question. Manual question
+capture remains available after a failed search. Successful results keep current
+answer evidence and secondary capture/proposal actions in compact disclosures.
+
+Exact Applies To scope sits beside the choice, before rationale and history.
+Scope briefs group choice/reason and owner/contact context; evidence remains
+inspectable in a named disclosure, with replacement reasons/record links retained.
+The full current list links back to curated brief entries instead of repeating
+their full prose. Brief jumps scroll and focus without changing HashRouter's URL.
+Changes pairs the previous and recorded choice for scanning. Existing restrained
+motion and reduced-motion support remain; no decorative entrance sequence.
+
+### Contest polish — 2026-11-01
+
+Owner-approved restyle from a taste-skill review (`design-taste-frontend`, app
+style "achromatic ledger", seed 1225471516, brand palette and Geist kept). This
+section supersedes the token values below where they differ.
+
+- **Colour on data, not chrome.**
+  - Ink `#171717`; grey text `#5c5c5c`; borders `#e5e5e5`.
+  - Sidebar `#fafafa` with a neutral grey active pill (`#ebebeb`).
+  - The one filled primary per screen is near-black.
+  - Cobalt `#0c66e4` stays only for links, the brand mark, the pending status,
+    and the main data element (the current choice in a lineage strip; the
+    choices and open bars on the dashboard).
+  - Overdue uses the destructive red. Overlays have no blur.
+- **One canvas.** Every page starts on the same left edge, at most 1240px wide.
+  The h1 is 24px semibold, with no small label above it. Subtitles describe the
+  data, not the interface.
+- **Navigation.** Decisions, Check a proposal, Team memory, Scopes, Changes and
+  Settings. Recent left the nav; the `/recent` route still works. The unread
+  count appears as "Changes 3", and the workspace name sits under the mark.
+- **Signature element: the decision lineage strip**
+  (`components/decision-lineage.tsx`).
+  - It shows the earlier choice in grey, then an arrow, then the current choice,
+    with a 3px cobalt edge, and the stored "Why it changed".
+  - A replacement that was itself replaced is labelled "Later replaced" without
+    the hue.
+  - It appears in the proposal verdict, Detail "Why did this change?", scope
+    history and the proposal page's "Choices the team changed recently".
+- **Proposal review.**
+  - On screens of 1280px and wider, the form sits beside the results, so the
+    verdict is on the first screen.
+  - The verdict ("A similar choice was replaced") is the largest block.
+  - Before a check, three one-click synthetic examples and the latest
+    replacements fill the results column.
+- **Library.** The status and key share one line. Tags move to the metadata
+  line. A pending row keeps its deadline and its two actions on one line.
+  Metadata links are ink, not blue. Find by meaning is an outline button.
+- **Detail.** Copy summary, Copy link, Compare, Jira and Supersede are quiet
+  text actions beside Edit, and fold under More actions below 1024px. The
+  "How to reach the owner" row appears only when one is recorded.
+- **Dashboard.** See [the product contract](../product/dashboard.md).
+  - A 12-column grid with a 16px gutter: 7 + 5 columns (654 + 16 + 462 = 1132px
+    at 1440).
+  - Questions and search gaps lead the first screen. The trend chart and the
+    most consulted decisions sit below.
+  - "About these figures" is a quiet footer with the collection switch.
+- **Inspector.** `inspect.mjs --app` at 1440/768/390 gives 0 FAIL on Library,
+  Detail, Proposal and Dashboard. Two warnings remain, both defended:
+  - **Dev server:** the gate ran on Vite dev, and the production build passed
+    separately.
+  - **Proposal blank space before a check:** this is the screen's one rest, and
+    the verdict fills it once a check runs.
+
 ## Design Tokens
 
 Initial implementation targets, subject to screenshot matching:

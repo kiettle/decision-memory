@@ -368,37 +368,7 @@ function DecisionForm({ id }: { id?: string }) {
     )
   }
 
-  return (
-    <form
-      ref={formRef}
-      className="page-frame max-w-5xl pb-28"
-      onSubmit={submit}
-    >
-      <Button
-        variant="ghost"
-        size="sm"
-        render={
-          <Link
-            to={id ? `/decisions/${id}` : libraryUrl}
-            state={id ? origin : (origin?.libraryState ?? origin)}
-          />
-        }
-        nativeButton={false}
-        className="-ml-2 w-fit"
-      >
-        <ArrowLeft data-icon="inline-start" /> Back
-      </Button>
-      <div>
-        <p className="eyebrow">
-          {editing ? "Edit record" : "Capture a question or choice"}
-        </p>
-        <h1>{editing ? "Edit Decision" : "New Decision"}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {pending
-            ? "Start with the question. You can add context and record your choice later."
-            : "Save the choice now; add any supporting context when useful."}
-        </p>
-      </div>
+  const draftRecovery = (
       <section
         aria-label="Form draft recovery"
         className="flex flex-col gap-2 text-sm"
@@ -478,14 +448,36 @@ function DecisionForm({ id }: { id?: string }) {
         )}
         {storageError ? <p role="alert">{storageError}</p> : null}
       </section>
+  )
+
+  return (
+    <form
+      ref={formRef}
+      className="page-frame capture-page max-w-5xl pb-28"
+      onSubmit={submit}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        render={
+          <Link
+            to={id ? `/decisions/${id}` : libraryUrl}
+            state={id ? origin : (origin?.libraryState ?? origin)}
+          />
+        }
+        nativeButton={false}
+        className="-ml-2 w-fit"
+      >
+        <ArrowLeft data-icon="inline-start" /> Back
+      </Button>
+      <div>
+        <h1>{editing ? "Edit Decision" : "New Decision"}</h1>
+      </div>
+      {(recoverable || storageError) ? draftRecovery : null}
       <fieldset
         disabled={Boolean(recoverable) || saving}
         className="flex min-w-0 flex-col gap-6"
       >
-        {!editing ? <PasteNotes source={form.pastedSource} onChange={value => set("pastedSource", value)} onReview={choice => {
-          setForm(current => ({ ...current, decisionState: "DECIDED", outcome: choice }))
-          formRef.current?.querySelector<HTMLTextAreaElement>("#decision")?.focus()
-        }} /> : null}
         {!editing ? (
           <ToggleGroup
             aria-label="Decision type"
@@ -552,6 +544,10 @@ function DecisionForm({ id }: { id?: string }) {
                 </FieldDescription>
               </Field>
             ) : null}
+            {!editing ? <PasteNotes source={form.pastedSource} onChange={value => set("pastedSource", value)} onReview={choice => {
+          setForm(current => ({ ...current, decisionState: "DECIDED", outcome: choice }))
+          formRef.current?.querySelector<HTMLTextAreaElement>("#decision")?.focus()
+        }} /> : null}
             {/* Beside the question so automatic matches are visible while typing. */}
             {!editing && !recoverable ? (
               <RelatedDecisionSearch
@@ -790,6 +786,7 @@ function DecisionForm({ id }: { id?: string }) {
           </div>
         </details>
       </fieldset>
+      {!recoverable && !storageError ? draftRecovery : null}
       {!editing && !pending && !recoverable ? (
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="outline" disabled={saving || primaryValue.trim().length < 3} onClick={reviewChoice}>

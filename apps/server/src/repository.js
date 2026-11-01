@@ -1,4 +1,5 @@
 import { replacementReasonInput } from "./validation.js"
+import { createAnalyticsRecords } from "./analytics-records.js"
 import { Op, QueryTypes } from "sequelize"
 
 import { DomainError, requireDecisionTitle, validateSupersession } from "./domain.js"
@@ -117,6 +118,7 @@ export function createRepository(models) {
   }
 
   const projectMemory = createProjectMemory({ sequelize, Decision, User, resolveContext, getDecision })
+  const analytics = createAnalyticsRecords({ sequelize, resolveContext })
 
   async function idsFor(sql, replacements) {
     const rows = await sequelize.query(sql, { replacements, type: QueryTypes.SELECT })
@@ -669,6 +671,7 @@ export function createRepository(models) {
           ownerContact: blankToNull(input.ownerContact),
           createdById: user.id,
           status: "ACTIVE",
+          initialDecisionState: input.decisionState ?? "DECIDED",
           ...workflowFields(input),
         },
         { transaction },
@@ -937,6 +940,7 @@ export function createRepository(models) {
 
   return {
     ...projectMemory,
+    ...analytics,
     resolveContext,
     listDecisions,
     memorySearchCandidates,

@@ -1,6 +1,6 @@
 import { invokeRemote } from "@forge/bridge"
 
-type Method = "GET" | "POST" | "PUT"
+type Method = "GET" | "POST" | "PUT" | "DELETE"
 
 export async function forgeRequest(
   path: string,

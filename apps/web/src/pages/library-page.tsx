@@ -65,6 +65,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, type DecisionFilters } from "@/lib/api"
 import { slackChannels } from "@/lib/slack"
+import { recordSearch } from "@/lib/usage"
 import type {
   Decision,
   MemorySearchMatch,
@@ -136,6 +137,10 @@ export function LibraryPage() {
   const [metadataError, setMetadataError] = useState(false)
   const [metadataAttempt, setMetadataAttempt] = useState(0)
   const [loading, setLoading] = useState(true)
+  // Keyword searches count for the Dashboard only when submitted with Enter.
+  const [loadedFor, setLoadedFor] = useState("")
+  const submittedSearch = useRef<{ query: string; key: string } | null>(null)
+  const [unhelpfulFor, setUnhelpfulFor] = useState("")
   const [error, setError] = useState("")
   const [memoryResult, setMemoryResult] = useState<MemorySearchResponse | null>(
     location.state?.memoryResult ?? null
@@ -205,6 +210,11 @@ export function LibraryPage() {
     }
   }, [metadataAttempt])
 
+  const scopeForEvents = filters.appliesTo === "ALL" ? undefined : filters.appliesTo
+  const recordKeywordSearch = useCallback((query: string, count: number) => recordSearch({
+    query, scope: scopeForEvents, method: "KEYWORD", outcome: count ? "RESULTS" : "NO_RESULTS", resultCount: count,
+  }), [scopeForEvents])
+
   const load = useCallback(async () => {
     // Ignore responses from searches the user has already typed past.
     const request = ++latestRequest.current
@@ -214,6 +224,12 @@ export function LibraryPage() {
       const decisionRows = await api.decisions(apiFilters)
       if (request !== latestRequest.current) return
       setDecisions(recentOnly ? decisionRows.slice(0, 5) : decisionRows)
+      const loadedKey = JSON.stringify(apiFilters)
+      setLoadedFor(loadedKey)
+      if (submittedSearch.current?.key === loadedKey) {
+        recordKeywordSearch(submittedSearch.current.query, decisionRows.length)
+        submittedSearch.current = null
+      }
       setKeywordEmptyFor(decisionRows.length ? "" : JSON.stringify(apiFilters))
     } catch (loadError) {
       if (request !== latestRequest.current) return
@@ -225,7 +241,7 @@ export function LibraryPage() {
     } finally {
       if (request === latestRequest.current) setLoading(false)
     }
-  }, [apiFilters, recentOnly])
+  }, [apiFilters, recentOnly, recordKeywordSearch])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void load(), filters.q ? 180 : 0)
@@ -284,6 +300,14 @@ export function LibraryPage() {
         method
       )
       if (request !== memoryRequest.current) return
+      if (!automatic)
+        recordSearch({
+          query: filters.q,
+          scope: filters.appliesTo === "ALL" ? undefined : filters.appliesTo,
+          method,
+          outcome: result.matches.length ? "RESULTS" : "NO_RESULTS",
+          resultCount: result.matches.length,
+        })
       if (automatic && !result.matches.length) {
         // Keep the keyword empty state; it says meaning search found nothing too.
         setAutoMeaningEmptyFor(key)
@@ -334,6 +358,33 @@ export function LibraryPage() {
   const displayedDecisions = memoryResult
     ? memoryResult.matches.map((match) => match.decision)
     : decisions
+  const resultsLoading = loading && !memoryResult
+  const feedbackKey = `${filterKey}:${memoryResult?.method ?? "KEYWORD"}`
+  const unhelpfulAction =
+    metadata?.features.usageTracking && filters.q.trim() && !resultsLoading && !memorySearching && !(error && !memoryResult) ? (
+      unhelpfulFor === feedbackKey ? (
+        <span className="text-xs font-normal text-muted-foreground" role="status">Noted for the team Dashboard</span>
+      ) : (
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs font-normal text-muted-foreground"
+          onClick={() => {
+            recordSearch({
+              query: filters.q,
+              scope: filters.appliesTo === "ALL" ? undefined : filters.appliesTo,
+              method: memoryResult?.method ?? "KEYWORD",
+              outcome: "UNHELPFUL",
+              resultCount: displayedDecisions.length,
+            })
+            setUnhelpfulFor(feedbackKey)
+          }}
+        >
+          Not what I needed
+        </Button>
+      )
+    ) : null
+  const resultsUnavailable = Boolean(error && !memoryResult)
   const matchesByDecision = new Map(
     (memoryResult?.matches ?? []).map((match) => [match.decisionId, match])
   )
@@ -350,12 +401,12 @@ export function LibraryPage() {
   const memoryHelp = !memoryAllowed
     ? "Use keyword search for pending questions and deadline filters."
     : filters.q.trim().length < 3
-      ? "Enter at least 3 characters to find recorded choices by meaning."
+      ? "Type at least 3 characters for meaning search."
       : !metadata?.features.memorySearch
-        ? "Local meaning search is unavailable. Keyword search is still available."
+        ? "Meaning search unavailable. Use keyword search."
         : identifierOnly
-          ? "Decision keys use keyword results. Choose Find by meaning to search for similar choices."
-          : "It runs on this computer, and by itself when keywords find nothing."
+          ? "Decision keys use keywords. Meaning search is optional."
+          : "Local search also runs when keywords find nothing."
 
   const options = useMemo(
     () => ({
@@ -538,6 +589,9 @@ export function LibraryPage() {
     return () => window.removeEventListener("popstate", clearSearchOnHistory)
   }, [clearSearchOnHistory])
 
+  const recordQuestionAction = (<Button variant="outline" render={<Link to="/decisions/new" state={{ questionPrefill: filters.q, scopePrefill: filters.appliesTo === "ALL" ? undefined : filters.appliesTo, libraryUrl: location.pathname + location.search }} />} nativeButton={false}>Record unanswered question</Button>)
+  const reviewProposalAction = (<Button variant="outline" render={<Link to="/check-proposal" state={{ proposalDraft: { proposal: filters.q, appliesTo: filters.appliesTo === "ALL" ? "" : filters.appliesTo }, proposalOrigin: location.pathname + location.search }} />} nativeButton={false}>Check a proposal against evidence</Button>)
+
   return (
     <div className="page-frame library-page">
       <CompletionReturn onSaved={onSaved} />
@@ -570,13 +624,18 @@ export function LibraryPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <div className="grid grid-cols-2 items-start gap-x-2 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-y-2">
         <InputGroup className="col-span-2 h-11 rounded-lg border-border bg-background sm:col-span-1">
           <InputGroupInput
             aria-label="Search decisions"
-            placeholder="Search decisions, context, channels, or captured discussion..."
+            placeholder="Search decisions or evidence…"
             value={filters.q}
             onChange={(event) => updateFilter("q", event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || !filters.q.trim() || memoryResult) return
+              if (!loading && loadedFor === filterKey) recordKeywordSearch(filters.q, decisions.length)
+              else submittedSearch.current = { query: filters.q.trim(), key: filterKey }
+            }}
             className="h-10 px-1 text-base"
           />
           <InputGroupAddon align="inline-start" className="pl-4">
@@ -584,6 +643,7 @@ export function LibraryPage() {
           </InputGroupAddon>
         </InputGroup>
         <Button
+          variant="outline"
           size="lg"
           className="h-11"
           title="Find by meaning"
@@ -645,9 +705,6 @@ export function LibraryPage() {
           id="meaning-search-help"
           className="col-span-2 text-xs leading-5 text-muted-foreground sm:col-span-3"
         >
-          <span className="hidden lg:inline">
-            Remember the idea, not the wording? Use Find by meaning.{" "}
-          </span>
           {memoryHelp}
         </p>
       </div>
@@ -659,13 +716,13 @@ export function LibraryPage() {
       ) : null}
 
       {memoryResult ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted px-4 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-primary text-primary-foreground">
+            <Badge variant="outline" className="bg-background">
               <Sparkles />{" "}
               {geminiResult ? "Gemini AI match" : "Local semantic match"}
             </Badge>
-            <span className="text-slate-700">
+            <span className="text-foreground/80">
               {memoryResult.automatic
                 ? "No exact keyword matches, so we searched by meaning. "
                 : ""}
@@ -763,7 +820,7 @@ export function LibraryPage() {
               <span className="max-sm:sr-only">More filters</span>
               {moreFilterCount ? ` (${moreFilterCount})` : ""}
             </SheetTrigger>
-            <SheetContent side="bottom" className="max-h-[85svh] rounded-t-2xl">
+            <SheetContent side="bottom" className="max-h-[85svh] rounded-t-lg">
               <SheetHeader>
                 <SheetTitle>More filters</SheetTitle>
                 <SheetDescription>
@@ -819,9 +876,10 @@ export function LibraryPage() {
       ) : null}
 
       <div className="library-results-toolbar">
-        <span className="text-sm font-semibold">
-          {loading && !memoryResult
-            ? "Loading decisions…"
+        <span className="text-sm font-semibold" role="status" aria-live="polite" aria-atomic="true">
+          {resultsLoading ? <>Loading…<span className="sr-only"> decisions</span></> : resultsUnavailable
+            ? "Unavailable"
+            : memorySearching ? "Searching…"
             : `${displayedDecisions.length} decision${displayedDecisions.length === 1 ? "" : "s"}`}
           {memoryResult ? (
             <span className="font-normal text-muted-foreground">
@@ -830,6 +888,7 @@ export function LibraryPage() {
             </span>
           ) : null}
         </span>
+        {unhelpfulAction}
         {!recentOnly && view === "flat" && !memoryResult ? (
           <FilterSelect
             label="Sort"
@@ -894,28 +953,34 @@ export function LibraryPage() {
         ) : null}
       </div>
 
-      {!recentOnly && filters.q.trim() ? <section aria-label="Search next steps" className="grid gap-3">
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link to="/decisions/new" state={{ questionPrefill: filters.q, scopePrefill: filters.appliesTo === "ALL" ? undefined : filters.appliesTo, libraryUrl: location.pathname + location.search }} />} nativeButton={false}>Record unanswered question</Button>
-          <Button variant="outline" render={<Link to="/check-proposal" state={{ proposalDraft: { proposal: filters.q, appliesTo: filters.appliesTo === "ALL" ? "" : filters.appliesTo }, proposalOrigin: location.pathname + location.search }} />} nativeButton={false}>Check a proposal against evidence</Button>
-        </div>
-        {!loading && !error && displayedDecisions.length ? <CurrentAnswers ids={displayedDecisions.map(d => d.id)} scope={filters.appliesTo === "ALL" ? undefined : filters.appliesTo} /> : <p className="text-sm text-muted-foreground">No sufficient answer yet? Keep the query and scope as a pending question, assign an owner in More details, then explicitly follow it from the saved record. No result is not approval.</p>}
+      {!recentOnly && filters.q.trim() && !resultsLoading && !resultsUnavailable && displayedDecisions.length ? <section aria-label="Search next steps" className="search-next-steps">
+        <CurrentAnswers ids={displayedDecisions.map(d => d.id)} scope={filters.appliesTo === "ALL" ? undefined : filters.appliesTo} />
+        <details className="search-actions">
+          <summary>Record a question or check a proposal</summary>
+          <div className="flex flex-wrap gap-2 pt-3">
+            {recordQuestionAction}
+            {reviewProposalAction}
+          </div>
+        </details>
       </section> : null}
 
-      {error && !memoryResult ? (
-        <Empty className="border-y py-20">
-          <EmptyHeader>
+      <section aria-label="Decision results" aria-busy={Boolean(resultsLoading || memorySearching)} className="min-w-0">
+      {resultsUnavailable ? (
+        <Empty role="alert" className="items-start justify-start gap-4 rounded-lg border border-solid p-4 text-left sm:p-5">
+          <EmptyHeader className="items-start">
             <EmptyTitle>Could not load the Decision Library</EmptyTitle>
             <EmptyDescription>
-              {error} Check that PostgreSQL and the API are running.
+              {error} Your query and filters are kept.
             </EmptyDescription>
           </EmptyHeader>
-          <Button variant="outline" onClick={() => void load()}>
-            Try again
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => void load()}>Try again</Button>
+            {!recentOnly && filters.q.trim() ? recordQuestionAction : null}
+          </div>
+          {!recentOnly && filters.q.trim() ? <details className="text-sm"><summary className="cursor-pointer py-2">Other search actions</summary><div className="pt-2">{reviewProposalAction}</div></details> : null}
         </Empty>
-      ) : loading && !memoryResult ? (
-        <LoadingRows />
+      ) : resultsLoading ? (
+        <LoadingRows previous={decisions} />
       ) : !recentOnly && view === "kanban" && displayedDecisions.length ? (
         <DecisionBoard
           key={location.search.replace(/(?:\?|&)view=[^&]+/, "")}
@@ -935,8 +1000,8 @@ export function LibraryPage() {
           onFilter={updateFilter}
         />
       ) : (
-        <Empty className="border-y py-20">
-          <EmptyHeader>
+        <Empty className="items-start justify-start gap-4 rounded-lg border border-solid p-4 text-left sm:p-5">
+          <EmptyHeader className="items-start">
             <EmptyTitle role="heading" aria-level={2}>
               {memoryResult
                 ? "No memory matches in the searched decisions"
@@ -958,9 +1023,12 @@ export function LibraryPage() {
                       : activeFilterCount || filters.q.trim()
                         ? "Try different words or remove a filter."
                         : "Capture a pending question or a choice your team has already made."}
+              {filters.q.trim() && !memorySearching ? " No result is not approval." : ""}
             </EmptyDescription>
           </EmptyHeader>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap gap-2">
+            {!recentOnly && filters.q.trim() && !memorySearching ? recordQuestionAction : null}
+            {!recentOnly && filters.q.trim() && !memorySearching ? reviewProposalAction : null}
             {memoryResult ? (
               <Button
                 variant="outline"
@@ -1033,6 +1101,7 @@ export function LibraryPage() {
           </div>
         </Empty>
       )}
+      </section>
     </div>
   )
 }
@@ -1099,6 +1168,14 @@ function DecisionRow({
           status={decision.status}
           decisionState={decision.decisionState}
         />
+        <span className="decision-key">
+          {decision.decisionKey}
+          {decision.supersededBy?.length
+            ? ` · Superseded by ${decision.supersededBy
+                .map((item) => item.decisionKey)
+                .join(", ")}`
+            : ""}
+        </span>
       </div>
       <div className="decision-primary">
         <Link
@@ -1111,42 +1188,23 @@ function DecisionRow({
         >
           {headline(decision)}
         </Link>
-        <span className="decision-key">
-          {decision.decisionKey}
-          {decision.supersededBy?.length
-            ? ` · Superseded by ${decision.supersededBy
-                .map((item) => item.decisionKey)
-                .join(", ")}`
-            : ""}
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {decision.tags.map((tag) => (
-            <LibraryMetadataFilter
-              key={tag}
-              field="tag"
-              value={tag}
-              label={`Tag to ${tag}`}
-              onFilter={onFilter}
-            >
-              {tag}
-            </LibraryMetadataFilter>
-          ))}
-        </div>
         {decision.decisionState === "PENDING" || decision.dueDate ? (
-          <DecisionDeadline decision={decision} today={today} />
-        ) : null}
-        {decision.decisionState === "PENDING" ? (
-          <DecisionActions decision={decision} onSaved={onSaved} secondary />
+          <div className="decision-pending-line">
+            <DecisionDeadline decision={decision} today={today} />
+            {decision.decisionState === "PENDING" ? (
+              <DecisionActions decision={decision} onSaved={onSaved} secondary />
+            ) : null}
+          </div>
         ) : null}
         {memoryMatch ? (
-          <div className="mt-1 grid gap-1.5 rounded-md border border-blue-100 bg-blue-50/80 p-2.5 text-xs leading-5 text-blue-950">
+          <div className="mt-1 grid gap-1.5 rounded-md bg-muted p-2.5 text-xs leading-5 text-foreground">
             <span className="font-semibold">
               {method === "GEMINI" ? "Gemini AI match" : "Local semantic match"}{" "}
               · relevance {Math.round(memoryMatch.score)}/100
             </span>
             <span>{memoryMatch.explanation}</span>
             {memoryMatch.matchedConcepts.length ? (
-              <span className="text-blue-700">
+              <span className="text-muted-foreground">
                 {memoryMatch.matchedConcepts.join(" · ")}
               </span>
             ) : null}
@@ -1231,20 +1289,43 @@ function DecisionRow({
             </span>
           </span>
         ) : null}
+        {decision.tags.length ? (
+          <span className="flex flex-wrap gap-1.5">
+            {decision.tags.map((tag) => (
+              <LibraryMetadataFilter
+                key={tag}
+                field="tag"
+                value={tag}
+                label={`Tag to ${tag}`}
+                onFilter={onFilter}
+              >
+                {tag}
+              </LibraryMetadataFilter>
+            ))}
+          </span>
+        ) : null}
       </div>
     </article>
   )
 }
 
-function LoadingRows() {
+function LoadingRows({ previous }: { previous: Decision[] }) {
+  const rows = previous.length ? previous.slice(0, 6) : Array.from({ length: 4 }, () => null)
   return (
-    <div className="grid border-y">
-      {[0, 1, 2, 3].map((item) => (
-        <div key={item} className="flex gap-5 border-b py-6 last:border-b-0">
-          <Skeleton className="h-5 w-24" />
-          <div className="grid flex-1 gap-2">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-4 w-2/3" />
+    <div className="decision-list" aria-hidden="true">
+      {rows.map((row, index) => (
+        <div key={index} className="decision-loading-row">
+          <Skeleton className="h-5 w-20" />
+          <div className="decision-primary">
+            <Skeleton className="h-5 w-4/5 max-w-lg" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          {row?.decisionState === "PENDING" || !row ? <>
+            <div className="grid gap-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-20" /></div>
+            <div className="flex gap-2"><Skeleton className="h-11 w-28 sm:h-7" /><Skeleton className="h-11 w-24 sm:h-7" /></div>
+          </> : row.why ? <Skeleton className="h-4 w-5/6" /> : null}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Skeleton className="h-11 w-16 sm:h-7" /><Skeleton className="h-5 w-28" /><Skeleton className="h-5 w-24" /><Skeleton className="h-4 w-20" />
           </div>
         </div>
       ))}

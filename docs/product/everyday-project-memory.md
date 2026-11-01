@@ -27,6 +27,13 @@ pending form. Existing local thresholds and explicit thread-summary consent rema
 No result means no recorded answer found, never approval. Search suggestions and
 AI assessments are not confirmed decisions.
 
+Presentation refinement (2026-10-29): loading and failed web searches show their
+actual status before capture actions. A failed request has no result count;
+query/scope remain available for Retry or manual question capture. Completed
+matches expose current-answer evidence plus a **Record a question or check a
+proposal** disclosure. Completed empty results offer question capture directly.
+These changes do not change retrieval, automatic local fallback or Gemini consent.
+
 ## Paste and review capture
 
 The existing New Decision form offers **Paste meeting notes or discussion**.
@@ -73,6 +80,12 @@ are separate, labelled not decided, with owner/contact context and record links.
 The existing recent scope replacement history remains below. Every item leads to
 its underlying record. Options Considered does not establish rejection. The brief
 works without AI and does not invent missing rationale.
+
+The polished brief groups owner/contact context and keeps supporting excerpts and
+links in **Evidence and history**. Replacement reasons remain visible. In the full
+current list, curated rows offer **Read in project brief** instead of repeating
+their full explanation. This jump focuses the brief and preserves the route;
+reduced-motion preferences are respected. Every title still opens its full record.
 
 ## Unanswered questions
 

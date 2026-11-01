@@ -85,8 +85,9 @@ It is not a backup of the entire Slack workspace.
 
 **What has been tested?**
 
-The latest recorded run passed 117 automated tests, lint, typecheck, build,
-database checks, and desktop/mobile browser checks. Real offline memory search
+The latest recorded run (2026-11-01) passed 147 unit tests, lint, typecheck,
+build, the database integration suite, and desktop/mobile browser checks,
+including the Team memory dashboard. Real offline memory search
 also passed. The latest synthetic proposal evaluation matched 23 of 24 expected
 outcomes, with one timeout and no incorrect completed verdict.
 

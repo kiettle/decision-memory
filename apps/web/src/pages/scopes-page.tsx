@@ -5,8 +5,10 @@ import { Link, useSearchParams } from "react-router-dom"
 import type { DecisionNavigationState } from "@/lib/decision-navigation"
 
 import { headline } from "../../../../shared/decision-deadlines.js"
+import { DecisionLineage } from "@/components/decision-lineage"
 import { StatusBadge } from "@/components/status-badge"
 import { FollowButton } from "@/components/follow-button"
+import { ScopeBrief } from "@/components/scope-brief"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -65,11 +67,9 @@ function ScopeDirectory() {
   return (
     <div className="page-frame">
       <div>
-        <p className="eyebrow">Understand a service before your next change</p>
         <h1>Scope overviews</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Explore current choices, pending questions, and how decisions evolved for
-          each service, feature, or component.
+        <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Current choices, open questions and replacements for each service, feature or component.
         </p>
       </div>
       <InputGroup>
@@ -216,7 +216,7 @@ function ScopeDetail({ scope }: { scope: string }) {
   }, [scope, retry])
   const libraryUrl = `/?${new URLSearchParams({ appliesTo: scope })}`
   return (
-    <div className="page-frame max-w-[1240px]">
+    <div className="page-frame scope-detail-page max-w-[1240px]">
       <Button
         className="w-fit"
         variant="ghost"
@@ -227,17 +227,17 @@ function ScopeDetail({ scope }: { scope: string }) {
       </Button>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="eyebrow">Scope overview</p>
           <h1 className="break-words">{scope}</h1>
           <p className="mt-3 text-sm text-muted-foreground">
             What applies today, why it was chosen, and what changed.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="scope-actions">
           {overview ? (
             <>
               <FollowButton kind="SCOPE" target={scope} />
               <Button
+                aria-label="Check a proposal in this scope"
                 render={
                   <Link
                     to="/check-proposal"
@@ -251,10 +251,11 @@ function ScopeDetail({ scope }: { scope: string }) {
                 }
                 nativeButton={false}
               >
-                Check a proposal in this scope
+                <span className="sm:hidden">Check a proposal</span><span className="hidden sm:inline">Check a proposal in this scope</span>
               </Button>
               <Button
                 variant="outline"
+                aria-label="New decision in this scope"
                 render={
                   <Link
                     to="/decisions/new"
@@ -268,16 +269,17 @@ function ScopeDetail({ scope }: { scope: string }) {
                 }
                 nativeButton={false}
               >
-                New decision in this scope
+                <span className="sm:hidden">New decision</span><span className="hidden sm:inline">New decision in this scope</span>
               </Button>
             </>
           ) : null}
           <Button
             variant="outline"
+            aria-label="Browse all decisions"
             render={<Link to={libraryUrl} />}
             nativeButton={false}
           >
-            Browse all decisions <ArrowRight data-icon="inline-end" />
+            <span className="sm:hidden">Browse decisions</span><span className="hidden sm:inline">Browse all decisions</span> <ArrowRight data-icon="inline-end" />
           </Button>
         </div>
       </div>
@@ -302,28 +304,7 @@ function ScopeDetail({ scope }: { scope: string }) {
         </Empty>
       ) : (
         <>
-          <section aria-label="Project brief" className="grid gap-4 border-y py-5">
-            <h2 className="text-lg font-semibold">Project brief</h2>
-            <p className="text-sm text-muted-foreground">Important current choices selected by their linked owners. Every item opens its record and evidence. No AI summary is required.</p>
-            {overview.activeDecisions.filter(decision => decision.handoverImportant).length ? overview.activeDecisions.filter(decision => decision.handoverImportant).map(decision => <article key={decision.id} className="grid gap-2 border-b pb-4">
-              <h3 className="font-semibold"><Link className="underline" to={`/decisions/${decision.id}`}>{decision.decisionKey} · {headline(decision)}</Link></h3>
-              <p className="whitespace-pre-wrap text-sm"><strong>Why: </strong>{decision.why || "No rationale was recorded."}</p>
-              <p className="text-sm">Exact scope: {decision.appliesTo.join(", ") || "Not recorded"}</p>
-              <p className="text-sm">Owner: {decision.owner?.displayName ?? decision.ownerName ?? "Unassigned"} · Contact context: {decision.ownerContact || "Not recorded"}</p>
-              {(decision.sources ?? []).map(source => <blockquote key={source.id} className="border-l-2 pl-3 text-sm whitespace-pre-wrap">{source.provider === "PASTED_NOTES" ? `Pasted notes · ${source.sourceContext?.origin ?? "Supplied label"}` : source.provider}: {source.anchorText?.slice(0, 500) || source.messages?.find(message => message.anchor)?.text.slice(0, 500) || "No source excerpt recorded."}</blockquote>)}
-              {!decision.sources?.length && !decision.references?.length ? <p className="text-sm">Supporting evidence is missing.</p> : null}
-              {(decision.references ?? []).map(reference => <a key={reference.id} className="text-sm underline" href={reference.url} target="_blank" rel="noreferrer">{reference.label}</a>)}
-              {decision.lifecycle?.supersedes.map(previous => <p key={previous.id} className="text-sm"><Link className="underline" to={`/decisions/${previous.id}`}>Previously {previous.decisionKey} · {previous.outcome ?? previous.title}</Link> · What changed: {previous.replacementReason || "No replacement reason recorded."}</p>)}
-              <Link className="text-sm underline" to={`/decisions/${decision.id}`}>Inspect supporting evidence and replacement history ({decision.evidenceCount} captured sources)</Link>
-            </article>) : <p className="text-sm text-muted-foreground">No important choices selected yet. A linked decision owner can mark a current choice from its detail page.</p>}
-            <h3 className="font-semibold">Open questions</h3>
-            {overview.openQuestions.length ? overview.openQuestions.map(question => <article key={question.id} className="grid gap-1 border-b pb-3 text-sm">
-              <Link className="underline" to={`/decisions/${question.id}`}>{question.decisionKey} · {question.title}</Link>
-              <p>Not yet decided · Owner: {question.owner?.displayName ?? question.ownerName ?? "Unassigned"} · Contact context: {question.ownerContact || "Not recorded"}</p>
-              <Link className="underline" to={`/decisions/${question.id}`}>Open question, follow resolution or record the answer</Link>
-            </article>) : <p className="text-sm text-muted-foreground">No pending questions in this scope.</p>}
-            <p className="text-sm text-muted-foreground">Recent scope replacements are recorded below under How this scope evolved.</p>
-          </section>
+          <ScopeBrief overview={overview} />
           <section aria-label="Active decisions" className="grid gap-5">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-lg font-semibold">Current decisions</h2>
@@ -364,6 +345,11 @@ function ScopeDetail({ scope }: { scope: string }) {
                         {headline(decision)}
                       </Link>
                     </h3>
+                    {decision.handoverImportant ? <Button className="w-fit" variant="link" onClick={() => {
+                      const brief = document.getElementById(`brief-${decision.id}`)
+                      brief?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+                      brief?.focus({ preventScroll: true })
+                    }}>Read in project brief</Button> : <>
                     <p className="text-sm leading-6 break-words whitespace-pre-wrap">
                       <strong>Why: </strong>
                       {decision.why || "No rationale was recorded."}
@@ -373,6 +359,7 @@ function ScopeDetail({ scope }: { scope: string }) {
                         {decision.context}
                       </p>
                     ) : null}
+                    </>}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                       <span>
                         {decision.owner?.displayName ??
@@ -428,55 +415,31 @@ function ScopeDetail({ scope }: { scope: string }) {
                     <p className="text-xs text-muted-foreground">
                       {recordedDate(change.replacedAt)}
                     </p>
-                    <div className="grid gap-2 text-sm">
-                      <p>
-                        <span className="text-muted-foreground">
-                          Previously:{" "}
-                        </span>
-                        <Link
-                          to={`/decisions/${change.previous.id}`}
-                          className="underline underline-offset-4"
+                    <DecisionLineage
+                      earlier={{ id: change.previous.id, decisionKey: change.previous.decisionKey, title: headline(change.previous) }}
+                      current={{ id: change.replacement.id, decisionKey: change.replacement.decisionKey, title: headline(change.replacement) }}
+                      currentIsActive={change.replacement.status === "ACTIVE"}
+                      reason={change.replacementReason}
+                      actions={
+                        <Button
+                          className="w-fit"
+                          variant="outline"
+                          render={
+                            <Link
+                              to={comparisonHref(
+                                change.previous.id,
+                                change.replacement.id
+                              )}
+                              state={{ returnUrl: scopeHref(scope) }}
+                            />
+                          }
+                          nativeButton={false}
                         >
-                          {change.previous.decisionKey} ·{" "}
-                          {headline(change.previous)}
-                        </Link>
-                      </p>
-                      <p>
-                        <span className="text-muted-foreground">
-                          Replaced by:{" "}
-                        </span>
-                        <Link
-                          to={`/decisions/${change.replacement.id}`}
-                          className="underline underline-offset-4"
-                        >
-                          {change.replacement.decisionKey} ·{" "}
-                          {headline(change.replacement)}
-                        </Link>{" "}
-                        <StatusBadge status={change.replacement.status} />
-                      </p>
-                    </div>
-                    <p className="text-sm leading-6 break-words whitespace-pre-wrap">
-                      <strong>What changed: </strong>
-                      {change.replacementReason ||
-                        "No replacement reason was recorded."}
-                    </p>
-                    <Button
-                      className="w-fit"
-                      variant="outline"
-                      render={
-                        <Link
-                          to={comparisonHref(
-                            change.previous.id,
-                            change.replacement.id
-                          )}
-                          state={{ returnUrl: scopeHref(scope) }}
-                        />
+                          Compare before and after{" "}
+                          <ArrowRight data-icon="inline-end" />
+                        </Button>
                       }
-                      nativeButton={false}
-                    >
-                      Compare before and after{" "}
-                      <ArrowRight data-icon="inline-end" />
-                    </Button>
+                    />
                   </li>
                 ))}
               </ol>

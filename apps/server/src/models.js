@@ -70,6 +70,7 @@ export function createDatabase(databaseUrl, logging = false) {
       handoverImportant: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       status: { type: DataTypes.TEXT, allowNull: false, defaultValue: "ACTIVE" },
       decisionState: { type: DataTypes.TEXT, allowNull: false, defaultValue: "DECIDED" },
+      initialDecisionState: DataTypes.TEXT,
       dueDate: DataTypes.DATEONLY,
       outcome: DataTypes.TEXT,
       decidedAt: DataTypes.DATE,

@@ -39,3 +39,12 @@ navigation problems from missing recorded information. For capture, report both
 entry effort and review/correction effort. Ask whether they would use this during
 an ordinary meeting and what they would omit. Automated tests establish behavior
 and access boundaries; only these observations can support a user-benefit claim.
+
+For the UI polish follow-up, repeat the find, capture and handover tasks on a
+phone as well as desktop. Also observe a staged search failure using synthetic
+data: can the participant identify that results are unavailable, find Retry, or
+preserve the query/scope as a pending question without treating failure as no
+recorded answer? Record time to focus the capture field, total capture effort,
+correct scope identification, recovery completion and assistance. Check whether
+the evidence disclosure and brief jump are discovered unaided. Leave results blank
+until observed; a design score or automated pass is not evidence of user benefit.

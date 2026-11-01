@@ -30,9 +30,9 @@ export function ChangesPage() {
     catch (error) { setError(error instanceof Error ? error.message : "Could not unfollow."); setBusy(false) }
   }
   return <div className="page-frame max-w-5xl">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="eyebrow">Your follows</p><h1>Changes</h1><p className="mt-2 text-muted-foreground">Recorded changes to decisions and scopes you explicitly follow.</p></div>
-      <Button variant="outline" disabled={busy} onClick={() => void refresh()}>Refresh changes</Button></div>
-    <p className="text-sm text-muted-foreground">In-app only. Follow a decision or scope to see future changes here. Local demo sessions share the configured identity.</p>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h1>Changes</h1><p className="mt-2 text-muted-foreground">What changed in the decisions and scopes you follow.</p></div>
+      <Button variant="outline" aria-label="Refresh changes" disabled={busy} onClick={() => void refresh()}>{busy ? "Refreshing…" : "Refresh changes"}</Button></div>
+    <details className="text-sm text-muted-foreground"><summary className="w-fit cursor-pointer py-2">About your follows</summary><p className="mt-2">In-app only. Follow a decision or scope to see future changes here. Local demo sessions share the configured identity.</p></details>
     {error ? <p role="alert">{error}</p> : null}
     {!feed && busy ? <p role="status">Loading changes…</p> : null}
     {feed ? <>
@@ -42,13 +42,15 @@ export function ChangesPage() {
         catch { setError("Could not mark changes read. Retry.") }
         finally { setBusy(false) }
       }}>Mark displayed changes read</Button>
-      <section aria-label="Followed changes" className="divide-y border-y">
+      <section aria-label="Followed changes" aria-busy={busy} className="divide-y border-y">
         {!feed.items.length ? <p className="py-6 text-muted-foreground">No changes since you started following. Nothing here implies approval of a choice.</p> : feed.items.map(item => <article key={item.id} className="grid gap-3 py-6 break-words">
           <div className="flex flex-wrap gap-2"><Badge variant="outline">{({ RECORDED: "New recorded choice", UPDATED: "Choice, reason or scope changed", ANSWERED: "Question answered", REPLACED: "Decision replaced" })[item.kind]}</Badge>
             {!item.read ? <Badge variant="secondary">Unread</Badge> : null}
             <span className="text-sm text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</span></div>
-          {item.previous ? <p><strong>{item.kind === "ANSWERED" ? "Original question" : "Previously"}: </strong><Link className="underline" to={`/decisions/${item.previous.id}`} state={{ libraryUrl: "/changes" }}>{item.previous.decisionKey} · {item.previous.choice ?? item.previous.title}</Link></p> : null}
-          <p><strong>Recorded choice: </strong><Link className="underline" to={`/decisions/${item.current.id}`} state={{ libraryUrl: "/changes" }}>{item.current.decisionKey} · {item.current.choice}</Link></p>
+          <div className="change-comparison">
+            {item.previous ? <div><p className="mb-2 text-sm text-muted-foreground">{item.kind === "ANSWERED" ? "Original question" : "Previously"}</p><Link className="font-medium leading-6 hover:text-primary hover:underline" to={`/decisions/${item.previous.id}`} state={{ libraryUrl: "/changes" }}>{item.previous.choice ?? item.previous.title}</Link><p className="decision-key mt-2">{item.previous.decisionKey}</p></div> : null}
+            <div><p className="mb-2 text-sm text-muted-foreground">Recorded choice</p><Link className="font-semibold leading-6 hover:text-primary hover:underline" to={`/decisions/${item.current.id}`} state={{ libraryUrl: "/changes" }}>{item.current.choice}</Link><p className="decision-key mt-2">{item.current.decisionKey}</p></div>
+          </div>
           <p className="whitespace-pre-wrap"><strong>{item.kind === "REPLACED" ? "Replacement reason" : "Recorded rationale"}: </strong>{item.reason || "No reason was recorded."}</p>
           {item.previous && item.previous.why !== item.current.why ? <p className="whitespace-pre-wrap text-sm">Previous rationale: {item.previous.why || "Not recorded"}</p> : null}
           <p className="text-sm">Previous scope: {item.previous?.appliesTo.join(", ") || "Not recorded"} · Current scope: {item.current.appliesTo.join(", ") || "Not recorded"}</p>

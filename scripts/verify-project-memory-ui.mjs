@@ -1,5 +1,51 @@
 import assert from "node:assert/strict"
 
+export async function verifyUnreadRefreshUi({ browser }) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+  const page = await context.newPage()
+  const errors = []
+  page.on("pageerror", error => errors.push(error.message))
+  page.on("console", message => { if (message.type() === "error") errors.push(message.text()) })
+  let releaseOld
+  const waiting = new Promise(resolve => { releaseOld = resolve })
+  let calls = 0
+  try {
+    await page.route("**/api/notifications", async route => {
+      const call = ++calls
+      if (call === 2) await waiting
+      const unread = call === 1 || call === 2 ? 1 : call === 4 ? 2 : 0
+      await route.fulfill({ json: { items: Array.from({ length: unread }, (_, index) => ({ id: `synthetic-unread-${index}`, read: false })), asOf: new Date().toISOString() } })
+    })
+    await page.goto("http://localhost:5173/#/recent")
+    const nav = page.getByRole("navigation", { name: "Primary navigation", exact: true })
+    await nav.getByLabel("1 unread changes", { exact: true }).waitFor()
+    const started = page.waitForRequest(request => request.url().endsWith("/api/notifications"))
+    await page.evaluate(() => window.dispatchEvent(new Event("memory-changes")))
+    await started
+    const newer = page.waitForResponse(response => response.url().endsWith("/api/notifications"))
+    await page.evaluate(() => window.dispatchEvent(new Event("memory-changes")))
+    await newer
+    await nav.getByLabel("1 unread changes", { exact: true }).waitFor({ state: "hidden" })
+    const older = page.waitForResponse(response => response.url().endsWith("/api/notifications"))
+    releaseOld()
+    await older
+    // Let response.json(), React state updates and rendering finish before
+    // asserting absence. The old response must actually reach the component.
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    assert.equal(await nav.getByLabel("1 unread changes", { exact: true }).count(), 0,
+      "An older notification response must not restore a stale unread badge after a newer refresh. Preserve AppShell's latest-refresh guard (owner-authorized repair, 2026-10-29).")
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")))
+    await nav.getByLabel("2 unread changes", { exact: true }).waitFor()
+    await page.evaluate(() => window.dispatchEvent(new Event("memory-changes")))
+    await nav.getByLabel("2 unread changes", { exact: true }).waitFor({ state: "hidden" })
+    assert.deepEqual(errors, [])
+    console.log("Unread refresh UI passed: older responses ignored after newer reads; subsequent focus and change refreshes still update the badge")
+  } finally {
+    releaseOld()
+    await context.close()
+  }
+}
+
 export async function verifyProjectMemoryUi({ browser, models, workspace }) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
   const page = await context.newPage()

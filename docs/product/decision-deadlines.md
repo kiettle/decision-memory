@@ -54,6 +54,18 @@ Native validation: npm test, npm run test:integration, npm run test:local-search
 npm run test:ui, lint, typecheck and build. Human usability remains unverified
 without first-time observation of the four approved capture/find/complete tasks.
 
+## Capture provenance — 2026-10-29
+
+New application captures preserve `initialDecisionState` as PENDING or DECIDED.
+It describes the record's entry path, independently of its current state. Editing
+or resolving a question preserves this value. Legacy decided capture clients
+retain their DECIDED default. This field adds no required capture input.
+
+Existing records retain null provenance; it is not reconstructed from their
+title, outcome or timestamps. Historical `decidedAt` remains null when unknown.
+These omissions must be disclosed when presenting question/choice trends, and
+missing recording dates must not be replaced with creation dates.
+
 ## Library convenience — 2026-10-16
 
 Owner-approved web extension: Channel, Owner, Tag and Applies To filters are

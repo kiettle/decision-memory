@@ -1,4 +1,4 @@
-import { Box, Building2, Clock3, FileText, Menu, Settings, ScanSearch } from "lucide-react"
+import { Box, FileText, Gauge, History, Menu, Settings, ScanSearch } from "lucide-react"
 import { useEffect, useState } from "react"
 import { NavLink, Outlet } from "react-router-dom"
 
@@ -20,9 +20,9 @@ import type { Metadata } from "@/types"
 const navigation = [
   { label: "Decisions", icon: FileText, to: "/" },
   { label: "Check a proposal", icon: ScanSearch, to: "/check-proposal" },
+  { label: "Team memory", icon: Gauge, to: "/dashboard" },
   { label: "Scopes", icon: Box, to: "/scopes" },
-  { label: "Changes", icon: Clock3, to: "/changes" },
-  { label: "Recent", icon: Clock3, to: "/recent" },
+  { label: "Changes", icon: History, to: "/changes" },
   { label: "Settings", icon: Settings, to: "/settings" },
 ]
 
@@ -40,9 +40,14 @@ export function AppShell() {
   const [unread, setUnread] = useState(0)
   useEffect(() => {
     let active = true
-    const refresh = () => { void api.notifications().then(feed => {
-      if (active) setUnread(feed.items.filter(item => !item.read).length)
-    }).catch(() => undefined) }
+    let latestRequest = 0
+    const refresh = () => {
+      const request = ++latestRequest
+      void api.notifications().then(feed => {
+        // Polling, focus and read/follow actions can finish out of order.
+        if (active && request === latestRequest) setUnread(feed.items.filter(item => !item.read).length)
+      }).catch(() => undefined)
+    }
     refresh()
     const interval = window.setInterval(refresh, 60000)
     window.addEventListener("focus", refresh)
@@ -98,18 +103,16 @@ export function AppShell() {
       </header>
 
       <aside className="desktop-sidebar">
-        <Brand />
+        <div className="grid gap-1">
+          <Brand />
+          <p className="truncate pr-2.5 pl-[3.125rem] text-[13px] text-muted-foreground">
+            {metadata?.workspace.name}
+          </p>
+        </div>
         <nav className="flex flex-col gap-1" aria-label="Primary navigation">
           <NavigationLinks unread={unread} />
         </nav>
         <div className="mt-auto flex flex-col gap-3">
-          <div className="sidebar-meta">
-            <Building2 aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate text-left">
-              {metadata?.workspace.name}
-            </span>
-          </div>
-          <div className="h-px bg-border" />
           <div className="sidebar-meta">
             <Avatar size="sm">
               <AvatarFallback>{initialsOf(userName)}</AvatarFallback>
@@ -141,33 +144,20 @@ function NavigationLinks({ onNavigate, unread }: { onNavigate?: () => void; unre
     >
       <Icon aria-hidden="true" />
       {label}
-      {to === "/changes" && unread > 0 ? <span aria-label={`${unread} unread changes`}>({unread})</span> : null}
+      {to === "/changes" && unread > 0 ? <span className="sidebar-link-count" aria-label={`${unread} unread changes`}>{unread}</span> : null}
     </NavLink>
   ))
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-3", !compact && "px-3")}>
+    <div className={cn("flex items-center gap-3", !compact && "px-2.5")}>
       <div className="brand-mark" aria-hidden="true">
         <span />
         <span />
       </div>
-      <span
-        className={cn(
-          "text-[17px] leading-[18px] font-bold tracking-[-0.02em]",
-          !compact && "max-w-24"
-        )}
-      >
-        Decision{" "}
-        {compact ? (
-          "Memory"
-        ) : (
-          <>
-            <br />
-            Memory
-          </>
-        )}
+      <span className="text-[16px] leading-5 font-semibold tracking-[-0.01em]">
+        Decision Memory
       </span>
     </div>
   )

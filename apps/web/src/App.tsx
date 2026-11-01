@@ -10,6 +10,7 @@ import { DecisionDetailPage } from "@/pages/decision-detail-page"
 import { DecisionFormPage } from "@/pages/decision-form-page"
 import { LibraryPage } from "@/pages/library-page"
 import { SettingsPage } from "@/pages/settings-page"
+import { DashboardPage } from "@/pages/dashboard-page"
 const ProposalReviewPage = lazy(() => import("@/pages/proposal-review-page").then(module => ({ default: module.ProposalReviewPage })))
 
 export function App() {
@@ -23,6 +24,7 @@ export function App() {
           <Route path="compare" element={<ComparePage />} />
           <Route path="check-proposal" element={<Suspense fallback={<p className="page-frame" role="status">Loading proposal review…</p>}><ProposalReviewPage /></Suspense>} />
           <Route path="recent" element={<LibraryPage key="recent" />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="decisions/new" element={<DecisionFormPage />} />
           <Route path="decisions/:id" element={<DecisionDetailPage />} />

@@ -10,7 +10,9 @@ import { verifySharingViewsUi } from "./verify-sharing-views-ui.mjs"
 import { verifyLibraryWorkflowUi } from "./verify-library-workflow-ui.mjs"
 import { verifyProposalUi } from "./verify-proposal-ui.mjs"
 import { verifyResponsiveUi } from "./verify-responsive-ui.mjs"
-import { verifyProjectMemoryUi } from "./verify-project-memory-ui.mjs"
+import { verifyProjectMemoryUi, verifyUnreadRefreshUi } from "./verify-project-memory-ui.mjs"
+import { verifyUiPolish } from "./verify-ui-polish.mjs"
+import { verifyDashboardUi } from "./verify-dashboard-ui.mjs"
 
 const browser = await chromium.launch({
   executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -136,8 +138,8 @@ try {
   assert.equal(memoryCalls, 1, "Returning to memory results must not rerun semantic search")
   assert.match(await search.inputValue(), /Hồi trước/)
 
-  // Recent has its own state; browser Back still restores the library search.
-  await page.getByRole("link", { name: "Recent", exact: true }).click()
+  // Recent (no longer in the nav, still a route) has its own state; browser Back still restores the library search.
+  await page.evaluate(() => { location.hash = "#/recent" })
   await page.getByRole("heading", { name: "Recent Decisions", exact: true }).waitFor()
   await page.waitForFunction(() => document.querySelectorAll(".decision-row").length === 5)
   assert.equal(await search.inputValue(), "")
@@ -257,10 +259,9 @@ try {
   assert.equal(await mobileNavigation.getByRole("link").count(), 6)
   await page.waitForTimeout(200)
   await page.screenshot({ path: "/private/tmp/decision-memory-mobile-navigation-fixed.png" })
-  await mobileNavigation.getByRole("link", { name: "Recent", exact: true }).click()
+  await mobileNavigation.getByRole("link", { name: "Changes", exact: true }).click()
   await navigationDialog.waitFor({ state: "hidden" })
-  await page.getByRole("heading", { name: "Recent Decisions", exact: true }).waitFor()
-  await page.waitForFunction(() => document.querySelectorAll(".decision-row").length === 5)
+  await page.getByRole("heading", { name: "Changes", exact: true }).waitFor()
   await navigationTrigger.click()
   await mobileNavigation.getByRole("link", { name: "Settings", exact: true }).click()
   await navigationDialog.waitFor({ state: "hidden" })
@@ -394,7 +395,7 @@ try {
   await navigationRacePage.getByRole("textbox", { name: "Search decisions" }).fill("migration")
   await navigationRacePage.getByRole("button", { name: "Find by meaning", exact: true }).click()
   await memoryStartedForNavigation
-  await navigationRacePage.getByRole("link", { name: "Recent", exact: true }).click()
+  await navigationRacePage.evaluate(() => { location.hash = "#/recent" })
   await navigationRacePage.getByRole("heading", { name: "Recent Decisions", exact: true }).waitFor()
   await navigationRacePage.waitForFunction(() => document.querySelectorAll(".decision-row").length === 5)
   const staleNavigationResponse = navigationRacePage.waitForResponse("**/api/decisions/memory-search")
@@ -694,6 +695,9 @@ try {
   await verifyShortcutUi({ browser, models, workspace })
   await verifyResponsiveUi({ browser })
   await verifyProjectMemoryUi({ browser, models, workspace })
+  await verifyUnreadRefreshUi({ browser })
+  await verifyUiPolish({ browser, models, workspace })
+  await verifyDashboardUi({ browser, models, workspace })
   assert.deepEqual(pageErrors, [], `Page errors: ${pageErrors.join(" | ")}`)
   assert.deepEqual(consoleErrors, [], `Console errors: ${consoleErrors.join(" | ")}`)
   console.log("UI QA passed with Playwright/Chrome fallback: independent keyword and memory search, collapsed/expanded evidence, create/edit, desktop and mobile screenshots")

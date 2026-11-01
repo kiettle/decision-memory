@@ -14,6 +14,10 @@ import type {
   IntegrationKey,
   Follow,
   ChangeFeed,
+  Dashboard,
+  DashboardRecordPage,
+  DashboardRecordQuery,
+  SearchEvent,
 } from "@/types"
 
 // The competition demo uses the local web app. Enable only for a verified Forge deployment.
@@ -29,7 +33,7 @@ export class ApiError extends Error {
   }
 }
 
-type Method = "GET" | "POST" | "PUT"
+type Method = "GET" | "POST" | "PUT" | "DELETE"
 
 async function request<T>(
   path: string,
@@ -78,6 +82,14 @@ export const api = {
   notifications: () => request<ChangeFeed>("/api/notifications"),
   readNotifications: (ids: string[]) => request("/api/notifications/read", "PUT", { ids }),
   setImportant: (id: string, important: boolean) => request<Decision>(`/api/decisions/${id}/important`, "PUT", { important }),
+  dashboard: (input: { scope?: string; days: number; asOf: string }) =>
+    request<Dashboard>(`/api/dashboard?${new URLSearchParams(Object.entries(input).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`),
+  dashboardRecords: (input: { scope?: string; days: number; asOf: string } & DashboardRecordQuery) =>
+    request<DashboardRecordPage>(`/api/dashboard/records?${new URLSearchParams(Object.entries(input).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`),
+  setUsageTracking: (enabled: boolean) => request<{ enabled: boolean; retentionDays: number }>("/api/dashboard/tracking", "PUT", { enabled }),
+  deleteSearches: (ids: string[]) => request<{ deleted: number }>("/api/dashboard/searches", "DELETE", { ids }),
+  recordView: (decisionId: string, session: string) => request<{ recorded: boolean }>("/api/usage/views", "POST", { decisionId, session }),
+  recordSearch: (event: SearchEvent) => request<{ recorded: boolean }>("/api/usage/searches", "POST", event),
   integrationSettings: () => request<IntegrationSettings>("/api/settings/integrations"),
   saveIntegrationSettings: (provider: IntegrationProvider, revision: number, changes: Partial<Record<IntegrationKey, string | null>>) =>
     request<IntegrationSettings>(`/api/settings/integrations/${provider}`, "PUT", { revision, changes }),

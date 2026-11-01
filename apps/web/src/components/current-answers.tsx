@@ -25,7 +25,7 @@ function AnswerContent({ ids, scope }: { ids: string[]; scope?: string }) {
     return () => { active = false }
   }, [key, scope, retry, expanded])
   const current = data?.decisions.filter(d => d.status === "ACTIVE" && d.decisionState === "DECIDED" && (!scope || d.appliesTo.includes(scope))) ?? []
-  return <details className="border-y py-3" onToggle={event => setExpanded(event.currentTarget.open)}>
+  return <details className="current-answers" onToggle={event => setExpanded(event.currentTarget.open)}>
     <summary className="cursor-pointer font-semibold">Current answer candidates and evidence</summary>
     {expanded ? <div className="mt-3 grid gap-3 text-sm">
       <p>{scope ? `Exact selected scope: ${scope}.` : "Scope is ambiguous: choose Applies To to narrow your work."} Recorded status and scope do not establish that a choice answers this query.</p>

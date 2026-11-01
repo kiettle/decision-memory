@@ -10,8 +10,8 @@ export async function verifyDiscoveryUi({ browser, models, workspace }) {
   page.on("console", message => { if (message.type() === "error" && !expectedFailure) errors.push(message.text()) })
   page.on("request", request => {
     if (/\/api\/decisions\/[\da-f-]+$/.test(request.url()) && request.method() === "GET") detailCalls++
-    // Review and the automatic related lookup are reads sent as POST.
-    if (["POST", "PUT"].includes(request.method()) && !/(check-proposal|memory-search)$/.test(request.url())) writes++
+    // Review and the automatic related lookup are reads sent as POST; opt-in usage facts are not decision writes.
+    if (["POST", "PUT"].includes(request.method()) && !/(check-proposal|memory-search)$/.test(request.url()) && !request.url().includes("/api/usage/")) writes++
     if (request.url().endsWith("check-proposal")) reviewCalls.push(request.postDataJSON())
   })
   const base = "http://localhost:5173/#"
@@ -632,7 +632,7 @@ export async function verifyRefinedDiscoveryUi({ browser, models, workspace }) {
   page.on("console", message => { if (message.type() === "error" && !expectedFailure) errors.push(message.text()) })
   page.on("request", request => {
     if (/\/api\/decisions\/[\da-f-]+$/.test(request.url()) && request.method() === "GET") detailReads++
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && !request.url().endsWith("memory-search")) writes.push(request.url())
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) && !request.url().endsWith("memory-search") && !request.url().includes("/api/usage/")) writes.push(request.url())
   })
   const create = async input => {
     const response = await page.request.post(`${api}/decisions`, { data: { title: "Refined discovery fixture", tags: ["refined-discovery"], ...input } })

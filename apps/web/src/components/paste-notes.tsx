@@ -10,7 +10,7 @@ export function PasteNotes({ source, onChange, onReview }: {
 }) {
   const notes = source?.excerpt ?? ""
   const candidates = [...new Set(notes.split(/\n+/).map(line => line.trim()).filter(line => line.length >= 3))].slice(0, 12)
-  return <details className="border-y py-4">
+  return <details className="capture-source">
     <summary className="cursor-pointer font-medium">Paste meeting notes or discussion</summary>
     <FieldGroup className="mt-4">
       <Field><FieldLabel htmlFor="notes-origin">Notes origin (your label)</FieldLabel><Input id="notes-origin" maxLength={200} value={source?.origin ?? "Meeting notes"} onChange={e => onChange({ excerpt: notes, origin: e.target.value })} /><FieldDescription>For example: Atlas planning, 29 October. This label does not verify the source.</FieldDescription></Field>
